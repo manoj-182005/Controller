@@ -37,7 +37,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ChatViewHolder
     @Override
     public void onBindViewHolder(ChatViewHolder holder, int position) {
         ChatMessage msg = messages.get(position);
-        
+
         // 1. Style based on sender
         if (msg.isMe) {
             holder.wrapper.setGravity(Gravity.END);

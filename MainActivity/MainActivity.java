@@ -26,8 +26,8 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.constraintlayout.widget.ConstraintLayout;
+//import dynamic_bar.DynamicBarService;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import dynamic_bar.DynamicBarService;
 
 import java.io.File;
 import android.net.Uri;
@@ -691,7 +691,7 @@ public class MainActivity extends AppCompatActivity {
             new Thread(() -> {
                 try {
                     java.net.DatagramSocket sock = new java.net.DatagramSocket();
-                    byte[] buf = ("PAIRED:" + android.os.Build.MODEL).getBytes();
+                    byte[] buf = ("PAIRED:" + Build.MODEL).getBytes();
                     java.net.InetAddress addr = java.net.InetAddress.getByName(ip);
                     java.net.DatagramPacket pkt = new java.net.DatagramPacket(buf, buf.length, addr, 6001);
                     sock.send(pkt);
@@ -784,7 +784,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Check overlay permission (Android 6+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            new androidx.appcompat.app.AlertDialog.Builder(this)
+            new AlertDialog.Builder(this)
                     .setTitle("Overlay Permission Required")
                     .setMessage("The Dynamic Bar needs 'Display over other apps' permission to float on top of your screen.\n\nTap 'Grant' to open settings.")
                     .setPositiveButton("Grant", (d, w) -> {
@@ -890,6 +890,12 @@ public class MainActivity extends AppCompatActivity {
             Intent chatIntent = new Intent(MainActivity.this, ChatActivity.class);
             chatIntent.putExtra("server_ip", connectionManager.getLaptopIp());
             startActivity(chatIntent);
+        });
+
+        // Settings Card
+        findViewById(R.id.cardSettings).setOnClickListener(v -> {
+            Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(settingsIntent);
         });
     }
 
@@ -1156,52 +1162,4 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // ═══ DYNAMIC BAR ═══
-
-    private void toggleDynamicBar() {
-        if (DynamicBarService.isServiceRunning()) {
-            // Stop it
-            Intent stopIntent = new Intent(this, DynamicBarService.class);
-            stopIntent.setAction("STOP_DYNAMIC_BAR");
-            startService(stopIntent);
-            Toast.makeText(this, "Dynamic Bar disabled", Toast.LENGTH_SHORT).show();
-        } else {
-            // Check overlay permission first
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                new AlertDialog.Builder(this)
-                    .setTitle("Overlay Permission Needed")
-                    .setMessage("Dynamic Bar needs \"Display over other apps\" permission to float on your screen.")
-                    .setPositiveButton("Grant", (d, w) -> {
-                        Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                Uri.parse("package:" + getPackageName()));
-                        startActivityForResult(intent, 600);
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
-            } else {
-                startDynamicBarService();
-            }
-        }
-    }
-
-    private void startDynamicBarService() {
-        Intent serviceIntent = new Intent(this, DynamicBarService.class);
-        serviceIntent.putExtra("laptop_ip", connectionManager.getLaptopIp());
-        serviceIntent.putExtra("is_connected", isServerCurrentlyRunning);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
-        Toast.makeText(this, "Dynamic Bar enabled ✨", Toast.LENGTH_SHORT).show();
-    }
-
-    private void updateDynamicBar() {
-        if (DynamicBarService.isServiceRunning()) {
-            DynamicBarService svc = DynamicBarService.getInstance();
-            if (svc != null) {
-                svc.updateConnectionStatus(isServerCurrentlyRunning, connectionManager.getLaptopIp());
-            }
-        }
-    }
 }

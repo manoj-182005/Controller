@@ -11,6 +11,7 @@ import android.widget.*;
 import android.app.AlertDialog;
 import android.text.InputType;
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -141,8 +142,12 @@ public class CalendarActivity extends AppCompatActivity {
         renderMonth();
         refreshEvents();
 
-        // Request sync on open
-        requestCalendarSync();
+        // Request sync on open (only if serverIp is available)
+        if (serverIp != null && !serverIp.isEmpty()) {
+            requestCalendarSync();
+        } else {
+            Log.w(TAG, "serverIp not provided - calendar sync skipped");
+        }
     }
 
     @Override
@@ -633,13 +638,11 @@ public class CalendarActivity extends AppCompatActivity {
     private void sendCommand(String command) {
         if (serverIp == null || serverIp.isEmpty()) return;
         new Thread(() -> {
-            try {
-                DatagramSocket socket = new DatagramSocket();
+            try (DatagramSocket socket = new DatagramSocket()) {
                 byte[] data = command.getBytes("UTF-8");
                 InetAddress address = InetAddress.getByName(serverIp);
                 DatagramPacket packet = new DatagramPacket(data, data.length, address, 6001);
                 socket.send(packet);
-                socket.close();
                 Log.d(TAG, "Sent: " + (command.length() > 100 ?
                         command.substring(0, 100) + "..." : command));
             } catch (Exception e) {
