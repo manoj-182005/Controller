@@ -53,7 +53,7 @@ public class ChatRepository {
         } catch (Exception e) { e.printStackTrace(); }
         return messages;
     }
-
+    
     /**
      * Merge incoming messages (from PC sync) with existing local messages.
      * Deduplicates by message ID. Returns the merged list.
@@ -74,7 +74,6 @@ public class ChatRepository {
         }
 
         if (added > 0) {
-            // Sort by timestamp
             local.sort((a, b) -> Long.compare(a.timestamp, b.timestamp));
         }
 

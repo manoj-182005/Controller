@@ -9,7 +9,6 @@ import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
 import android.media.AudioManager;
@@ -47,7 +46,6 @@ public class ReverseCommandListener {
     private final Context context;
     private final Handler mainHandler;
     private DatagramSocket listenSocket;
-    private DatagramSocket sendSocket;
     private boolean running = false;
     private String serverIp;
 
@@ -140,10 +138,6 @@ public class ReverseCommandListener {
         running = false;
         if (listenSocket != null && !listenSocket.isClosed()) {
             listenSocket.close();
-        }
-        if (sendSocket != null && !sendSocket.isClosed()) {
-            sendSocket.close();
-            sendSocket = null;
         }
         if (tts != null) {
             tts.shutdown();
@@ -296,54 +290,12 @@ public class ReverseCommandListener {
                 // Acknowledgment from PC that task was added
                 Log.i(TAG, "PC confirmed task add: " + command.substring(11));
 
-            } else if (command.startsWith("TASK_REMINDER:")) {
-                // TASK_REMINDER:id:title:due_time — PC reminder engine fired
-                String[] parts = command.substring(14).split(":", 3);
-                long taskId = -1;
-                try { taskId = Long.parseLong(parts[0]); } catch (NumberFormatException ignored) {}
-                String title = parts.length > 1 ? parts[1] : "Task Due";
-                String dueTime = parts.length > 2 ? parts[2] : "";
-                Log.i(TAG, "Task reminder from PC: " + title + " at " + dueTime);
-
-                // Fire the same notification as the local AlarmManager would
-                Intent reminderIntent = new Intent(context, TaskReminderReceiver.class);
-                reminderIntent.putExtra(TaskReminderReceiver.EXTRA_TASK_ID, taskId);
-                reminderIntent.putExtra(TaskReminderReceiver.EXTRA_TASK_TITLE, title);
-                reminderIntent.putExtra(TaskReminderReceiver.EXTRA_TASK_DUE_TIME, dueTime);
-                context.sendBroadcast(reminderIntent);
-
             } else if (command.startsWith("TASKS:")) {
                 // Response to TASK_LIST request
                 String tasksJson = command.substring(6);
                 TaskManagerActivity taskActivity = TaskManagerActivity.getInstance();
                 if (taskActivity != null) {
                     taskActivity.onTasksSyncReceived(tasksJson);
-                }
-
-            } else if (command.startsWith("SYNC_DELTA:")) {
-                // Incremental sync response (only changed items)
-                String deltaJson = command.substring(11);
-                Log.i(TAG, "Received sync delta from PC");
-                TaskManagerActivity taskActivity = TaskManagerActivity.getInstance();
-                if (taskActivity != null) {
-                    taskActivity.onSyncDeltaReceived(deltaJson);
-                } else {
-                    showNotification("Data Synced", "Offline changes synchronized");
-                }
-
-                // Also extract chat delta and broadcast it
-                try {
-                    org.json.JSONObject delta = new org.json.JSONObject(deltaJson);
-                    org.json.JSONArray chatArray = delta.optJSONArray("chat");
-                    if (chatArray != null && chatArray.length() > 0) {
-                        Intent chatIntent = new Intent("com.prajwal.myfirstapp.CHAT_EVENT");
-                        chatIntent.putExtra("type", "sync");
-                        chatIntent.putExtra("content", chatArray.toString());
-                        LocalBroadcastManager.getInstance(context).sendBroadcast(chatIntent);
-                        Log.i(TAG, "Broadcast " + chatArray.length() + " chat message(s) from delta");
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Delta chat extract error: " + e.getMessage());
                 }
 
             // ─── NOTES COMMANDS ──────────────────────────────────
@@ -435,24 +387,6 @@ public class ReverseCommandListener {
                 } else {
                     showNotification("Event Deleted", "A calendar event was removed from PC");
                 }
-
-            // ─── CHAT COMMANDS ───────────────────────────────────────
-            } else if (command.startsWith("CHAT_MSG:")) {
-                String chatContent = command.substring(9);
-                Log.i(TAG, "Chat from PC: " + chatContent.substring(0, Math.min(60, chatContent.length())));
-                Intent intent = new Intent("com.prajwal.myfirstapp.CHAT_EVENT");
-                intent.putExtra("type", "text");
-                intent.putExtra("content", chatContent);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-
-            } else if (command.startsWith("CHAT_SYNC:")) {
-                // Bulk chat sync — JSON array of missed messages from PC
-                String chatJson = command.substring(10);
-                Log.i(TAG, "Received chat sync from PC");
-                Intent intent = new Intent("com.prajwal.myfirstapp.CHAT_EVENT");
-                intent.putExtra("type", "sync");
-                intent.putExtra("content", chatJson);
-                LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 
             // ─── NOTIFICATION MIRROR COMMANDS ───────────────────────
             } else if (command.startsWith("NOTIF_DISMISS:")) {
@@ -733,27 +667,14 @@ public class ReverseCommandListener {
         if (serverIp == null) return;
         new Thread(() -> {
             try {
-                synchronized (this) {
-                    if (sendSocket == null || sendSocket.isClosed()) {
-                        sendSocket = new DatagramSocket();
-                    }
-                }
+                DatagramSocket socket = new DatagramSocket();
                 byte[] buf = message.getBytes();
                 InetAddress address = InetAddress.getByName(serverIp);
                 DatagramPacket packet = new DatagramPacket(buf, buf.length, address, RESPONSE_PORT);
-                synchronized (this) {
-                    if (sendSocket != null && !sendSocket.isClosed()) {
-                        sendSocket.send(packet);
-                    }
-                }
+                socket.send(packet);
+                socket.close();
             } catch (Exception e) {
-                // Reset socket on error so it gets recreated
-                synchronized (this) {
-                    if (sendSocket != null) {
-                        sendSocket.close();
-                        sendSocket = null;
-                    }
-                }
+                // Silently fail for heartbeats
             }
         }).start();
     }

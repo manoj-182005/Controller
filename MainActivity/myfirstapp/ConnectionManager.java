@@ -20,6 +20,7 @@ import android.util.Log;
 
 
 
+
 public class ConnectionManager {
 
     private String laptopIp;
@@ -488,7 +489,7 @@ public class ConnectionManager {
                 if (!sent) outbox.enqueue(command);
             } else {
                 outbox.enqueue(command);
-                android.util.Log.w("ConnectionManager",
+                Log.w("ConnectionManager",
                         "Offline — queued: " + command.substring(0, Math.min(60, command.length())));
             }
         }).start();
@@ -540,9 +541,9 @@ public class ConnectionManager {
         new Thread(() -> {
             if (isServerReachable()) {
                 sendCommandSync(cmd);
-                android.util.Log.i("ConnectionManager", "Handshake sent: " + cmd);
+                Log.i("ConnectionManager", "Handshake sent: " + cmd);
             } else {
-                android.util.Log.w("ConnectionManager", "Handshake skipped — server unreachable");
+                Log.w("ConnectionManager", "Handshake skipped — server unreachable");
             }
         }).start();
     }
@@ -565,7 +566,7 @@ public class ConnectionManager {
                 boolean now = isServerReachable();
 
                 if (!was && now && outbox != null && outbox.getPendingCount() > 0) {
-                    android.util.Log.i("ConnectionManager",
+                    Log.i("ConnectionManager",
                             "Server back online — flushing outbox ("
                             + outbox.getPendingCount() + " items)");
                     outbox.flush(this, null);

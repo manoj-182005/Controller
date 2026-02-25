@@ -74,15 +74,7 @@ public class NotesActivity extends AppCompatActivity {
         instance = this;
 
         serverIp = getIntent().getStringExtra("server_ip");
-        if (serverIp == null) {
-            serverIp = getSharedPreferences("app_prefs", MODE_PRIVATE)
-                    .getString("last_server_ip", null);
-        }
-        if (serverIp == null) {
-            Toast.makeText(this, "No server IP configured", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
+        if (serverIp == null) serverIp = "10.190.76.54";
         connectionManager = new ConnectionManager(serverIp);
 
         initViews();
@@ -243,7 +235,7 @@ public class NotesActivity extends AppCompatActivity {
     }
 
     private JSONArray findFolderChildren(JSONArray items, String folderId) throws JSONException {
-        if (items == null) return null;
+        if (items == null) return new JSONArray();
         for (int i = 0; i < items.length(); i++) {
             JSONObject obj = items.getJSONObject(i);
             if (obj.optString("id").equals(folderId)) {

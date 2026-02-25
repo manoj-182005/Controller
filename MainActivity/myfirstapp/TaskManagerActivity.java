@@ -34,14 +34,16 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-
-import android.app.AlarmManager;
 
 /**
  * Task Manager Activity — Synchronized bidirectional task management.
@@ -66,17 +68,13 @@ import android.app.AlarmManager;
 public class TaskManagerActivity extends AppCompatActivity {
 
     private static final String TAG = "TaskManager";
-    private static final String PREFS_NAME   = "task_manager_prefs";
-    private static final String TASKS_KEY    = "tasks_json";
-    private static final String CHANNEL_ID   = "task_notifications";
-    // Key that stores the ISO timestamp of the most recently synced task
-    private static final String LAST_SYNC_TS = "last_sync_ts";
-    private static final String EPOCH_TS     = "1970-01-01T00:00:00";
+    private static final String PREFS_NAME = "task_manager_prefs";
+    private static final String TASKS_KEY = "tasks_json";
+    private static final String CHANNEL_ID = "task_notifications";
 
     private ListView taskListView;
     private TaskAdapter taskAdapter;
-    private final List<TaskItem> tasks = new ArrayList<>();
-    private final Object tasksLock = new Object();
+    private List<TaskItem> tasks = new ArrayList<>();
 
     private EditText etTaskTitle;
     private Spinner spinnerPriority;
@@ -104,30 +102,16 @@ public class TaskManagerActivity extends AppCompatActivity {
 
         // Get server IP from intent
         serverIp = getIntent().getStringExtra("server_ip");
-        if (serverIp == null) {
-            serverIp = getSharedPreferences("app_prefs", MODE_PRIVATE)
-                    .getString("last_server_ip", null);
-        }
-        if (serverIp == null) {
-            Toast.makeText(this, "No server IP configured", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
+        if (serverIp == null) serverIp = "10.190.76.54";
         connectionManager = new ConnectionManager(serverIp);
 
         createNotificationChannel();
         initViews();
         loadTasks();
-        scheduleAllPendingAlarms();
         refreshList();
 
-        // Initialise the offline outbox so failed sends are queued automatically
-        connectionManager.initOutbox(this);
-
-        // Perform a delta handshake: only fetch tasks we are missing
-        String lastSyncTs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                .getString(LAST_SYNC_TS, EPOCH_TS);
-        connectionManager.performHandshake(this, lastSyncTs);
+        // Request sync from PC on open
+        connectionManager.sendCommand("TASK_SYNC");
     }
 
     @Override
@@ -163,9 +147,7 @@ public class TaskManagerActivity extends AppCompatActivity {
 
         // Sync
         btnSyncTasks.setOnClickListener(v -> {
-            String lastSyncTs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                    .getString(LAST_SYNC_TS, EPOCH_TS);
-            connectionManager.performHandshake(this, lastSyncTs);
+            connectionManager.sendCommand("TASK_SYNC");
             Toast.makeText(this, "Syncing tasks...", Toast.LENGTH_SHORT).show();
         });
 
@@ -208,24 +190,22 @@ public class TaskManagerActivity extends AppCompatActivity {
 
         String priority = spinnerPriority.getSelectedItem().toString();
 
-        synchronized (tasksLock) {
-            TaskItem task = new TaskItem();
-            task.id = System.currentTimeMillis();
-            task.title = title;
-            task.priority = priority;
-            task.dueDate = selectedDueDate;
-            task.dueTime = selectedDueTime;
-            task.completed = false;
-            task.source = "mobile";
-            task.createdAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(new Date());
-            task.lastModified = task.createdAt;
+        // Create local task
+        TaskItem task = new TaskItem();
+        task.id = System.currentTimeMillis();
+        task.title = title;
+        task.priority = priority;
+        task.dueDate = selectedDueDate;
+        task.dueTime = selectedDueTime;
+        task.completed = false;
+        task.source = "mobile";
+        task.createdAt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(new Date());
 
-            tasks.add(task);
-            saveTasks();
-        }
+        tasks.add(task);
+        saveTasks();
         refreshList();
 
-        // Send to PC via reliable data channel (queued if offline)
+        // Send to PC: TASK_ADD:title:priority:due_date:due_time
         StringBuilder cmd = new StringBuilder("TASK_ADD:" + title + ":" + priority);
         if (selectedDueDate != null) {
             cmd.append(":").append(selectedDueDate);
@@ -233,12 +213,7 @@ public class TaskManagerActivity extends AppCompatActivity {
                 cmd.append(":").append(selectedDueTime);
             }
         }
-        connectionManager.sendDataCommand(this, cmd.toString());
-
-        // Schedule local alarm for the new task
-        synchronized (tasksLock) {
-            scheduleTaskReminder(tasks.get(tasks.size() - 1));
-        }
+        connectionManager.sendCommand(cmd.toString());
 
         // Clear inputs
         etTaskTitle.setText("");
@@ -251,41 +226,32 @@ public class TaskManagerActivity extends AppCompatActivity {
     }
 
     private void completeTask(TaskItem task) {
-        synchronized (tasksLock) {
-            task.completed = true;
-            task.lastModified = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(new Date());
-            saveTasks();
-        }
-        cancelTaskReminder(task.id);
+        task.completed = true;
+        saveTasks();
         refreshList();
 
-        // Notify PC via reliable data channel
-        connectionManager.sendDataCommand(this, "TASK_COMPLETE:" + task.id);
+        // Notify PC
+        connectionManager.sendCommand("TASK_COMPLETE:" + task.id);
     }
 
     private void deleteTask(TaskItem task) {
-        synchronized (tasksLock) {
-            tasks.remove(task);
-            saveTasks();
-        }
-        cancelTaskReminder(task.id);
+        tasks.remove(task);
+        saveTasks();
         refreshList();
 
-        // Notify PC via reliable data channel
-        connectionManager.sendDataCommand(this, "TASK_DELETE:" + task.id);
+        // Notify PC
+        connectionManager.sendCommand("TASK_DELETE:" + task.id);
     }
 
     private void clearCompletedTasks() {
         int removed = 0;
-        synchronized (tasksLock) {
-            for (int i = tasks.size() - 1; i >= 0; i--) {
-                if (tasks.get(i).completed) {
-                    tasks.remove(i);
-                    removed++;
-                }
+        for (int i = tasks.size() - 1; i >= 0; i--) {
+            if (tasks.get(i).completed) {
+                tasks.remove(i);
+                removed++;
             }
-            saveTasks();
         }
+        saveTasks();
         refreshList();
         Toast.makeText(this, "Cleared " + removed + " completed tasks", Toast.LENGTH_SHORT).show();
     }
@@ -298,135 +264,31 @@ public class TaskManagerActivity extends AppCompatActivity {
     public void onTasksSyncReceived(String tasksJson) {
         try {
             JSONArray jsonArray = new JSONArray(tasksJson);
-            String latestTs = EPOCH_TS;
+            tasks.clear();
 
-            synchronized (tasksLock) {
-                tasks.clear();
-
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject obj = jsonArray.getJSONObject(i);
-                    TaskItem task = new TaskItem();
-                    task.id = obj.optLong("id", System.currentTimeMillis());
-                    task.title = obj.optString("title", "Untitled");
-                    task.completed = obj.optBoolean("completed", false);
-                    task.priority = obj.optString("priority", "normal");
-                    task.dueDate = obj.optString("due_date", null);
-                    task.dueTime = obj.optString("due_time", null);
-                    task.source = obj.optString("source", "pc");
-                    task.createdAt = obj.optString("created_at", "");
-                    task.lastModified = obj.optString("last_modified", task.createdAt);
-                    if ("null".equals(task.dueDate)) task.dueDate = null;
-                    if ("null".equals(task.dueTime)) task.dueTime = null;
-                    tasks.add(task);
-
-                    if (task.lastModified != null && task.lastModified.compareTo(latestTs) > 0) {
-                        latestTs = task.lastModified;
-                    }
-                }
-
-                saveTasks();
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject obj = jsonArray.getJSONObject(i);
+                TaskItem task = new TaskItem();
+                task.id = obj.optLong("id", System.currentTimeMillis());
+                task.title = obj.optString("title", "Untitled");
+                task.completed = obj.optBoolean("completed", false);
+                task.priority = obj.optString("priority", "normal");
+                task.dueDate = obj.optString("due_date", null);
+                task.dueTime = obj.optString("due_time", null);
+                task.source = obj.optString("source", "pc");
+                task.createdAt = obj.optString("created_at", "");
+                if ("null".equals(task.dueDate)) task.dueDate = null;
+                if ("null".equals(task.dueTime)) task.dueTime = null;
+                tasks.add(task);
             }
+
+            saveTasks();
             runOnUiThread(this::refreshList);
             runOnUiThread(() -> Toast.makeText(this, "Tasks synced from PC!", Toast.LENGTH_SHORT).show());
-            Log.i(TAG, "Synced " + jsonArray.length() + " tasks from PC");
-
-            // Schedule alarms for all synced tasks with due dates
-            synchronized (tasksLock) {
-                for (TaskItem task : tasks) {
-                    scheduleTaskReminder(task);
-                }
-            }
-
-            updateLastSyncTimestamp(latestTs);
+            Log.i(TAG, "Synced " + tasks.size() + " tasks from PC");
 
         } catch (JSONException e) {
             Log.e(TAG, "Sync parse error: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Called from ReverseCommandListener when PC sends SYNC_DELTA:{json}
-     * 
-     * Delta contains only tasks that were modified since our last sync.
-     * We merge them with our local data using last-write-wins conflict resolution.
-     */
-    public void onSyncDeltaReceived(String deltaJson) {
-        try {
-            JSONObject delta = new JSONObject(deltaJson);
-            JSONArray deltaTasks = delta.optJSONArray("tasks");
-
-            if (deltaTasks == null || deltaTasks.length() == 0) {
-                Log.i(TAG, "No task changes in delta");
-                return;
-            }
-
-            String latestTs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                    .getString(LAST_SYNC_TS, EPOCH_TS);
-
-            synchronized (tasksLock) {
-                for (int i = 0; i < deltaTasks.length(); i++) {
-                    JSONObject obj = deltaTasks.getJSONObject(i);
-                    TaskItem serverTask = new TaskItem();
-                    serverTask.id = obj.optLong("id", System.currentTimeMillis());
-                    serverTask.title = obj.optString("title", "Untitled");
-                    serverTask.completed = obj.optBoolean("completed", false);
-                    serverTask.priority = obj.optString("priority", "normal");
-                    serverTask.dueDate = obj.optString("due_date", null);
-                    serverTask.dueTime = obj.optString("due_time", null);
-                    serverTask.source = obj.optString("source", "pc");
-                    serverTask.createdAt = obj.optString("created_at", "");
-                    serverTask.lastModified = obj.optString("last_modified", serverTask.createdAt);
-                    if ("null".equals(serverTask.dueDate)) serverTask.dueDate = null;
-                    if ("null".equals(serverTask.dueTime)) serverTask.dueTime = null;
-
-                    boolean found = false;
-                    for (int j = 0; j < tasks.size(); j++) {
-                        TaskItem localTask = tasks.get(j);
-                        if (localTask.id == serverTask.id) {
-                            found = true;
-                            if (serverTask.lastModified.compareTo(localTask.lastModified) > 0) {
-                                tasks.set(j, serverTask);
-                                Log.i(TAG, "Updated task from server: " + serverTask.title);
-                            } else {
-                                Log.i(TAG, "Kept local version (newer): " + localTask.title);
-                            }
-                            break;
-                        }
-                    }
-
-                    if (!found) {
-                        tasks.add(serverTask);
-                        Log.i(TAG, "Added new task from server: " + serverTask.title);
-                    }
-
-                    if (serverTask.lastModified != null && serverTask.lastModified.compareTo(latestTs) > 0) {
-                        latestTs = serverTask.lastModified;
-                    }
-                }
-
-                saveTasks();
-            }
-
-            final int count = deltaTasks.length();
-            runOnUiThread(this::refreshList);
-            runOnUiThread(() -> Toast.makeText(this, "Synced " + count +
-                    " change(s) from PC", Toast.LENGTH_SHORT).show());
-
-            // Schedule alarms for any delta tasks that have due dates
-            synchronized (tasksLock) {
-                for (TaskItem task : tasks) {
-                    if (task.completed) {
-                        cancelTaskReminder(task.id);
-                    } else {
-                        scheduleTaskReminder(task);
-                    }
-                }
-            }
-
-            updateLastSyncTimestamp(latestTs);
-
-        } catch (JSONException e) {
-            Log.e(TAG, "Delta parse error: " + e.getMessage());
         }
     }
 
@@ -461,20 +323,6 @@ public class TaskManagerActivity extends AppCompatActivity {
             showLocalNotification("Task Deleted", "A task was removed from PC");
             connectionManager.sendCommand("TASK_SYNC");
         });
-    }
-
-    /**
-     * Update the last sync timestamp in SharedPreferences.
-     * This is used for delta handshakes to only fetch changes since this time.
-     */
-    private void updateLastSyncTimestamp(String timestamp) {
-        if (timestamp != null && !timestamp.equals(EPOCH_TS)) {
-            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                    .edit()
-                    .putString(LAST_SYNC_TS, timestamp)
-                    .apply();
-            Log.i(TAG, "Updated last sync timestamp: " + timestamp);
-        }
     }
 
     // ─── LOCAL NOTIFICATIONS ───────────────────────────────────
@@ -518,7 +366,6 @@ public class TaskManagerActivity extends AppCompatActivity {
                 obj.put("due_time", task.dueTime);
                 obj.put("source", task.source);
                 obj.put("created_at", task.createdAt);
-                obj.put("last_modified", task.lastModified);
                 jsonArray.put(obj);
             }
 
@@ -549,7 +396,6 @@ public class TaskManagerActivity extends AppCompatActivity {
                 task.dueTime = obj.optString("due_time", null);
                 task.source = obj.optString("source", "mobile");
                 task.createdAt = obj.optString("created_at", "");
-                task.lastModified = obj.optString("last_modified", task.createdAt);
                 if ("null".equals(task.dueDate)) task.dueDate = null;
                 if ("null".equals(task.dueTime)) task.dueTime = null;
                 tasks.add(task);
@@ -559,39 +405,22 @@ public class TaskManagerActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Re-schedule alarms for all incomplete tasks with due dates on app open.
-     * Ensures alarms are always active even if the app was force-stopped.
-     */
-    private void scheduleAllPendingAlarms() {
-        synchronized (tasksLock) {
-            for (TaskItem task : tasks) {
-                if (!task.completed) {
-                    scheduleTaskReminder(task);
-                }
-            }
-        }
-    }
-
     // ─── REFRESH LIST ──────────────────────────────────────────
 
     private void refreshList() {
-        synchronized (tasksLock) {
-            tasks.sort((a, b) -> {
-                if (a.completed != b.completed) return a.completed ? 1 : -1;
-                int pa = priorityValue(a.priority);
-                int pb = priorityValue(b.priority);
-                if (pa != pb) return pa - pb;
-                return a.createdAt.compareTo(b.createdAt);
-            });
-        }
+        // Sort: incomplete first, then by priority, then by date
+        tasks.sort((a, b) -> {
+            if (a.completed != b.completed) return a.completed ? 1 : -1;
+            int pa = priorityValue(a.priority);
+            int pb = priorityValue(b.priority);
+            if (pa != pb) return pa - pb;
+            return a.createdAt.compareTo(b.createdAt);
+        });
 
         taskAdapter.notifyDataSetChanged();
 
         long pending = 0;
-        synchronized (tasksLock) {
-            for (TaskItem t : tasks) if (!t.completed) pending++;
-        }
+        for (TaskItem t : tasks) if (!t.completed) pending++;
         tvTaskCount.setText(pending + " pending / " + tasks.size() + " total");
     }
 
@@ -615,31 +444,6 @@ public class TaskManagerActivity extends AppCompatActivity {
         String dueTime;     // "HH:MM" or null
         String source;      // "pc" or "mobile"
         String createdAt;
-        String lastModified; // ISO-8601 timestamp for conflict resolution
-    }
-
-    // ─── ALARM SCHEDULING ──────────────────────────────────────
-
-    /**
-     * Schedule an AlarmManager alarm for a task if it has a future due_date + due_time.
-     */
-    private void scheduleTaskReminder(TaskItem task) {
-        if (task.dueDate == null || task.dueTime == null || task.completed) return;
-
-        Calendar cal = TaskAlarmHelper.parseDateTime(task.dueDate, task.dueTime);
-        if (cal == null) return;
-
-        // Only schedule if the due time is in the future
-        if (cal.getTimeInMillis() <= System.currentTimeMillis()) return;
-
-        TaskAlarmHelper.scheduleAlarm(this, task.id, task.title, task.dueDate, task.dueTime, cal);
-    }
-
-    /**
-     * Cancel the alarm for a task (when completed or deleted).
-     */
-    private void cancelTaskReminder(long taskId) {
-        TaskAlarmHelper.cancelAlarm(this, taskId);
     }
 
     // ─── LIST ADAPTER ──────────────────────────────────────────
