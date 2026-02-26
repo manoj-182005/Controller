@@ -33,6 +33,15 @@ public class BootReceiver extends BroadcastReceiver {
 
         Log.i(TAG, "Device booted — rescheduling task reminders");
 
+        // Use new TaskNotificationHelper for v2 tasks
+        try {
+            TaskNotificationHelper.rescheduleAllReminders(context);
+            Log.i(TAG, "Rescheduled v2 task reminders");
+        } catch (Exception e) {
+            Log.e(TAG, "Error rescheduling v2 task alarms: " + e.getMessage());
+        }
+
+        // Legacy fallback: reschedule old-format tasks if any exist
         SharedPreferences prefs = context.getSharedPreferences("task_manager_prefs", Context.MODE_PRIVATE);
         String json = prefs.getString("tasks_json", "[]");
 

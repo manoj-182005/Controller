@@ -67,6 +67,36 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Task Categories Activity -->
+        <activity
+            android:name=".TaskCategoriesActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Task Trash Activity -->
+        <activity
+            android:name=".TaskTrashActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Task Detail Activity -->
+        <activity
+            android:name=".TaskDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Task Stats / Productivity Activity -->
+        <activity
+            android:name=".TaskStatsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Task Search Activity -->
+        <activity
+            android:name=".TaskSearchActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Notes Activity -->
         <activity
             android:name=".NotesActivity"
@@ -173,7 +203,13 @@
         <!-- Task Reminder Alarm Receiver -->
         <receiver
             android:name=".TaskReminderReceiver"
-            android:exported="false" />
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.ACTION_MARK_COMPLETE" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_SNOOZE_15" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_SNOOZE_1H" />
+            </intent-filter>
+        </receiver>
 
         <!-- Note Reminder Alarm Receiver -->
         <receiver
