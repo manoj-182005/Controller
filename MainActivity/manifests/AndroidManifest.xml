@@ -73,6 +73,31 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Notes Archive Activity -->
+        <activity
+            android:name=".NotesArchiveActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Notes Trash Activity -->
+        <activity
+            android:name=".NotesTrashActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Tags Manager Activity -->
+        <activity
+            android:name=".TagsManagerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Note Editor Activity -->
+        <activity
+            android:name=".NoteEditorActivity"
+            android:configChanges="orientation|screenSize"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Chat Activity -->
         <activity
             android:name=".ChatActivity"
@@ -149,6 +174,17 @@
         <receiver
             android:name=".TaskReminderReceiver"
             android:exported="false" />
+
+        <!-- Note Reminder Alarm Receiver -->
+        <receiver
+            android:name=".NoteReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.NOTE_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.DISMISS_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.SNOOZE_REMINDER" />
+            </intent-filter>
+        </receiver>
 
         <!-- Boot Receiver — reschedules task alarms after reboot -->
         <receiver

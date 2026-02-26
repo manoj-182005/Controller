@@ -66,7 +66,16 @@ public class BootReceiver extends BroadcastReceiver {
             Log.i(TAG, "Rescheduled " + scheduled + " task reminder(s)");
 
         } catch (Exception e) {
-            Log.e(TAG, "Error rescheduling alarms: " + e.getMessage());
+            Log.e(TAG, "Error rescheduling task alarms: " + e.getMessage());
+        }
+
+        // Also reschedule note reminders
+        try {
+            NoteReminderManager noteReminderManager = new NoteReminderManager(context);
+            noteReminderManager.rescheduleAllReminders();
+            Log.i(TAG, "Rescheduled note reminders");
+        } catch (Exception e) {
+            Log.e(TAG, "Error rescheduling note reminders: " + e.getMessage());
         }
     }
 }
