@@ -43,6 +43,7 @@ public class HubFileBrowserActivity extends AppCompatActivity {
     private static final int VIEW_GRID = 0;
     private static final int VIEW_LIST = 1;
     private static final int VIEW_TIMELINE = 2;
+    private static final int GRID_NAME_MAX_CHARS = 14;
 
     private HubFileRepository repo;
 
@@ -525,7 +526,7 @@ public class HubFileBrowserActivity extends AppCompatActivity {
             cell.addView(emoji);
 
             String display = file.displayName != null ? file.displayName : file.originalFileName;
-            if (display != null && display.length() > 14) display = display.substring(0, 12) + "…";
+            if (display != null && display.length() > GRID_NAME_MAX_CHARS) display = display.substring(0, GRID_NAME_MAX_CHARS - 2) + "…";
             TextView name = new TextView(context);
             name.setText(display != null ? display : "File");
             name.setTextColor(Color.parseColor("#E2E8F0"));

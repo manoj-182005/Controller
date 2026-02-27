@@ -237,7 +237,11 @@ public class HubDuplicateManagerActivity extends AppCompatActivity {
         if (files.isEmpty()) return;
         HubFile newest = files.get(0);
         for (HubFile f : files) {
-            if (f.originalModifiedAt > newest.originalModifiedAt) newest = f;
+            if (f.originalModifiedAt > newest.originalModifiedAt
+                    || (f.originalModifiedAt == newest.originalModifiedAt
+                        && f.id.compareTo(newest.id) > 0)) {
+                newest = f;
+            }
         }
         final HubFile keep = newest;
         for (HubFile f : files) {

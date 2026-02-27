@@ -33,6 +33,7 @@ import java.util.Enumeration;
 public class HubFileViewerActivity extends AppCompatActivity {
 
     public static final String EXTRA_FILE_ID = "file_id";
+    private static final int MAX_FILE_LINES = 5000;
 
     private HubFileRepository repo;
     private HubFile file;
@@ -370,11 +371,11 @@ public class HubFileViewerActivity extends AppCompatActivity {
             StringBuilder sb = new StringBuilder();
             String line;
             int lineCount = 0;
-            while ((line = reader.readLine()) != null && lineCount < 5000) {
+            while ((line = reader.readLine()) != null && lineCount < MAX_FILE_LINES) {
                 sb.append(line).append("\n");
                 lineCount++;
             }
-            if (lineCount >= 5000) sb.append("\n... (file truncated at 5000 lines)");
+            if (lineCount >= MAX_FILE_LINES) sb.append("\n... (file truncated at " + MAX_FILE_LINES + " lines)");
             return sb.toString();
         } catch (Exception e) {
             return null;

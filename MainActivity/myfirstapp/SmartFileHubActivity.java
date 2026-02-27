@@ -190,7 +190,7 @@ public class SmartFileHubActivity extends AppCompatActivity {
         // View all activity
         findViewById(R.id.btnViewAllActivity).setOnClickListener(v -> {
             Intent i = new Intent(this, HubFileBrowserActivity.class);
-            i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Recent Files");
+            i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Activity Log");
             i.putExtra(HubFileBrowserActivity.EXTRA_RECENT_ONLY, true);
             startActivity(i);
         });
