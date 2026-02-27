@@ -37,6 +37,7 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final Context context;
     private final List<Object> items;      // mix of GroupHeader and Task
     private final TaskActionListener listener;
+    private int lastAnimatedPosition = -1; // Track animated positions
 
     // ─── Listener Interface ──────────────────────────────────────
 
@@ -135,6 +136,7 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     public void setTasks(List<Task> tasks) {
         items.clear();
         items.addAll(tasks);
+        lastAnimatedPosition = -1;
         notifyDataSetChanged();
     }
 
@@ -148,6 +150,7 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             items.add(header);
             items.addAll(entry.getValue());
         }
+        lastAnimatedPosition = -1;
         notifyDataSetChanged();
     }
 
@@ -271,12 +274,14 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
         });
 
-        // Priority strip color
+        // Priority strip — vibrant gradient bar
         try {
             GradientDrawable strip = new GradientDrawable();
             strip.setShape(GradientDrawable.RECTANGLE);
             strip.setCornerRadius(4f);
-            strip.setColor(task.getPriorityColor());
+            int[] gradientColors = getPriorityGradientColors(task.priority);
+            strip.setColors(gradientColors);
+            strip.setOrientation(GradientDrawable.Orientation.TOP_BOTTOM);
             h.viewPriorityStrip.setBackground(strip);
         } catch (Exception ignored) {}
 
@@ -384,6 +389,30 @@ public class TaskAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.itemView.setAlpha(task.isCompleted() ? 0.5f : 1.0f);
         } else {
             h.itemView.setAlpha(1.0f);
+        }
+
+        // Staggered entrance animation — only on first appearance
+        int position = h.getAdapterPosition();
+        if (position > lastAnimatedPosition) {
+            h.itemView.setTranslationY(30f);
+            h.itemView.animate()
+                    .translationY(0f)
+                    .alpha(h.itemView.getAlpha())
+                    .setDuration(300)
+                    .setStartDelay((long) Math.min(position, 10) * 40)
+                    .start();
+            lastAnimatedPosition = position;
+        }
+    }
+
+    private int[] getPriorityGradientColors(String priority) {
+        if (priority == null) return new int[]{Color.parseColor("#6B7280"), Color.parseColor("#4B5563")};
+        switch (priority) {
+            case "URGENT": return new int[]{Color.parseColor("#EF4444"), Color.parseColor("#DC2626")};
+            case "HIGH":   return new int[]{Color.parseColor("#F97316"), Color.parseColor("#EA580C")};
+            case "NORMAL": return new int[]{Color.parseColor("#3B82F6"), Color.parseColor("#2563EB")};
+            case "LOW":    return new int[]{Color.parseColor("#9CA3AF"), Color.parseColor("#6B7280")};
+            default:       return new int[]{Color.parseColor("#6B7280"), Color.parseColor("#4B5563")};
         }
     }
 
