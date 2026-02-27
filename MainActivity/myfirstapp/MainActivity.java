@@ -1798,7 +1798,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Smart File Hub subtitle
         try {
-            HubFileRepository hubRepo = new HubFileRepository(this);
+            HubFileRepository hubRepo = HubFileRepository.getInstance(this);
             int fileCount = hubRepo.getAllFiles().size();
             TextView tvHub = findViewById(R.id.tvFileHubSubtitle);
             if (tvHub != null) {
@@ -1814,9 +1814,8 @@ public class MainActivity extends AppCompatActivity {
     private void updateLaptopConnectionDot() {
         View dot = findViewById(R.id.laptopConnectionDot);
         if (dot != null) {
-            android.graphics.drawable.Drawable d = androidx.core.content.ContextCompat.getDrawable(this,
-                isServerCurrentlyRunning ? R.drawable.connection_dot_green : R.drawable.connection_dot_red);
-            if (d != null) dot.setBackground(d);
+            dot.setBackgroundResource(isServerCurrentlyRunning ?
+                R.drawable.connection_dot_green : R.drawable.connection_dot_red);
         }
     }
 
