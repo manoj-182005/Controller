@@ -145,6 +145,16 @@ public class NoteEditorActivity extends AppCompatActivity {
 
     private Vibrator vibrator;
 
+    // Smart features
+    private NoteTemplatesManager templatesManager;
+    private boolean smartFeaturesShown = false;
+    private LinearLayout smartBannerContainer;
+
+    // Word count goal
+    private int wordCountGoal = 0;
+    private View wordGoalProgressLine;
+    private boolean goalReached = false;
+
     // ═══════════════════════════════════════════════════════════════════════════════
     //  LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -178,6 +188,7 @@ public class NoteEditorActivity extends AppCompatActivity {
         reminderManager = new NoteReminderManager(this);
         versionManager = new NoteVersionManager(this);
         exportManager = new NoteExportManager(this);
+        templatesManager = new NoteTemplatesManager(this);
 
         // Parse intent
         Intent intent = getIntent();
@@ -301,6 +312,8 @@ public class NoteEditorActivity extends AppCompatActivity {
         btnSketch = findViewById(R.id.btnSketch);
         btnUndo = findViewById(R.id.btnUndo);
         btnRedo = findViewById(R.id.btnRedo);
+        smartBannerContainer = findViewById(R.id.smartBannerContainer);
+        wordGoalProgressLine = findViewById(R.id.wordGoalProgressLine);
     }
 
     private void setupListeners() {
@@ -388,7 +401,9 @@ public class NoteEditorActivity extends AppCompatActivity {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+                if (wordCountGoal > 0) updateWordGoalProgress();
+            }
         });
 
         // Scroll listener for toolbar auto-hide
@@ -604,11 +619,25 @@ public class NoteEditorActivity extends AppCompatActivity {
         currentNote.plainTextPreview = getPlainTextPreview(body);
         currentNote.updatedAt = System.currentTimeMillis();
 
+        // Check for similar notes when saving a new note
+        if (isNewNote && !currentNote.title.isEmpty()) {
+            List<Note> allNotes = noteRepository.getAllNotes();
+            Note similar = SmartNotesHelper.findSimilarNote(currentNote.title, allNotes);
+            if (similar != null && !similar.id.equals(currentNote.id)) {
+                showDuplicateWarning(similar);
+            }
+        }
+
         if (isNewNote) {
             noteRepository.addNote(currentNote);
             isNewNote = false;
         } else {
             noteRepository.updateNote(currentNote);
+        }
+
+        if (!smartFeaturesShown && !isNewNote) {
+            showSmartSuggestions();
+            smartFeaturesShown = true;
         }
 
         hasUnsavedChanges = false;
@@ -1265,6 +1294,9 @@ public class NoteEditorActivity extends AppCompatActivity {
         popup.getMenu().add(0, 6, 5, "Share as Image");
         popup.getMenu().add(0, 7, 6, "Archive Note");
         popup.getMenu().add(0, 8, 7, "Delete Note");
+        popup.getMenu().add(0, 9, 8, "Use Template");
+        popup.getMenu().add(0, 10, 9, "Save as Template");
+        popup.getMenu().add(0, 11, 10, "Set Writing Goal");
 
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
@@ -1291,6 +1323,15 @@ public class NoteEditorActivity extends AppCompatActivity {
                     return true;
                 case 8:
                     deleteNote();
+                    return true;
+                case 9:
+                    showTemplatesPicker();
+                    return true;
+                case 10:
+                    saveCurrentNoteAsTemplate();
+                    return true;
+                case 11:
+                    setWordCountGoal();
                     return true;
             }
             return false;
@@ -1508,5 +1549,248 @@ public class NoteEditorActivity extends AppCompatActivity {
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  SMART FEATURES
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    private void showSmartSuggestions() {
+        if (currentNote == null || smartBannerContainer == null) return;
+
+        String text = currentNote.body;
+        String title = currentNote.title;
+
+        // Auto-categorization suggestion
+        String suggestedCategory = SmartNotesHelper.suggestCategory(title, text);
+        if (suggestedCategory != null && !suggestedCategory.equals(currentNote.category)) {
+            showCategorizationBanner(suggestedCategory);
+        }
+
+        // Tag suggestions
+        List<String> suggestedTags = SmartNotesHelper.suggestTags(title, text, currentNote.tags);
+        if (!suggestedTags.isEmpty()) {
+            showTagSuggestions(suggestedTags);
+        }
+    }
+
+    private void showCategorizationBanner(String suggestedCategory) {
+        if (smartBannerContainer == null) return;
+
+        LinearLayout banner = new LinearLayout(this);
+        banner.setOrientation(LinearLayout.HORIZONTAL);
+        banner.setBackgroundColor(0xFF1E3A5F);
+        banner.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        banner.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView tvMsg = new TextView(this);
+        tvMsg.setText("📁 This looks like a " + suggestedCategory + " note — Move to " + suggestedCategory + " folder?");
+        tvMsg.setTextColor(0xFFE2E8F0);
+        tvMsg.setTextSize(13);
+        tvMsg.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        TextView tvMove = new TextView(this);
+        tvMove.setText("Move");
+        tvMove.setTextColor(0xFF60A5FA);
+        tvMove.setTextSize(13);
+        tvMove.setPadding(dpToPx(8), 0, dpToPx(4), 0);
+        tvMove.setOnClickListener(v -> {
+            currentNote.category = suggestedCategory;
+            noteRepository.updateNote(currentNote);
+            banner.setVisibility(View.GONE);
+            Toast.makeText(this, "Moved to " + suggestedCategory, Toast.LENGTH_SHORT).show();
+        });
+
+        TextView tvDismiss = new TextView(this);
+        tvDismiss.setText("✕");
+        tvDismiss.setTextColor(0xFF64748B);
+        tvDismiss.setTextSize(16);
+        tvDismiss.setPadding(dpToPx(8), 0, 0, 0);
+        tvDismiss.setOnClickListener(v -> banner.setVisibility(View.GONE));
+
+        banner.addView(tvMsg);
+        banner.addView(tvMove);
+        banner.addView(tvDismiss);
+        smartBannerContainer.addView(banner);
+        smartBannerContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void showTagSuggestions(List<String> tags) {
+        if (smartBannerContainer == null) return;
+
+        LinearLayout banner = new LinearLayout(this);
+        banner.setOrientation(LinearLayout.VERTICAL);
+        banner.setBackgroundColor(0xFF1E3A5F);
+        banner.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        banner.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("🏷️ Suggested: ");
+        tvTitle.setTextColor(0xFF94A3B8);
+        tvTitle.setTextSize(12);
+        banner.addView(tvTitle);
+
+        LinearLayout chipsRow = new LinearLayout(this);
+        chipsRow.setOrientation(LinearLayout.HORIZONTAL);
+        banner.addView(chipsRow);
+
+        for (String tag : tags) {
+            TextView chip = new TextView(this);
+            chip.setText("#" + tag);
+            chip.setTextColor(0xFF60A5FA);
+            chip.setTextSize(13);
+            chip.setPadding(dpToPx(8), dpToPx(4), dpToPx(8), dpToPx(4));
+            chip.setOnClickListener(v -> {
+                if (currentNote.tags == null) currentNote.tags = new ArrayList<>();
+                if (!currentNote.tags.contains(tag)) {
+                    currentNote.tags.add(tag);
+                    noteRepository.updateNote(currentNote);
+                    Toast.makeText(this, "#" + tag + " added", Toast.LENGTH_SHORT).show();
+                    chip.setTextColor(0xFF34D399);
+                }
+            });
+            chipsRow.addView(chip);
+        }
+
+        smartBannerContainer.addView(banner);
+        smartBannerContainer.setVisibility(View.VISIBLE);
+    }
+
+    private void showDuplicateWarning(Note similar) {
+        if (smartBannerContainer == null) return;
+
+        LinearLayout banner = new LinearLayout(this);
+        banner.setOrientation(LinearLayout.HORIZONTAL);
+        banner.setBackgroundColor(0xFF3D1F1F);
+        banner.setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12));
+        banner.setLayoutParams(new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView tvMsg = new TextView(this);
+        tvMsg.setText("⚠️ Similar note exists — '" + similar.title + "'");
+        tvMsg.setTextColor(0xFFE2E8F0);
+        tvMsg.setTextSize(13);
+        tvMsg.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        TextView tvView = new TextView(this);
+        tvView.setText("View");
+        tvView.setTextColor(0xFFFBBF24);
+        tvView.setTextSize(13);
+        tvView.setPadding(dpToPx(8), 0, dpToPx(4), 0);
+        tvView.setOnClickListener(v -> {
+            startActivity(NoteEditorActivity.createIntent(this, similar.id));
+        });
+
+        TextView tvIgnore = new TextView(this);
+        tvIgnore.setText("Ignore");
+        tvIgnore.setTextColor(0xFF64748B);
+        tvIgnore.setTextSize(13);
+        tvIgnore.setPadding(dpToPx(4), 0, 0, 0);
+        tvIgnore.setOnClickListener(v -> banner.setVisibility(View.GONE));
+
+        banner.addView(tvMsg);
+        banner.addView(tvView);
+        banner.addView(tvIgnore);
+        smartBannerContainer.addView(banner);
+        smartBannerContainer.setVisibility(View.VISIBLE);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  TEMPLATES
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    private void showTemplatesPicker() {
+        List<NoteTemplatesManager.NoteTemplate> templates = templatesManager.getAllTemplates();
+        String[] names = new String[templates.size()];
+        for (int i = 0; i < templates.size(); i++) {
+            names[i] = templates.get(i).name;
+        }
+
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Use Template")
+            .setItems(names, (dialog, which) -> {
+                NoteTemplatesManager.NoteTemplate selected = templates.get(which);
+                String content = NoteTemplatesManager.applyTemplate(selected);
+                if (etBody != null) {
+                    etBody.setText(android.text.Html.fromHtml(content, android.text.Html.FROM_HTML_MODE_COMPACT));
+                    hasUnsavedChanges = true;
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void saveCurrentNoteAsTemplate() {
+        if (currentNote == null) return;
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Save as Template");
+        EditText etName = new EditText(this);
+        etName.setHint("Template name");
+        etName.setText(currentNote.title);
+        etName.setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8));
+        builder.setView(etName);
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String name = etName.getText().toString().trim();
+            if (!name.isEmpty()) {
+                templatesManager.saveCustomTemplate(name, currentNote.body);
+                Toast.makeText(this, "Saved as template: " + name, Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  WORD COUNT GOAL
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    private void setWordCountGoal() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Set Writing Goal");
+        EditText etGoal = new EditText(this);
+        etGoal.setHint("Target word count (e.g. 500)");
+        etGoal.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        if (wordCountGoal > 0) etGoal.setText(String.valueOf(wordCountGoal));
+        etGoal.setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8));
+        builder.setView(etGoal);
+        builder.setPositiveButton("Set Goal", (dialog, which) -> {
+            try {
+                wordCountGoal = Integer.parseInt(etGoal.getText().toString().trim());
+                updateWordGoalProgress();
+            } catch (NumberFormatException e) { /* ignore */ }
+        });
+        builder.setNeutralButton("Clear Goal", (dialog, which) -> {
+            wordCountGoal = 0;
+            if (wordGoalProgressLine != null) wordGoalProgressLine.setVisibility(View.GONE);
+        });
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void updateWordGoalProgress() {
+        if (wordCountGoal <= 0 || wordGoalProgressLine == null) return;
+
+        String text = etBody != null ? etBody.getText().toString() : "";
+        int currentWords = SmartNotesHelper.countWords(text);
+        float progress = Math.min(1.0f, (float) currentWords / wordCountGoal);
+
+        wordGoalProgressLine.setVisibility(View.VISIBLE);
+        ViewGroup parent = (ViewGroup) wordGoalProgressLine.getParent();
+        if (parent != null) {
+            int parentWidth = parent.getWidth();
+            ViewGroup.LayoutParams lp = wordGoalProgressLine.getLayoutParams();
+            lp.width = (int) (parentWidth * progress);
+            wordGoalProgressLine.setLayoutParams(lp);
+        }
+
+        int color = progress >= 1.0f ? 0xFF34D399 : 0xFF3B82F6;
+        wordGoalProgressLine.setBackgroundColor(color);
+
+        if (progress >= 1.0f && !goalReached) {
+            goalReached = true;
+            Toast.makeText(this, "🎉 Writing goal reached!", Toast.LENGTH_LONG).show();
+        }
     }
 }

@@ -35,6 +35,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
@@ -104,6 +105,14 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     // Views - Recently Viewed
     private LinearLayout recentlyViewedSection, recentlyViewedContainer;
 
+    // Views - To-Do Lists section
+    private LinearLayout todoListsSection;
+    private RecyclerView todoListsRecycler;
+    private TextView tvTodoHeader, btnViewAllTodos, tvTodoSummary;
+    private TodoRepository todoRepository;
+    private TodoListAdapter todoListAdapter;
+    private ArrayList<TodoList> todoLists = new ArrayList<>();
+
     // Views - Sort
     private ImageButton btnSortNotes;
 
@@ -167,6 +176,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         setupSpeedDial();
         setupDrawer();
         setupFolderStrip();
+        todoRepository = new TodoRepository(this);
+        setupTodoSection();
 
         // Load data
         refreshNotes();
@@ -184,6 +195,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         refreshNotes();
         setupFolderStrip();
         setupRecentlyViewed();
+        refreshTodoSection();
     }
 
     @Override
@@ -553,6 +565,11 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             TextView chip = createFilterChip(category);
             chipContainer.addView(chip);
         }
+
+        // Add To-Do chip
+        TextView todoChip = createFilterChip("Todo");
+        todoChip.setText("To-Do");
+        chipContainer.addView(todoChip);
     }
 
     private TextView createFilterChip(String category) {
@@ -612,6 +629,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             case "Work":     return 0xFF6366F1;
             case "Ideas":    return 0xFFF97316;
             case "Study":    return 0xFFA855F7;
+            case "Todo":     return 0xFF34D399;
             default:         return 0xFFF59E0B;
         }
     }
@@ -1357,6 +1375,63 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  TO-DO LISTS SECTION
+    // ═══════════════════════════════════════════════════════════════
+
+    private void setupTodoSection() {
+        todoListsSection = findViewById(R.id.todoListsSection);
+        todoListsRecycler = findViewById(R.id.todoListsRecycler);
+        tvTodoHeader = findViewById(R.id.tvTodoHeader);
+        btnViewAllTodos = findViewById(R.id.btnViewAllTodos);
+        tvTodoSummary = findViewById(R.id.tvTodoSummary);
+
+        if (todoListsSection == null) return;
+
+        // Setup horizontal recycler
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        todoListsRecycler.setLayoutManager(layoutManager);
+
+        // Create adapter
+        todoListAdapter = new TodoListAdapter(this, todoLists, todoRepository,
+            new TodoListAdapter.OnListActionListener() {
+                @Override
+                public void onListClick(TodoList list) {
+                    startActivity(TodoListDetailActivity.createIntent(NotesActivity.this, list.id));
+                }
+                @Override
+                public void onAddListClick() {
+                    CreateTodoListSheet sheet = new CreateTodoListSheet();
+                    sheet.setOnListCreatedListener(list -> refreshTodoSection());
+                    sheet.show(getSupportFragmentManager(), CreateTodoListSheet.TAG);
+                }
+            });
+        todoListsRecycler.setAdapter(todoListAdapter);
+
+        refreshTodoSection();
+    }
+
+    private void refreshTodoSection() {
+        if (todoRepository == null) return;
+        todoLists.clear();
+        todoLists.addAll(todoRepository.getAllLists());
+        if (todoListAdapter != null) todoListAdapter.notifyDataSetChanged();
+
+        // Update summary
+        if (tvTodoSummary != null) {
+            int active = todoRepository.getGlobalActiveCount();
+            int overdue = todoRepository.getGlobalOverdueCount();
+            String summary = active + " active";
+            if (overdue > 0) summary += " · " + overdue + " overdue";
+            tvTodoSummary.setText(summary);
+        }
+
+        // Show section
+        if (todoListsSection != null) {
+            todoListsSection.setVisibility(View.VISIBLE);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -82,6 +82,14 @@
                 android:contentDescription="More" />
         </LinearLayout>
 
+        <!-- ═══ SMART BANNER CONTAINER ═══ -->
+        <LinearLayout
+            android:id="@+id/smartBannerContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone" />
+
         <!-- ═══ MAIN EDITOR AREA ═══ -->
         <ScrollView
             android:id="@+id/editorScrollView"
@@ -232,6 +240,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"
+                    android:visibility="gone" />
+
+                <!-- Word count goal progress line -->
+                <View
+                    android:id="@+id/wordGoalProgressLine"
+                    android:layout_width="0dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="8dp"
                     android:visibility="gone" />
 
             </LinearLayout>
