@@ -260,7 +260,7 @@ public class HubInboxActivity extends AppCompatActivity {
 
         Button btnAccept = new Button(this);
         btnAccept.setText("✓ Accept");
-        btnAccept.setTextAllCaps(false);
+        btnAccept.setAllCaps(false);
         btnAccept.setTextSize(11);
         btnAccept.setTextColor(Color.WHITE);
         btnAccept.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#059669")));
@@ -276,7 +276,7 @@ public class HubInboxActivity extends AppCompatActivity {
 
         Button btnSkip = new Button(this);
         btnSkip.setText("⊘ Skip");
-        btnSkip.setTextAllCaps(false);
+        btnSkip.setAllCaps(false);
         btnSkip.setTextSize(11);
         btnSkip.setTextColor(Color.parseColor("#94A3B8"));
         btnSkip.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#1E293B")));
@@ -290,7 +290,7 @@ public class HubInboxActivity extends AppCompatActivity {
 
         Button btnReject = new Button(this);
         btnReject.setText("✕ Reject");
-        btnReject.setTextAllCaps(false);
+        btnReject.setAllCaps(false);
         btnReject.setTextSize(11);
         btnReject.setTextColor(Color.parseColor("#EF4444"));
         btnReject.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#1E293B")));

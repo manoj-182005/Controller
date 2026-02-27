@@ -510,7 +510,11 @@ public class SmartFileHubActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.setMargins(0, 0, 0, (int) (8 * getResources().getDisplayMetrics().density));
         card.setLayoutParams(lp);
-        card.setForeground(getDrawable(android.R.attr.selectableItemBackground));
+
+        // Apply ripple effect using typed value to resolve attribute
+        android.util.TypedValue rippleValue = new android.util.TypedValue();
+        getTheme().resolveAttribute(android.R.attr.selectableItemBackground, rippleValue, true);
+        card.setForeground(getDrawable(rippleValue.resourceId));
 
         // Color indicator
         View colorDot = new View(this);
@@ -616,7 +620,7 @@ public class SmartFileHubActivity extends AppCompatActivity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int)(130*dp), (int)(110*dp));
         lp.setMargins(0, 0, (int)(10*dp), 0);
         addCard.setLayoutParams(lp);
-        addCard.setForeground(getDrawable(android.R.attr.selectableItemBackground));
+        { android.util.TypedValue tv = new android.util.TypedValue(); getTheme().resolveAttribute(android.R.attr.selectableItemBackground, tv, true); addCard.setForeground(getDrawable(tv.resourceId)); }
 
         TextView plus = new TextView(this);
         plus.setText("+");
@@ -653,7 +657,7 @@ public class SmartFileHubActivity extends AppCompatActivity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int)(140*dp), (int)(110*dp));
         lp.setMargins(0, 0, (int)(10*dp), 0);
         card.setLayoutParams(lp);
-        card.setForeground(getDrawable(android.R.attr.selectableItemBackground));
+        { android.util.TypedValue tv = new android.util.TypedValue(); getTheme().resolveAttribute(android.R.attr.selectableItemBackground, tv, true); card.setForeground(getDrawable(tv.resourceId)); }
 
         TextView icon = new TextView(this);
         icon.setText(project.iconIdentifier != null ? project.iconIdentifier : "💼");
@@ -768,7 +772,7 @@ public class SmartFileHubActivity extends AppCompatActivity {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int)(90*dp), (int)(90*dp));
             lp.setMargins(0, 0, (int)(8*dp), 0);
             card.setLayoutParams(lp);
-            card.setForeground(getDrawable(android.R.attr.selectableItemBackground));
+            { android.util.TypedValue tv = new android.util.TypedValue(); getTheme().resolveAttribute(android.R.attr.selectableItemBackground, tv, true); card.setForeground(getDrawable(tv.resourceId)); }
 
             TextView typeEmoji = new TextView(this);
             typeEmoji.setText(file.getTypeEmoji());
