@@ -120,6 +120,46 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Task Templates Activity -->
+        <activity android:name=".TaskTemplatesActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Task Import Activity -->
+        <activity android:name=".TaskImportActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Kanban Board Activity -->
+        <activity android:name=".KanbanBoardActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Time Block Activity -->
+        <activity android:name=".TimeBlockActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Focus Mode Activity -->
+        <activity android:name=".FocusModeActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Meeting Analytics Activity -->
+        <activity android:name=".MeetingAnalyticsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Meeting Search Activity -->
+        <activity android:name=".MeetingSearchActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Task Manager Settings Activity -->
+        <activity android:name=".TaskManagerSettingsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Notes Activity -->
         <activity
             android:name=".NotesActivity"

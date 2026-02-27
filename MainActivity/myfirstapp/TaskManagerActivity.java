@@ -1095,6 +1095,60 @@ public class TaskManagerActivity extends AppCompatActivity
                 startActivity(new Intent(this, TaskCategoriesActivity.class));
             });
         }
+
+        // ── Extra navigation items appended below Manage Categories ──
+        View drawerRoot = findViewById(R.id.navDrawer);
+        if (drawerRoot instanceof LinearLayout) {
+            LinearLayout drawerLinear = (LinearLayout) drawerRoot;
+            // Check if we already added the extra container
+            if (drawerLinear.findViewWithTag("extra_nav") == null) {
+                LinearLayout extraContainer = new LinearLayout(this);
+                extraContainer.setTag("extra_nav");
+                extraContainer.setOrientation(LinearLayout.VERTICAL);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                lp.topMargin = dp(8);
+                extraContainer.setLayoutParams(lp);
+                drawerLinear.addView(extraContainer);
+
+                addDrawerNavItem(extraContainer, "📋", "Templates", TaskTemplatesActivity.class);
+                addDrawerNavItem(extraContainer, "📥", "Import Tasks", TaskImportActivity.class);
+                addDrawerNavItem(extraContainer, "📊", "Kanban View", KanbanBoardActivity.class);
+                addDrawerNavItem(extraContainer, "🕐", "Time Block", TimeBlockActivity.class);
+                addDrawerNavItem(extraContainer, "🎯", "Focus Mode", FocusModeActivity.class);
+                addDrawerNavItem(extraContainer, "⚙️", "Settings", TaskManagerSettingsActivity.class);
+            }
+        }
+    }
+
+    private void addDrawerNavItem(LinearLayout container, String icon, String label,
+                                   Class<?> activityClass) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setPadding(dp(12), dp(10), dp(12), dp(10));
+        row.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        TextView tvIcon = new TextView(this);
+        tvIcon.setText(icon);
+        tvIcon.setTextSize(16);
+        tvIcon.setPadding(0, 0, dp(12), 0);
+        row.addView(tvIcon);
+
+        TextView tvLabel = new TextView(this);
+        tvLabel.setText(label);
+        tvLabel.setTextColor(Color.parseColor("#D1D5DB"));
+        tvLabel.setTextSize(14);
+        row.addView(tvLabel);
+
+        row.setOnClickListener(v -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+            startActivity(new Intent(this, activityClass));
+        });
+
+        container.addView(row);
     }
 
     private void refreshDrawer() {
