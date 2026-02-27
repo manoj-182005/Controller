@@ -13,7 +13,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.widget.NestedScrollView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -226,14 +225,7 @@ public class NetWorthDashboardActivity extends AppCompatActivity {
                     startActivity(new Intent(this, ExpenseTrackerActivity.class)));
         }
 
-        // Pull-to-refresh via scroll listener
-        NestedScrollView scrollView = findViewById(R.id.dashboardScrollView);
-        if (scrollView != null) {
-            scrollView.setOnScrollChangeListener(
-                    (NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-                        // Refresh is handled via onResume
-                    });
-        }
+        // Refresh is handled via onResume when returning from other screens
     }
 
     private void setupPeriodSelector() {
@@ -492,7 +484,7 @@ public class NetWorthDashboardActivity extends AppCompatActivity {
         } else {
             tvCashFlowIncome.setText("₹" + formatAmount(income));
             tvCashFlowExpenses.setText("₹" + formatAmount(expenses));
-            animateCountUp(tvNetCashFlow, net, net >= 0 ? "+₹" : "-₹");
+            animateCountUp(tvNetCashFlow, Math.abs(net), net >= 0 ? "+₹" : "-₹");
             tvNetCashFlow.setTextColor(net >= 0 ? 0xFF4ADE80 : 0xFFF87171);
         }
 
@@ -512,7 +504,7 @@ public class NetWorthDashboardActivity extends AppCompatActivity {
             tvSavingsBenchmark.setTextColor(0xFF4ADE80);
         } else if (rate > 0) {
             double incomeThisMonth = calc.getIncomeThisMonth();
-            double gap = incomeThisMonth * 0.2 - (incomeThisMonth - calc.getExpensesThisMonth());
+            double gap = calc.getExpensesThisMonth() - incomeThisMonth * 0.8;
             tvSavingsBenchmark.setText(String.format(
                     "💡 Save ₹%.0f more to hit the 20%% savings target.", Math.max(0, gap)));
             tvSavingsBenchmark.setTextColor(0xFFF59E0B);

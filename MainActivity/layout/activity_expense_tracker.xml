@@ -49,6 +49,19 @@
                     android:fontFamily="sans-serif-medium" />
 
                 <Button
+                    android:id="@+id/btnNetWorth"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="📊"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    android:textColor="#A5B4FC"
+                    android:backgroundTint="#1E1B4B"
+                    app:cornerRadius="12dp"
+                    android:paddingHorizontal="12dp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
                     android:id="@+id/btnSetBudget"
                     android:layout_width="wrap_content"
                     android:layout_height="36dp"

@@ -211,7 +211,7 @@ public class NetWorthCalculationService {
 
     /**
      * Top N spending categories this month.
-     * Returns a list of String[3]: {categoryName, icon, formattedAmount}
+     * Returns a list of double[2]: {amount, percentage of total expenses}
      */
     public List<double[]> getTopCategoryAmounts(int n) {
         Map<String, Double> breakdown = expenseRepo.getCategoryBreakdown();
