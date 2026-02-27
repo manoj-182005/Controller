@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -104,12 +105,11 @@ public class SettingsActivity extends AppCompatActivity {
         android.widget.SeekBar touchpadSeek = findViewById(R.id.touchpadSensitivitySeek);
         android.widget.TextView touchpadLabel = findViewById(R.id.touchpadSensitivityLabel);
         if (touchpadSeek != null && touchpadLabel != null) {
-            String[] levels = {"Very Slow", "Slow", "Slow+", "Normal-", "Normal", "Normal+", "Fast-", "Fast", "Fast+", "Very Fast"};
             touchpadSeek.setProgress(prefs.getInt("touchpad_sensitivity", 4));
-            touchpadLabel.setText(levels[touchpadSeek.getProgress()]);
+            touchpadLabel.setText(TOUCHPAD_SENSITIVITY_LEVELS[touchpadSeek.getProgress()]);
             touchpadSeek.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
-                    touchpadLabel.setText(levels[progress]);
+                    touchpadLabel.setText(TOUCHPAD_SENSITIVITY_LEVELS[progress]);
                     if (fromUser) prefs.edit().putInt("touchpad_sensitivity", progress).apply();
                 }
                 @Override public void onStartTrackingTouch(android.widget.SeekBar sb) {}
@@ -156,7 +156,10 @@ public class SettingsActivity extends AppCompatActivity {
             try {
                 String version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 tvVersion.setText("v" + version);
-            } catch (Exception e) { tvVersion.setText("v1.0"); }
+            } catch (Exception e) {
+                Log.w("SettingsActivity", "Could not retrieve app version", e);
+                tvVersion.setText("v1.0");
+            }
         }
         Button checkUpdatesBtn = findViewById(R.id.checkUpdatesBtn);
         if (checkUpdatesBtn != null) {
@@ -198,8 +201,11 @@ public class SettingsActivity extends AppCompatActivity {
     private long getDirSize(java.io.File dir) {
         long size = 0;
         if (dir != null && dir.isDirectory()) {
-            for (java.io.File f : dir.listFiles() != null ? dir.listFiles() : new java.io.File[0]) {
-                size += f.isDirectory() ? getDirSize(f) : f.length();
+            java.io.File[] files = dir.listFiles();
+            if (files != null) {
+                for (java.io.File f : files) {
+                    size += f.isDirectory() ? getDirSize(f) : f.length();
+                }
             }
         }
         return size;
@@ -619,6 +625,10 @@ public class SettingsActivity extends AppCompatActivity {
         return false;
     }
     
+    private static final String[] TOUCHPAD_SENSITIVITY_LEVELS = {
+        "Very Slow", "Slow", "Slow+", "Normal-", "Normal", "Normal+", "Fast-", "Fast", "Fast+", "Very Fast"
+    };
+
     // Helper class for server info
     private static class ServerInfo {
         String name;
@@ -632,9 +642,13 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
     
+    private static final String[] TOUCHPAD_SENSITIVITY_LEVELS = {
+        "Very Slow", "Slow", "Slow+", "Normal-", "Normal", "Normal+", "Fast-", "Fast", "Fast+", "Very Fast"
+    };
+
     // Adapter for server list
     private class ServerAdapter extends ArrayAdapter<ServerInfo> {
-        
+
         ServerAdapter(Context context, List<ServerInfo> servers) {
             super(context, 0, servers);
         }

@@ -1059,9 +1059,11 @@ public class MainActivity extends AppCompatActivity {
             org.json.JSONArray arr = new org.json.JSONArray(serversJson);
             for (int i = 0; i < arr.length(); i++) {
                 org.json.JSONObject obj = arr.getJSONObject(i);
-                serverItems.add(obj.optString("name", "Server") + " — " + obj.optString("ip", ""));
+                serverItems.add(obj.optString("name", "Server") + " - " + obj.optString("ip", ""));
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Failed to parse saved servers for bottom sheet", e);
+        }
         if (serverItems.isEmpty()) serverItems.add("No saved servers");
         android.widget.ArrayAdapter<String> bsAdapter = new android.widget.ArrayAdapter<>(
             this, android.R.layout.simple_list_item_1, serverItems);
@@ -1156,7 +1158,9 @@ public class MainActivity extends AppCompatActivity {
                 org.json.JSONObject obj = arr.getJSONObject(i);
                 serverItems.add(obj.optString("name", "Server") + "\n" + obj.optString("ip", ""));
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Failed to parse saved servers for devices tab", e);
+        }
         if (serverItems.isEmpty()) serverItems.add("No saved servers\nAdd one below");
         android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
             this, android.R.layout.simple_list_item_1, serverItems);
@@ -1170,7 +1174,9 @@ public class MainActivity extends AppCompatActivity {
                     String ip = arr.getJSONObject(pos).optString("ip", "");
                     if (!ip.isEmpty()) selectServer(ip);
                 }
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                Log.e("MainActivity", "Failed to connect to selected server", e);
+            }
         });
     }
 
@@ -1214,15 +1220,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void showCustomShortcutsMenu() {
         String[] shortcuts = {
-            "Alt+Tab — Switch Apps",
-            "Win+D — Show Desktop",
-            "Ctrl+Alt+Del — Security Screen",
-            "PrtScr — Screenshot",
-            "Win+L — Lock Screen",
-            "Ctrl+C — Copy",
-            "Ctrl+V — Paste",
-            "Ctrl+Z — Undo",
-            "Ctrl+Shift+Esc — Task Manager"
+            "Alt+Tab - Switch Apps",
+            "Win+D - Show Desktop",
+            "Ctrl+Alt+Del - Security Screen",
+            "PrtScr - Screenshot",
+            "Win+L - Lock Screen",
+            "Ctrl+C - Copy",
+            "Ctrl+V - Paste",
+            "Ctrl+Z - Undo",
+            "Ctrl+Shift+Esc - Task Manager"
         };
         String[] commands = {
             "KEY_COMBO:ALT+TAB", "KEY_COMBO:WIN+D", "KEY_COMBO:CTRL+ALT+DEL",
@@ -1234,7 +1240,7 @@ public class MainActivity extends AppCompatActivity {
             .setTitle("⌨ Custom Shortcuts")
             .setItems(shortcuts, (dialog, which) -> {
                 connectionManager.sendCommand(commands[which]);
-                Toast.makeText(this, "Sent: " + shortcuts[which].split("—")[0].trim(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Sent: " + shortcuts[which].split(" - ")[0].trim(), Toast.LENGTH_SHORT).show();
             })
             .show();
     }
