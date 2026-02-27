@@ -236,6 +236,24 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Borrow & Lend Activity -->
+        <activity
+            android:name=".BorrowLendActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Person Detail Activity -->
+        <activity
+            android:name=".PersonDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Money Record Detail Activity -->
+        <activity
+            android:name=".MoneyRecordDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Foreground Service -->
         <service
             android:name=".ConnectionForegroundService"
@@ -316,6 +334,18 @@
                 <action android:name="com.prajwal.myfirstapp.CALENDAR_DAILY_AGENDA" />
                 <action android:name="com.prajwal.myfirstapp.CALENDAR_VIEW_EVENT" />
                 <action android:name="com.prajwal.myfirstapp.CALENDAR_SNOOZE_15" />
+            </intent-filter>
+        </receiver>
+
+        <!-- IOU Notification Receiver -->
+        <receiver
+            android:name=".IouNotificationHelper"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.ACTION_IOU_OVERDUE" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_IOU_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_IOU_SETTLED" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_CHECK_IOU" />
             </intent-filter>
         </receiver>
 
