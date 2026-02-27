@@ -366,6 +366,18 @@
             </intent-filter>
         </receiver>
 
+        <!-- IOU Notification Receiver -->
+        <receiver
+            android:name=".IouNotificationHelper"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.ACTION_IOU_OVERDUE" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_IOU_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_IOU_SETTLED" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_CHECK_IOU" />
+            </intent-filter>
+        </receiver>
+
         <!-- Boot Receiver — reschedules task alarms after reboot -->
         <receiver
             android:name=".BootReceiver"

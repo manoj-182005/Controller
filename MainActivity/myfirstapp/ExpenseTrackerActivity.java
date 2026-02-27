@@ -78,6 +78,25 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         super.onResume();
         setupWalletFilter();
         refreshAll();
+        updateIouOverdueBanner();
+    }
+
+    private void updateIouOverdueBanner() {
+        LinearLayout iouBanner = findViewById(R.id.iouOverdueBanner);
+        if (iouBanner == null) return;
+        MoneyRecordRepository iouRepo = new MoneyRecordRepository(this);
+        iouRepo.updateOverdueStatuses();
+        int count = iouRepo.getOverdueRecords().size();
+        if (count > 0) {
+            iouBanner.setVisibility(android.view.View.VISIBLE);
+            TextView tvBanner = findViewById(R.id.tvIouOverdueBanner);
+            if (tvBanner != null) {
+                tvBanner.setText("⚠️ " + count + " overdue IOU"
+                        + (count > 1 ? "s" : "") + " — tap to view");
+            }
+        } else {
+            iouBanner.setVisibility(android.view.View.GONE);
+        }
     }
 
     private void initViews() {
@@ -142,6 +161,14 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
             startActivity(new Intent(this, SplitGroupsActivity.class)));
         findViewById(R.id.btnExport).setOnClickListener(v ->
             new ExportService(this).showExportDialog(null));
+        findViewById(R.id.btnBorrowLend).setOnClickListener(v ->
+            startActivity(new Intent(this, BorrowLendActivity.class)));
+        // IOU overdue banner
+        LinearLayout iouBanner = findViewById(R.id.iouOverdueBanner);
+        if (iouBanner != null) {
+            iouBanner.setOnClickListener(v ->
+                startActivity(new Intent(this, BorrowLendActivity.class)));
+        }
 
         // Bar chart tap
         barChart.setOnBarSelectedListener((dayIndex, amount) -> {
