@@ -54,6 +54,8 @@ public class TodoItemDetailActivity extends AppCompatActivity {
     // ─── Timer state ─────────────────────────────────────────────
 
     private static final long MIN_SESSION_DURATION_SECONDS = 5;
+    private static final SimpleDateFormat SDF_DATE =
+            new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     private boolean  isTimerRunning = false;
     private long     timerStartMs   = 0;
@@ -629,6 +631,6 @@ public class TodoItemDetailActivity extends AppCompatActivity {
     }
 
     private String getTodayDate() {
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        return SDF_DATE.format(new Date());
     }
 }

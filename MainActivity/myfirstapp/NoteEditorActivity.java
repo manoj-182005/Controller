@@ -126,6 +126,8 @@ public class NoteEditorActivity extends AppCompatActivity {
     private Handler autoSaveHandler;
     private Runnable autoSaveRunnable;
     private static final long AUTO_SAVE_INTERVAL = 30_000; // 30 seconds
+    private static final java.text.SimpleDateFormat SDF_MMM_D =
+            new java.text.SimpleDateFormat("MMM d", java.util.Locale.US);
 
     // ═══ Undo/Redo ═══
     private LinkedList<String> undoStack = new LinkedList<>();
@@ -1819,7 +1821,6 @@ public class NoteEditorActivity extends AppCompatActivity {
         // Build display labels
         String[] labels = new String[Math.min(events.size(), 20)];
         final CalendarEvent[] limited = new CalendarEvent[labels.length];
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM d", java.util.Locale.US);
         for (int i = 0; i < labels.length; i++) {
             CalendarEvent ev = events.get(i);
             limited[i] = ev;
@@ -1860,11 +1861,10 @@ public class NoteEditorActivity extends AppCompatActivity {
         int limit = Math.min(expenses.size(), 20);
         String[] labels = new String[limit];
         final Expense[] limited = new Expense[limit];
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM d", java.util.Locale.US);
         for (int i = 0; i < limit; i++) {
             Expense exp = expenses.get(expenses.size() - 1 - i); // most recent first
             limited[i] = exp;
-            String dateStr = sdf.format(new java.util.Date(exp.timestamp));
+            String dateStr = SDF_MMM_D.format(new java.util.Date(exp.timestamp));
             labels[i] = exp.category + " ₹" + String.format(java.util.Locale.US, "%.0f", exp.amount)
                     + " — " + dateStr;
         }
@@ -1877,7 +1877,7 @@ public class NoteEditorActivity extends AppCompatActivity {
                         currentNote.linkedExpenseId = selected.id;
                         hasUnsavedChanges = true;
                         saveNote(false);
-                        String dateStr = sdf.format(new java.util.Date(selected.timestamp));
+                        String dateStr = SDF_MMM_D.format(new java.util.Date(selected.timestamp));
                         Toast.makeText(this, "💰 Linked: " + selected.category
                                 + " ₹" + String.format(java.util.Locale.US, "%.0f", selected.amount)
                                 + " — " + dateStr,
@@ -1904,8 +1904,7 @@ public class NoteEditorActivity extends AppCompatActivity {
         ExpenseRepository expRepo = new ExpenseRepository(this);
         for (Expense exp : expRepo.loadAll()) {
             if (exp.id.equals(currentNote.linkedExpenseId)) {
-                String dateStr = new java.text.SimpleDateFormat("MMM d", java.util.Locale.US)
-                        .format(new java.util.Date(exp.timestamp));
+                String dateStr = SDF_MMM_D.format(new java.util.Date(exp.timestamp));
                 Toast.makeText(this, "💰 Linked: " + exp.category
                         + " ₹" + String.format(java.util.Locale.US, "%.0f", exp.amount)
                         + " — " + dateStr,
