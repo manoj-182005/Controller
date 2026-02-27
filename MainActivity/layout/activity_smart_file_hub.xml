@@ -97,6 +97,15 @@
                             android:text="⚙️"
                             android:textSize="20sp" />
 
+                        <!-- Privacy Analyzer -->
+                        <Button
+                            android:id="@+id/btnHubPrivacy"
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:text="🛡️"
+                            android:textSize="20sp" />
+
                         <!-- Back -->
                         <Button
                             android:id="@+id/btnHubBack"
@@ -847,6 +856,36 @@
                     android:orientation="horizontal" android:gravity="center_vertical"
                     android:layout_marginBottom="8dp">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Package &amp; Send" android:textColor="#FFFFFF" android:textSize="12sp"
+                        android:background="@drawable/hub_section_card_bg"
+                        android:paddingStart="10dp" android:paddingEnd="10dp"
+                        android:paddingTop="4dp" android:paddingBottom="4dp"
+                        android:layout_marginEnd="8dp" />
+                    <Button android:id="@+id/fabPackageSend"
+                        android:layout_width="44dp" android:layout_height="44dp"
+                        android:text="📦" android:textSize="18sp"
+                        android:backgroundTint="#6366F1" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Focus Mode" android:textColor="#FFFFFF" android:textSize="12sp"
+                        android:background="@drawable/hub_section_card_bg"
+                        android:paddingStart="10dp" android:paddingEnd="10dp"
+                        android:paddingTop="4dp" android:paddingBottom="4dp"
+                        android:layout_marginEnd="8dp" />
+                    <Button android:id="@+id/fabFocusMode"
+                        android:layout_width="44dp" android:layout_height="44dp"
+                        android:text="🎯" android:textSize="18sp"
+                        android:backgroundTint="#8B5CF6" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                         android:text="New Smart Folder" android:textColor="#FFFFFF" android:textSize="12sp"
                         android:background="@drawable/hub_section_card_bg"
                         android:paddingStart="10dp" android:paddingEnd="10dp"
@@ -1095,6 +1134,42 @@
                 android:foreground="?attr/selectableItemBackground">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="⚡  Batch Operations" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemShareProfiles"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📤  Share Profiles" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemShareHistory"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📋  Share History" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemExpiryCalendar"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📅  Expiry Calendar" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemTimeCapsule"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="⏳  Time Capsules" android:textColor="#F1F5F9" android:textSize="14sp" />
             </LinearLayout>
 
             <!-- File Types Section -->

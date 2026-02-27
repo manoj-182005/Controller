@@ -18,11 +18,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import org.json.JSONObject;
 
 /**
  * Advanced Analytics Dashboard — the most data-rich screen in the File Hub.
@@ -242,6 +245,68 @@ public class HubAnalyticsActivity extends AppCompatActivity {
                 buildUI();
             });
             c.addView(btnToggle);
+        }));
+        root.addView(vspace(16));
+
+        // ── 7. File Story Mode ────────────────────────────────────────────────
+        root.addView(makeSectionCard("📖 File Story", c -> {
+            c.addView(makeSubtitle("Relive your file journey month by month, with animated slides."));
+            c.addView(vspace(12));
+            Button btnStory = makeButton("📖 View File Story", "#6366F1", "#FFFFFF");
+            btnStory.setOnClickListener(v ->
+                    startActivity(new android.content.Intent(this, HubStoryModeActivity.class)));
+            c.addView(btnStory);
+        }));
+        root.addView(vspace(16));
+
+        // ── 8. Share Frequency ────────────────────────────────────────────────
+        root.addView(makeSectionCard("📤 Share Frequency", c -> {
+            List<org.json.JSONObject> history = repo.getShareHistory();
+            if (history.isEmpty()) {
+                c.addView(makeSubtitle("No share history yet."));
+                return;
+            }
+            // Count shares per month
+            java.text.SimpleDateFormat monthSdf = new java.text.SimpleDateFormat("MMM yy", java.util.Locale.getDefault());
+            java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
+            for (int i = history.size() - 1; i >= 0; i--) {
+                long ts = history.get(i).optLong("timestamp", 0);
+                String m = ts > 0 ? monthSdf.format(new java.util.Date(ts)) : "?";
+                counts.put(m, counts.getOrDefault(m, 0) + 1);
+            }
+            int max = 1;
+            for (int v : counts.values()) if (v > max) max = v;
+            final int maxCount = max;
+            for (java.util.Map.Entry<String, Integer> entry : counts.entrySet()) {
+                LinearLayout barRow = makeRow();
+                barRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                barRow.setPadding(0, 4, 0, 4);
+                TextView tvMonth = makeLabel(entry.getKey(), "#9CA3AF");
+                tvMonth.setMinWidth(120);
+                barRow.addView(tvMonth);
+                // Bar using weight
+                LinearLayout barBg = makeRow();
+                barBg.setLayoutParams(new LinearLayout.LayoutParams(0, 24, 1f));
+                android.graphics.drawable.GradientDrawable bgD = new android.graphics.drawable.GradientDrawable();
+                bgD.setColor(Color.parseColor("#1E293B")); bgD.setCornerRadius(6f);
+                barBg.setBackground(bgD);
+                // Filled portion
+                android.view.View barFill = new android.view.View(this);
+                float pct = (float) entry.getValue() / maxCount;
+                barFill.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, pct));
+                android.graphics.drawable.GradientDrawable barD = new android.graphics.drawable.GradientDrawable();
+                barD.setColor(Color.parseColor("#6366F1")); barD.setCornerRadius(6f);
+                barFill.setBackground(barD);
+                // Empty portion
+                android.view.View barEmpty = new android.view.View(this);
+                barEmpty.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f - pct));
+                barBg.addView(barFill); barBg.addView(barEmpty);
+                barRow.addView(barBg);
+                barRow.addView(hspace(8));
+                TextView tvCount = makeLabel(entry.getValue() + "", "#6366F1");
+                barRow.addView(tvCount);
+                c.addView(barRow);
+            }
         }));
     }
 
