@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 public class HubFileRepository {
 
     private static final String TAG = "HubFileRepository";
+    private static final long MILLIS_PER_DAY = 86_400_000L;
     private static final String PREFS_FILES = "hub_files";
     private static final String PREFS_FOLDERS = "hub_folders";
     private static final String PREFS_PROJECTS = "hub_projects";
@@ -338,7 +339,7 @@ public class HubFileRepository {
                 }
                 if (matches && rules.has("maxAgeDays")) {
                     int maxDays = rules.getInt("maxAgeDays");
-                    long cutoff = System.currentTimeMillis() - (long) maxDays * 86_400_000L;
+                    long cutoff = System.currentTimeMillis() - (long) maxDays * MILLIS_PER_DAY;
                     if (f.importedAt < cutoff) matches = false;
                 }
                 if (matches && rules.has("unorganized")) {
@@ -653,11 +654,11 @@ public class HubFileRepository {
     private String computeMD5(File file) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
-            FileInputStream fis = new FileInputStream(file);
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = fis.read(buffer)) != -1) digest.update(buffer, 0, read);
-            fis.close();
+            try (FileInputStream fis = new FileInputStream(file)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = fis.read(buffer)) != -1) digest.update(buffer, 0, read);
+            }
             byte[] bytes = digest.digest();
             StringBuilder sb = new StringBuilder();
             for (byte b : bytes) sb.append(String.format("%02x", b));

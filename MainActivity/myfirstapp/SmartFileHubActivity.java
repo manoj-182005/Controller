@@ -904,15 +904,15 @@ public class SmartFileHubActivity extends AppCompatActivity {
 
     private void importFromUri(android.net.Uri uri) {
         try {
-            android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null);
             String fileName = "";
             long fileSize = 0;
-            if (cursor != null && cursor.moveToFirst()) {
-                int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
-                int sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
-                if (nameIndex >= 0) fileName = cursor.getString(nameIndex);
-                if (sizeIndex >= 0) fileSize = cursor.getLong(sizeIndex);
-                cursor.close();
+            try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                    int sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
+                    if (nameIndex >= 0) fileName = cursor.getString(nameIndex);
+                    if (sizeIndex >= 0) fileSize = cursor.getLong(sizeIndex);
+                }
             }
             String mime = getContentResolver().getType(uri);
             String ext = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.') + 1) : "";

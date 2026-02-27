@@ -82,21 +82,19 @@ public class StorageArcView extends View {
         invalidate();
     }
 
-    private void updateArcPaint() {
-        // Choose gradient color based on percentage
-        int startColor, endColor;
+    private int[] getArcColors() {
         if (percentage < 60f) {
-            startColor = Color.parseColor("#10B981"); // emerald
-            endColor = Color.parseColor("#34D399");
+            return new int[]{Color.parseColor("#10B981"), Color.parseColor("#34D399")};
         } else if (percentage < 80f) {
-            startColor = Color.parseColor("#F59E0B"); // amber
-            endColor = Color.parseColor("#FCD34D");
+            return new int[]{Color.parseColor("#F59E0B"), Color.parseColor("#FCD34D")};
         } else {
-            startColor = Color.parseColor("#EF4444"); // red
-            endColor = Color.parseColor("#F87171");
+            return new int[]{Color.parseColor("#EF4444"), Color.parseColor("#F87171")};
         }
-        arcPaint.setColor(startColor);
-        // We'll handle gradient in onDraw
+    }
+
+    private void updateArcPaint() {
+        int[] colors = getArcColors();
+        arcPaint.setColor(colors[0]);
         arcPaint.setShader(null);
     }
 
@@ -121,18 +119,9 @@ public class StorageArcView extends View {
         // Filled arc
         float sweep = SWEEP_TOTAL * (percentage / 100f);
         if (sweep > 0) {
-            // Build a SweepGradient from start to end color
-            int startColor, endColor;
-            if (percentage < 60f) {
-                startColor = Color.parseColor("#10B981");
-                endColor = Color.parseColor("#34D399");
-            } else if (percentage < 80f) {
-                startColor = Color.parseColor("#F59E0B");
-                endColor = Color.parseColor("#FCD34D");
-            } else {
-                startColor = Color.parseColor("#EF4444");
-                endColor = Color.parseColor("#F87171");
-            }
+            int[] colors = getArcColors();
+            int startColor = colors[0];
+            int endColor = colors[1];
             SweepGradient gradient = new SweepGradient(cx, cy,
                     new int[]{startColor, endColor, startColor},
                     new float[]{0f, sweep / 360f, 1f});
