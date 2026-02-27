@@ -87,7 +87,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
     static class NoteViewHolder extends RecyclerView.ViewHolder {
         LinearLayout cardRoot;
         View leftAccent;
-        TextView tvNoteTitle, tvNotePreview, tvNoteDate;
+        TextView tvNoteTitle, tvNotePreview, tvNoteDate, tvNoteCategory;
         TextView tvPinIcon, tvReminderIcon;
         LinearLayout tagsContainer;
         CheckBox cbSelect;
@@ -100,6 +100,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
             tvNoteTitle = itemView.findViewById(R.id.tvNoteTitle);
             tvNotePreview = itemView.findViewById(R.id.tvNotePreview);
             tvNoteDate = itemView.findViewById(R.id.tvNoteDate);
+            tvNoteCategory = itemView.findViewById(R.id.tvNoteCategory);
             tvPinIcon = itemView.findViewById(R.id.tvPinIcon);
             tvReminderIcon = itemView.findViewById(R.id.tvReminderIcon);
             tagsContainer = itemView.findViewById(R.id.tagsContainer);
@@ -151,6 +152,16 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         } else {
             holder.tvNoteDate.setText(note.getFormattedDate());
             holder.tvNoteDate.setTextColor(0xFF475569);
+        }
+
+        // Category badge
+        if (holder.tvNoteCategory != null) {
+            if (note.category != null && !note.category.isEmpty()) {
+                holder.tvNoteCategory.setText(note.category);
+                holder.tvNoteCategory.setVisibility(View.VISIBLE);
+            } else {
+                holder.tvNoteCategory.setVisibility(View.GONE);
+            }
         }
 
         // Left accent color

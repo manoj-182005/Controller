@@ -7,6 +7,7 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -31,6 +32,8 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
@@ -64,7 +67,18 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     // Views - Header
     private ImageButton btnBackNotes, btnSyncNotes, btnViewToggle, btnMoreMenu;
+    private ImageButton btnDrawerToggle;
     private TextView tvNotesTitle, tvNoteCount, tvDateLine;
+
+    // Views - Drawer
+    private DrawerLayout drawerLayout;
+    private LinearLayout drawerFoldersList;
+    private TextView tvDrawerNoteCount, tvDrawerAllCount, tvDrawerPinnedCount, drawerAddFolder;
+
+    // Views - Folder Strip
+    private LinearLayout folderStripSection, folderCardsContainer;
+    private TextView btnViewAllFolders;
+    private NoteFolderRepository folderRepository;
 
     // Views - Search
     private EditText etSearchNotes;
@@ -133,6 +147,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
         // Initialize repository
         repository = new NoteRepository(this);
+        folderRepository = new NoteFolderRepository(this, repository);
 
         // Initialize views
         initViews();
@@ -142,6 +157,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         setupNotesGrid();
         setupMultiSelectBar();
         setupSpeedDial();
+        setupDrawer();
+        setupFolderStrip();
 
         // Load data
         refreshNotes();
@@ -157,6 +174,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     protected void onResume() {
         super.onResume();
         refreshNotes();
+        setupFolderStrip();
     }
 
     @Override
@@ -167,7 +185,9 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     @Override
     public void onBackPressed() {
-        if (isSpeedDialOpen) {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawers();
+        } else if (isSpeedDialOpen) {
             closeSpeedDial();
         } else if (isMultiSelectMode) {
             exitMultiSelectMode();
@@ -181,6 +201,15 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     // ═══════════════════════════════════════════════════════════════
 
     private void initViews() {
+        // Drawer
+        drawerLayout = findViewById(R.id.drawerLayout);
+        drawerFoldersList = findViewById(R.id.drawerFoldersList);
+        tvDrawerNoteCount = findViewById(R.id.tvDrawerNoteCount);
+        tvDrawerAllCount = findViewById(R.id.tvDrawerAllCount);
+        tvDrawerPinnedCount = findViewById(R.id.tvDrawerPinnedCount);
+        drawerAddFolder = findViewById(R.id.drawerAddFolder);
+        btnDrawerToggle = findViewById(R.id.btnDrawerToggle);
+
         // Header
         btnBackNotes = findViewById(R.id.btnBackNotes);
         btnSyncNotes = findViewById(R.id.btnSyncNotes);
@@ -198,6 +227,11 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
         // Filter chips
         chipContainer = findViewById(R.id.chipContainer);
+
+        // Folder strip
+        folderStripSection = findViewById(R.id.folderStripSection);
+        folderCardsContainer = findViewById(R.id.folderCardsContainer);
+        btnViewAllFolders = findViewById(R.id.btnViewAllFolders);
 
         // Pinned section
         pinnedSection = findViewById(R.id.pinnedSection);
@@ -464,9 +498,20 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         chip.setPadding(40, 20, 40, 20);
 
         boolean isSelected = category.equals(currentFilter);
-        chip.setTextColor(isSelected ? 0xFF000000 : 0xFF9CA3AF);
-        chip.setBackgroundResource(isSelected ? 
-            R.drawable.notes_chip_selected_bg : R.drawable.notes_chip_bg);
+
+        if (isSelected) {
+            // Vibrant gradient background per category
+            int chipColor = getCategoryColor(category);
+            GradientDrawable gd = new GradientDrawable(
+                    GradientDrawable.Orientation.LEFT_RIGHT,
+                    new int[]{chipColor, adjustAlpha(chipColor, 0.75f)});
+            gd.setCornerRadius(50f);
+            chip.setBackground(gd);
+            chip.setTextColor(0xFFFFFFFF);
+        } else {
+            chip.setTextColor(0xFF9CA3AF);
+            chip.setBackgroundResource(R.drawable.notes_chip_bg);
+        }
 
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -493,6 +538,26 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         });
 
         return chip;
+    }
+
+    private int getCategoryColor(String category) {
+        switch (category) {
+            case "All":      return 0xFFF59E0B;
+            case "Pinned":   return 0xFFFCD34D;
+            case "Personal": return 0xFF3B82F6;
+            case "Work":     return 0xFF6366F1;
+            case "Ideas":    return 0xFFF97316;
+            case "Study":    return 0xFFA855F7;
+            default:         return 0xFFF59E0B;
+        }
+    }
+
+    private int adjustAlpha(int color, float factor) {
+        int a = Math.round(Color.alpha(color) * factor);
+        int r = Color.red(color);
+        int g = Color.green(color);
+        int b = Color.blue(color);
+        return Color.argb(a, r, g, b);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1122,6 +1187,182 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         });
         builder.setNegativeButton("Cancel", null);
         builder.show();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  NAVIGATION DRAWER
+    // ═══════════════════════════════════════════════════════════════
+
+    private void setupDrawer() {
+        if (btnDrawerToggle != null && drawerLayout != null) {
+            btnDrawerToggle.setOnClickListener(v ->
+                    drawerLayout.openDrawer(GravityCompat.START));
+        }
+
+        // Nav item click listeners
+        LinearLayout drawerNavAllNotes = findViewById(R.id.drawerNavAllNotes);
+        LinearLayout drawerNavPinned = findViewById(R.id.drawerNavPinned);
+        LinearLayout drawerNavArchive = findViewById(R.id.drawerNavArchive);
+        LinearLayout drawerNavTrash = findViewById(R.id.drawerNavTrash);
+
+        if (drawerNavAllNotes != null) {
+            drawerNavAllNotes.setOnClickListener(v -> {
+                currentFilter = "All";
+                setupFilterChips();
+                refreshNotes();
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            });
+        }
+        if (drawerNavPinned != null) {
+            drawerNavPinned.setOnClickListener(v -> {
+                currentFilter = "Pinned";
+                setupFilterChips();
+                refreshNotes();
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            });
+        }
+        if (drawerNavArchive != null) {
+            drawerNavArchive.setOnClickListener(v -> {
+                startActivity(new Intent(this, NotesArchiveActivity.class));
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            });
+        }
+        if (drawerNavTrash != null) {
+            drawerNavTrash.setOnClickListener(v -> {
+                startActivity(new Intent(this, NotesTrashActivity.class));
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            });
+        }
+        if (drawerAddFolder != null) {
+            drawerAddFolder.setOnClickListener(v -> {
+                startActivity(new Intent(this, NoteFoldersHomeActivity.class));
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            });
+        }
+
+        updateDrawerCounts();
+        populateDrawerFolders();
+    }
+
+    private void updateDrawerCounts() {
+        try {
+            java.util.ArrayList<Note> all = repository.filterUnpinnedNotes("All", "");
+            java.util.ArrayList<Note> pinned = repository.filterPinnedNotes("All", "");
+            int totalCount = all.size() + pinned.size();
+            int folderCount = folderRepository.getAllFolders().size();
+
+            if (tvDrawerNoteCount != null) {
+                tvDrawerNoteCount.setText(totalCount + " notes · " + folderCount + " folders");
+            }
+            if (tvDrawerAllCount != null) {
+                tvDrawerAllCount.setText(String.valueOf(totalCount));
+            }
+            if (tvDrawerPinnedCount != null) {
+                tvDrawerPinnedCount.setText(String.valueOf(pinned.size()));
+            }
+        } catch (Exception e) {
+            // Silently ignore if counts can't be loaded
+        }
+    }
+
+    private void populateDrawerFolders() {
+        if (drawerFoldersList == null) return;
+        drawerFoldersList.removeAllViews();
+
+        try {
+            java.util.ArrayList<NoteFolder> folders = folderRepository.getAllFolders();
+            for (NoteFolder folder : folders) {
+                TextView tv = new TextView(this);
+                tv.setText("  📁  " + folder.name);
+                tv.setTextColor(0xFFE2E8F0);
+                tv.setTextSize(14);
+                tv.setPadding(dpToPx(20), dpToPx(14), dpToPx(20), dpToPx(14));
+                tv.setBackgroundResource(android.R.drawable.list_selector_background);
+                tv.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, NoteFolderActivity.class);
+                    intent.putExtra("folder_id", folder.id);
+                    startActivity(intent);
+                    if (drawerLayout != null) drawerLayout.closeDrawers();
+                });
+                drawerFoldersList.addView(tv);
+            }
+        } catch (Exception e) {
+            // Silently ignore if folders can't be loaded
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  FOLDER STRIP
+    // ═══════════════════════════════════════════════════════════════
+
+    private void setupFolderStrip() {
+        if (folderStripSection == null || folderCardsContainer == null) return;
+
+        try {
+            java.util.ArrayList<NoteFolder> folders = folderRepository.getAllFolders();
+            if (folders.isEmpty()) {
+                folderStripSection.setVisibility(View.GONE);
+                return;
+            }
+
+            folderStripSection.setVisibility(View.VISIBLE);
+            folderCardsContainer.removeAllViews();
+
+            // Pre-compute per-folder note counts
+            java.util.HashMap<String, Integer> countMap = new java.util.HashMap<>();
+            for (Note n : repository.getActiveNotes()) {
+                if (n.folderId != null) {
+                    countMap.put(n.folderId, countMap.getOrDefault(n.folderId, 0) + 1);
+                }
+            }
+
+            for (NoteFolder folder : folders) {
+                View card = LayoutInflater.from(this).inflate(
+                        R.layout.item_notes_folder_strip_card, folderCardsContainer, false);
+
+                TextView tvIcon  = card.findViewById(R.id.tvFolderIcon);
+                TextView tvName  = card.findViewById(R.id.tvFolderName);
+                TextView tvCount = card.findViewById(R.id.tvFolderCount);
+
+                tvIcon.setText("📁");
+                tvName.setText(folder.name);
+
+                int count = countMap.getOrDefault(folder.id, 0);
+                tvCount.setText(count + (count == 1 ? " note" : " notes"));
+
+                card.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, NoteFolderActivity.class);
+                    intent.putExtra("folder_id", folder.id);
+                    startActivity(intent);
+                });
+
+                folderCardsContainer.addView(card);
+            }
+
+            // Add "+" create card
+            View plusCard = LayoutInflater.from(this).inflate(
+                    R.layout.item_notes_folder_strip_card, folderCardsContainer, false);
+            TextView tvPlusIcon  = plusCard.findViewById(R.id.tvFolderIcon);
+            TextView tvPlusName  = plusCard.findViewById(R.id.tvFolderName);
+            TextView tvPlusCount = plusCard.findViewById(R.id.tvFolderCount);
+            tvPlusIcon.setText("➕");
+            tvPlusName.setText("New");
+            tvPlusCount.setText("folder");
+            plusCard.setOnClickListener(v ->
+                    startActivity(new Intent(this, NoteFoldersHomeActivity.class)));
+            folderCardsContainer.addView(plusCard);
+
+            if (btnViewAllFolders != null) {
+                btnViewAllFolders.setOnClickListener(v ->
+                        startActivity(new Intent(this, NoteFoldersHomeActivity.class)));
+            }
+        } catch (Exception e) {
+            folderStripSection.setVisibility(View.GONE);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
