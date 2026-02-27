@@ -134,6 +134,73 @@ public class HubStorageIntelligenceActivity extends AppCompatActivity {
             tvBackup.setText("⚠️ " + noBackup.size() + " file(s) with no detected backup.");
             tvBackup.setTextColor(Color.parseColor("#F59E0B"));
         }
+
+        // ── Anomaly Alerts ──────────────────────────────────────────────────
+        LinearLayout anomalyContainer = buildAnomalySection(root, allFiles);
+        root.addView(anomalyContainer);
+    }
+
+    private LinearLayout buildAnomalySection(LinearLayout root, List<HubFile> allFiles) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(24, 24, 24, 24);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(Color.parseColor("#1E293B"));
+        bg.setCornerRadius(20f);
+        card.setBackground(bg);
+
+        TextView tvTitle = new TextView(this);
+        tvTitle.setText("⚠️ File Anomaly Alerts");
+        tvTitle.setTextColor(Color.WHITE);
+        tvTitle.setTextSize(16);
+        tvTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        card.addView(tvTitle);
+
+        List<HubAnomalyDetector.Anomaly> anomalies = HubAnomalyDetector.detect(allFiles);
+
+        // Save externally-modified flags back to repo
+        for (HubFile f : allFiles) if (f.modifiedExternally) repo.updateFile(f);
+
+        if (anomalies.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("✅ No anomalies detected.");
+            tv.setTextColor(Color.parseColor("#22C55E"));
+            tv.setTextSize(13);
+            tv.setPadding(0, 12, 0, 0);
+            card.addView(tv);
+        } else {
+            for (HubAnomalyDetector.Anomaly a : anomalies) {
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(0, 10, 0, 10);
+
+                TextView tvLabel = new TextView(this);
+                tvLabel.setText(a.getEmoji() + "  " + a.title);
+                tvLabel.setTextColor(Color.parseColor("#F59E0B"));
+                tvLabel.setTextSize(13);
+                tvLabel.setTypeface(null, android.graphics.Typeface.BOLD);
+                row.addView(tvLabel);
+
+                TextView tvDetail = new TextView(this);
+                tvDetail.setText(a.detail);
+                tvDetail.setTextColor(Color.parseColor("#D1D5DB"));
+                tvDetail.setTextSize(12);
+                row.addView(tvDetail);
+
+                card.addView(row);
+                View divider = new View(this);
+                divider.setLayoutParams(new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT, 1));
+                divider.setBackgroundColor(Color.parseColor("#374151"));
+                card.addView(divider);
+            }
+        }
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(24, 24, 24, 0);
+        card.setLayoutParams(lp);
+        return card;
     }
 
     private void buildAgeDistribution(LinearLayout container, List<HubFile> allFiles) {

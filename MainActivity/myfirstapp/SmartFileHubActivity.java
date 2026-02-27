@@ -93,6 +93,12 @@ public class SmartFileHubActivity extends AppCompatActivity {
 
         // Trigger background scan on app open
         repo.scanForNewFiles(this::refreshData);
+
+        // Trigger content indexing on background thread
+        HubContentIndexer.getInstance(this).indexAllPending(null);
+
+        // Detect version chains in background
+        repo.detectVersionChains(null);
     }
 
     @Override
@@ -219,6 +225,28 @@ public class SmartFileHubActivity extends AppCompatActivity {
         findViewById(R.id.drawerItemFavourites).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showFavourites(); });
         findViewById(R.id.drawerItemRecent).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showRecent(); });
 
+        // ── New advanced navigation items in drawer ──────────────────────────
+        safeDrawerItem(R.id.drawerItemAnalytics, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubAnalyticsActivity.class));
+        });
+        safeDrawerItem(R.id.drawerItemTimeline, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubFileTimelineActivity.class));
+        });
+        safeDrawerItem(R.id.drawerItemCollections, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubCollectionsActivity.class));
+        });
+        safeDrawerItem(R.id.drawerItemWatchlist, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubWatchlistActivity.class));
+        });
+        safeDrawerItem(R.id.drawerItemBatchOps, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubBatchOperationsActivity.class));
+        });
+
         // Drawer type items
         setupDrawerTypeItem(R.id.drawerTypePdf, HubFile.FileType.PDF);
         setupDrawerTypeItem(R.id.drawerTypeDoc, HubFile.FileType.DOCUMENT);
@@ -253,8 +281,23 @@ public class SmartFileHubActivity extends AppCompatActivity {
         });
         findViewById(R.id.fabNewSmartFolder).setOnClickListener(v -> {
             collapseFab();
-            Toast.makeText(this, "Smart Folder Rule Builder — coming in Prompt 2", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, HubSmartFolderBuilderActivity.class));
         });
+
+        // Long-press on search bar → Command Palette
+        View searchBar = findViewById(R.id.searchBarContainer);
+        if (searchBar != null) {
+            searchBar.setOnLongClickListener(v -> {
+                startActivity(new Intent(this, HubCommandPaletteActivity.class));
+                return true;
+            });
+        }
+    }
+
+    /** Helper: attaches a click listener to a drawer item only if the view exists. */
+    private void safeDrawerItem(int viewId, Runnable action) {
+        View v = findViewById(viewId);
+        if (v != null) v.setOnClickListener(ignored -> action.run());
     }
 
     private void setupTypeCard(int viewId, HubFile.FileType type) {
@@ -314,11 +357,91 @@ public class SmartFileHubActivity extends AppCompatActivity {
         refreshProjects();
         refreshActivityFeed();
         refreshRecentFiles();
+        refreshPredictiveSection();
         updateSubtitle();
     }
 
     private void refreshData() {
         runOnUiThread(this::loadData);
+    }
+
+    /**
+     * Shows the "You might need this" predictive section on the home screen.
+     * Only shown when the predictive engine has enough data (2+ weeks of usage);
+     * before that shows "Learning your patterns…" placeholder.
+     */
+    private void refreshPredictiveSection() {
+        View predictiveCard = findViewById(R.id.predictiveSection);
+        if (predictiveCard == null) return;
+        android.widget.LinearLayout container = predictiveCard.findViewWithTag("predictive_container");
+        if (container == null) return;
+        container.removeAllViews();
+
+        HubPredictiveEngine engine = HubPredictiveEngine.getInstance(this);
+        if (!engine.hasEnoughData()) {
+            TextView tv = new TextView(this);
+            tv.setText("🧠 Learning your patterns… (" + engine.getSessionCount()
+                    + "/" + HubPredictiveEngine.MIN_SESSIONS_BEFORE_PREDICTION + " sessions)");
+            tv.setTextColor(Color.parseColor("#6B7280"));
+            tv.setTextSize(13);
+            container.addView(tv);
+            return;
+        }
+
+        java.util.List<HubPredictiveEngine.Suggestion> suggestions = engine.getSuggestions();
+        if (suggestions.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("No suggestions right now.");
+            tv.setTextColor(Color.parseColor("#6B7280"));
+            tv.setTextSize(13);
+            container.addView(tv);
+            return;
+        }
+
+        for (HubPredictiveEngine.Suggestion s : suggestions) {
+            HubFile f = repo.getFileById(s.fileId);
+            if (f == null) continue;
+            android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+            row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setPadding(0, 8, 0, 8);
+
+            TextView tvEmoji = new TextView(this);
+            tvEmoji.setText(f.getTypeEmoji());
+            tvEmoji.setTextSize(20);
+            row.addView(tvEmoji);
+
+            android.widget.LinearLayout info = new android.widget.LinearLayout(this);
+            info.setOrientation(android.widget.LinearLayout.VERTICAL);
+            android.widget.LinearLayout.LayoutParams infoLp =
+                    new android.widget.LinearLayout.LayoutParams(0,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            infoLp.setMargins(12, 0, 0, 0);
+            info.setLayoutParams(infoLp);
+
+            String name = f.displayName != null ? f.displayName : f.originalFileName;
+            if (name != null && name.length() > 28) name = name.substring(0, 25) + "…";
+            TextView tvName = new TextView(this);
+            tvName.setText(name);
+            tvName.setTextColor(Color.parseColor("#F1F5F9"));
+            tvName.setTextSize(13);
+            info.addView(tvName);
+
+            TextView tvReason = new TextView(this);
+            tvReason.setText(s.reason);
+            tvReason.setTextColor(Color.parseColor("#6B7280"));
+            tvReason.setTextSize(11);
+            info.addView(tvReason);
+
+            row.addView(info);
+            final HubFile finalF = f;
+            row.setOnClickListener(v -> {
+                Intent i = new Intent(this, HubFileViewerActivity.class);
+                i.putExtra("fileId", finalF.id);
+                startActivity(i);
+            });
+            container.addView(row);
+        }
     }
 
     private void refreshStorageCard() {

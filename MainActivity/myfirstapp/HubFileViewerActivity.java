@@ -57,6 +57,8 @@ public class HubFileViewerActivity extends AppCompatActivity {
         repo = HubFileRepository.getInstance(this);
 
         String fileId = getIntent().getStringExtra(EXTRA_FILE_ID);
+        // Support "fileId" alias used by new activities
+        if (fileId == null) fileId = getIntent().getStringExtra("fileId");
         if (fileId != null) file = repo.getFileById(fileId);
 
         bindViews();
@@ -80,6 +82,10 @@ public class HubFileViewerActivity extends AppCompatActivity {
                 FileActivity.Action.VIEWED,
                 "Opened in viewer"
         ));
+
+        // Record access in predictive engine
+        repo.recordFileAccess(file.id);
+        HubPredictiveEngine.getInstance(this).recordAccess(file.id);
     }
 
     private void bindViews() {
@@ -338,7 +344,99 @@ public class HubFileViewerActivity extends AppCompatActivity {
     }
 
     private void showMoreMenu() {
-        Toast.makeText(this, "More options — coming soon", Toast.LENGTH_SHORT).show();
+        if (file == null) {
+            android.widget.Toast.makeText(this, "No file loaded", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String watchLabel = file.isWatchlisted ? "👁️ Remove from Watchlist" : "👁️ Add to Watchlist";
+        String[] options = {
+                "⭐ " + (file.isFavourited ? "Remove from Favourites" : "Add to Favourites"),
+                watchLabel,
+                "🔔 Set Expiry Reminder",
+                "📦 Add to Collection",
+                "🗑️ Delete File"
+        };
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("File Options")
+                .setItems(options, (d, which) -> {
+                    switch (which) {
+                        case 0: // Toggle favourite
+                            file.isFavourited = !file.isFavourited;
+                            repo.updateFile(file);
+                            android.widget.Toast.makeText(this,
+                                    file.isFavourited ? "Added to Favourites" : "Removed from Favourites",
+                                    android.widget.Toast.LENGTH_SHORT).show();
+                            break;
+                        case 1: // Toggle watchlist
+                            file.isWatchlisted = !file.isWatchlisted;
+                            repo.updateFile(file);
+                            android.widget.Toast.makeText(this,
+                                    file.isWatchlisted ? "Added to Watchlist" : "Removed from Watchlist",
+                                    android.widget.Toast.LENGTH_SHORT).show();
+                            break;
+                        case 2: // Set expiry reminder
+                            showExpiryReminderDialog();
+                            break;
+                        case 3: // Add to collection
+                            showAddToCollectionDialog();
+                            break;
+                        case 4: // Delete
+                            confirmDelete();
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void showExpiryReminderDialog() {
+        if (file == null) return;
+        android.app.DatePickerDialog dpd = new android.app.DatePickerDialog(this,
+                (view, year, month, day) -> {
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.set(year, month, day, 9, 0, 0);
+                    HubFileExpiryManager.schedule(this, file, cal.getTimeInMillis());
+                    android.widget.Toast.makeText(this, "Expiry reminder set!", android.widget.Toast.LENGTH_SHORT).show();
+                },
+                java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+                java.util.Calendar.getInstance().get(java.util.Calendar.MONTH),
+                java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH));
+        dpd.setTitle("Set Expiry Reminder");
+        dpd.show();
+    }
+
+    private void showAddToCollectionDialog() {
+        if (file == null) return;
+        java.util.List<HubCollection> cols = repo.getAllCollections();
+        if (cols.isEmpty()) {
+            android.widget.Toast.makeText(this,
+                    "No collections yet — create one in the Collections screen",
+                    android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        String[] names = new String[cols.size()];
+        for (int i = 0; i < cols.size(); i++) names[i] = cols.get(i).name;
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Add to Collection")
+                .setItems(names, (d, which) -> {
+                    repo.addFileToCollection(file.id, cols.get(which).id);
+                    android.widget.Toast.makeText(this,
+                            "Added to " + cols.get(which).name, android.widget.Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void confirmDelete() {
+        if (file == null) return;
+        String name = file.displayName != null ? file.displayName : file.originalFileName;
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Delete File")
+                .setMessage("Delete \"" + name + "\"? This cannot be undone.")
+                .setPositiveButton("Delete", (d, w) -> {
+                    repo.deleteFile(file.id);
+                    finish();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void toggleInfoPanel() {

@@ -42,6 +42,9 @@ public class HubFileBrowserActivity extends AppCompatActivity {
     public static final String EXTRA_RECENT_ONLY = "recent_only";
     public static final String EXTRA_PICK_MODE = "pick_mode";
     public static final String EXTRA_PICKED_FILE_ID = "picked_file_id";
+    public static final String EXTRA_COLLECTION_ID = "collectionId";
+    public static final String EXTRA_FILTER_SOURCE = "filterSource";
+    public static final String EXTRA_FILTER_STALE = "filterStale";
 
     private static final int VIEW_GRID = 0;
     private static final int VIEW_LIST = 1;
@@ -177,7 +180,24 @@ public class HubFileBrowserActivity extends AppCompatActivity {
 
     private void loadFiles() {
         allFiles.clear();
-        if (filterType != null) {
+        // Check new extras first
+        String collectionId = getIntent().getStringExtra(EXTRA_COLLECTION_ID);
+        String filterSource = getIntent().getStringExtra(EXTRA_FILTER_SOURCE);
+        boolean filterStale = getIntent().getBooleanExtra(EXTRA_FILTER_STALE, false);
+
+        if (collectionId != null) {
+            allFiles.addAll(repo.getFilesForCollection(collectionId));
+        } else if (filterSource != null) {
+            try {
+                HubFile.Source src = HubFile.Source.valueOf(filterSource);
+                allFiles.addAll(repo.getFilesBySource(src));
+            } catch (Exception e) { allFiles.addAll(repo.getAllFiles()); }
+        } else if (filterStale) {
+            long sixMonthsAgo = System.currentTimeMillis() - 180L * 86_400_000L;
+            for (HubFile f : repo.getAllFiles()) {
+                if (f.lastAccessedAt < sixMonthsAgo) allFiles.add(f);
+            }
+        } else if (filterType != null) {
             try {
                 HubFile.FileType ft = HubFile.FileType.valueOf(filterType);
                 allFiles.addAll(repo.getFilesByType(ft));
@@ -195,7 +215,7 @@ public class HubFileBrowserActivity extends AppCompatActivity {
         } else if (smartFolderId != null) {
             for (HubFolder folder : repo.getAllFolders()) {
                 if (folder.id.equals(smartFolderId)) {
-                    allFiles.addAll(repo.getFilesForSmartFolder(folder));
+                    allFiles.addAll(repo.getFilesForSmartFolderExtended(folder));
                     break;
                 }
             }
