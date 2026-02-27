@@ -96,8 +96,9 @@ public class VaultImportActivity extends Activity {
             try (Cursor cursor = getContentResolver().query(uri,
                     new String[]{OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
-                    String name = cursor.getString(0);
-                    long size = cursor.getLong(1);
+                    String name = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                    int sizeIdx = cursor.getColumnIndex(OpenableColumns.SIZE);
+                    long size = sizeIdx >= 0 ? cursor.getLong(sizeIdx) : 0;
                     return name + "  (" + formatSize(size) + ")";
                 }
             } catch (Exception ignored) {}

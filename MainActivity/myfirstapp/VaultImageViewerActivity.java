@@ -236,7 +236,7 @@ public class VaultImageViewerActivity extends Activity {
             scaleFactor *= detector.getScaleFactor();
             scaleFactor = Math.max(0.5f, Math.min(scaleFactor, 8f));
             imageView.setScaleType(ImageView.ScaleType.MATRIX);
-            matrix.setScale(scaleFactor, scaleFactor,
+            matrix.postScale(detector.getScaleFactor(), detector.getScaleFactor(),
                     detector.getFocusX(), detector.getFocusY());
             imageView.setImageMatrix(matrix);
             isZoomed = scaleFactor > 1.1f;
@@ -260,7 +260,7 @@ public class VaultImageViewerActivity extends Activity {
             } else {
                 scaleFactor = 2.5f;
                 imageView.setScaleType(ImageView.ScaleType.MATRIX);
-                matrix.setScale(scaleFactor, scaleFactor, e.getX(), e.getY());
+                matrix.postScale(2.5f, 2.5f, e.getX(), e.getY());
                 imageView.setImageMatrix(matrix);
                 isZoomed = true;
             }

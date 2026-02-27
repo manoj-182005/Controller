@@ -129,7 +129,12 @@ public class VaultDocumentViewerActivity extends Activity {
     private byte[] readFile(File f) throws Exception {
         byte[] data = new byte[(int) f.length()];
         try (java.io.FileInputStream fis = new java.io.FileInputStream(f)) {
-            fis.read(data);
+            int offset = 0;
+            while (offset < data.length) {
+                int read = fis.read(data, offset, data.length - offset);
+                if (read == -1) break;
+                offset += read;
+            }
         }
         return data;
     }

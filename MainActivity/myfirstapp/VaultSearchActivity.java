@@ -19,9 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Secure search screen with filter chips and real-time results.
@@ -323,16 +321,22 @@ public class VaultSearchActivity extends Activity {
 
     private void saveRecentSearch(String query) {
         SharedPreferences prefs = getSharedPreferences(PREFS_SEARCH, MODE_PRIVATE);
-        Set<String> existing = new LinkedHashSet<>(prefs.getStringSet(PREF_RECENT, new LinkedHashSet<>()));
-        existing.remove(query);
-        List<String> list = new ArrayList<>(existing);
+        List<String> list = getRecentSearches();
+        list.remove(query);
         list.add(0, query);
         while (list.size() > MAX_RECENT) list.remove(list.size() - 1);
-        prefs.edit().putStringSet(PREF_RECENT, new LinkedHashSet<>(list)).apply();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append("\u001F");
+            sb.append(list.get(i));
+        }
+        prefs.edit().putString(PREF_RECENT, sb.toString()).apply();
     }
 
     private List<String> getRecentSearches() {
         SharedPreferences prefs = getSharedPreferences(PREFS_SEARCH, MODE_PRIVATE);
-        return new ArrayList<>(prefs.getStringSet(PREF_RECENT, new LinkedHashSet<>()));
+        String saved = prefs.getString(PREF_RECENT, "");
+        if (saved.isEmpty()) return new ArrayList<>();
+        return new ArrayList<>(java.util.Arrays.asList(saved.split("\u001F")));
     }
 }
