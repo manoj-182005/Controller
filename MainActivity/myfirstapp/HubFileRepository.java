@@ -1064,4 +1064,123 @@ public class HubFileRepository {
         boolean target = "true".equals(val) || "yes".equals(val) || "1".equals(val);
         return ("Is".equals(op) || "Greater Than".equals(op)) == (actual == target);
     }
+
+    // ─── Share History ─────────────────────────────────────────────────────────
+
+    private static final String PREFS_SHARE_HISTORY = "hub_share_history";
+    private static final String KEY_SHARE_HISTORY = "share_history_json";
+    private static final int MAX_SHARE_HISTORY = 200;
+
+    public void logShare(String fileName, String method, long fileSize) {
+        executor.execute(() -> {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_SHARE_HISTORY, Context.MODE_PRIVATE);
+                String json = prefs.getString(KEY_SHARE_HISTORY, "[]");
+                JSONArray arr = new JSONArray(json);
+                JSONObject entry = new JSONObject();
+                entry.put("fileName", fileName != null ? fileName : "");
+                entry.put("method", method != null ? method : "");
+                entry.put("fileSize", fileSize);
+                entry.put("timestamp", System.currentTimeMillis());
+                arr.put(entry);
+                // Trim to max
+                JSONArray trimmed = new JSONArray();
+                int start = Math.max(0, arr.length() - MAX_SHARE_HISTORY);
+                for (int i = start; i < arr.length(); i++) trimmed.put(arr.get(i));
+                prefs.edit().putString(KEY_SHARE_HISTORY, trimmed.toString()).apply();
+            } catch (Exception e) { Log.e(TAG, "logShare", e); }
+        });
+    }
+
+    public List<JSONObject> getShareHistory() {
+        List<JSONObject> result = new ArrayList<>();
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_SHARE_HISTORY, Context.MODE_PRIVATE);
+            String json = prefs.getString(KEY_SHARE_HISTORY, "[]");
+            JSONArray arr = new JSONArray(json);
+            for (int i = arr.length() - 1; i >= 0; i--) result.add(arr.getJSONObject(i));
+        } catch (Exception e) { Log.e(TAG, "getShareHistory", e); }
+        return result;
+    }
+
+    public void clearShareHistory() {
+        context.getSharedPreferences(PREFS_SHARE_HISTORY, Context.MODE_PRIVATE)
+                .edit().remove(KEY_SHARE_HISTORY).apply();
+    }
+
+    // ─── Audit Log ─────────────────────────────────────────────────────────────
+
+    private static final String PREFS_AUDIT = "hub_audit_log";
+    private static final String KEY_AUDIT = "audit_json";
+    private static final int MAX_AUDIT_ENTRIES = 500;
+
+    public void logAudit(String action, String detail) {
+        executor.execute(() -> {
+            try {
+                SharedPreferences prefs = context.getSharedPreferences(PREFS_AUDIT, Context.MODE_PRIVATE);
+                String json = prefs.getString(KEY_AUDIT, "[]");
+                JSONArray arr = new JSONArray(json);
+                JSONObject entry = new JSONObject();
+                entry.put("action", action != null ? action : "");
+                entry.put("detail", detail != null ? detail : "");
+                entry.put("timestamp", System.currentTimeMillis());
+                arr.put(entry);
+                JSONArray trimmed = new JSONArray();
+                int start = Math.max(0, arr.length() - MAX_AUDIT_ENTRIES);
+                for (int i = start; i < arr.length(); i++) trimmed.put(arr.get(i));
+                prefs.edit().putString(KEY_AUDIT, trimmed.toString()).apply();
+            } catch (Exception e) { Log.e(TAG, "logAudit", e); }
+        });
+    }
+
+    public List<JSONObject> getAuditLog() {
+        List<JSONObject> result = new ArrayList<>();
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_AUDIT, Context.MODE_PRIVATE);
+            String json = prefs.getString(KEY_AUDIT, "[]");
+            JSONArray arr = new JSONArray(json);
+            for (int i = arr.length() - 1; i >= 0; i--) result.add(arr.getJSONObject(i));
+        } catch (Exception e) { Log.e(TAG, "getAuditLog", e); }
+        return result;
+    }
+
+    public void clearAuditLog() {
+        context.getSharedPreferences(PREFS_AUDIT, Context.MODE_PRIVATE)
+                .edit().remove(KEY_AUDIT).apply();
+    }
+
+    // ─── Secure Delete ─────────────────────────────────────────────────────────
+
+    /**
+     * Overwrites file data with random bytes before deletion to hinder recovery.
+     * Note: on SSDs with wear-leveling, a single overwrite pass may not erase all physical copies
+     * of the data. This is a best-effort approach for typical use cases.
+     */
+    public void secureDelete(HubFile file, Runnable onComplete) {
+        executor.execute(() -> {
+            if (file != null && file.filePath != null && !file.filePath.isEmpty()) {
+                try {
+                    java.io.File f = new java.io.File(file.filePath);
+                    if (f.exists() && f.length() > 0) {
+                        java.util.Random rng = new java.util.Random();
+                        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(f, "rw")) {
+                            byte[] buf = new byte[(int) Math.min(f.length(), 65536)];
+                            long written = 0;
+                            while (written < f.length()) {
+                                rng.nextBytes(buf);
+                                int chunk = (int) Math.min(buf.length, f.length() - written);
+                                raf.write(buf, 0, chunk);
+                                written += chunk;
+                            }
+                        }
+                        f.delete();
+                    }
+                } catch (Exception e) { Log.e(TAG, "secureDelete", e); }
+            }
+            if (file != null) deleteFile(file);
+            if (onComplete != null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
+            }
+        });
+    }
 }

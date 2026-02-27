@@ -1,7 +1,9 @@
 package com.prajwal.myfirstapp;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -13,6 +15,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -63,6 +69,33 @@ public class HubDuplicateManagerActivity extends AppCompatActivity {
         findViewById(R.id.btnDupAutoResolve).setOnClickListener(v -> showAutoResolveDialog());
         findViewById(R.id.btnDupSelectAll).setOnClickListener(v -> selectAll());
         btnDupDeleteSelected.setOnClickListener(v -> deleteSelected());
+
+        // Game Mode button
+        Button btnGameMode = new Button(this);
+        btnGameMode.setText("🎮 Game Mode");
+        btnGameMode.setTextColor(Color.parseColor("#FFFFFF"));
+        btnGameMode.setTextSize(13);
+        GradientDrawable gmBg = new GradientDrawable();
+        gmBg.setColor(Color.parseColor("#7C3AED")); gmBg.setCornerRadius(20f);
+        btnGameMode.setBackground(gmBg);
+        btnGameMode.setPadding(24, 12, 24, 12);
+        btnGameMode.setOnClickListener(v -> startGameMode());
+
+        // Add to bottom bar or as a standalone button - add after dupBottomBar
+        LinearLayout gameRow = new LinearLayout(this);
+        gameRow.setOrientation(LinearLayout.HORIZONTAL);
+        gameRow.setPadding(0, 8, 0, 0);
+        LinearLayout.LayoutParams grLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gameRow.setLayoutParams(grLp);
+        gameRow.addView(btnGameMode);
+
+        // Find dupBottomBar parent and add gameRow before it
+        ViewGroup parent = (ViewGroup) dupBottomBar.getParent();
+        if (parent != null) {
+            int idx = parent.indexOfChild(dupBottomBar);
+            parent.addView(gameRow, Math.max(0, idx));
+        }
 
         loadGroups();
     }
@@ -359,5 +392,197 @@ public class HubDuplicateManagerActivity extends AppCompatActivity {
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         if (bytes < 1024L * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
         return String.format("%.2f GB", bytes / (1024.0 * 1024 * 1024));
+    }
+
+    // ─── Game Mode ────────────────────────────────────────────────────────────
+
+    private int gameGroupIndex = 0;
+    private long gameSpaceFreed = 0;
+    private List<DuplicateGroup> gameGroups = new ArrayList<>();
+
+    private void startGameMode() {
+        gameGroups = repo.getAllDuplicateGroups();
+        if (gameGroups.isEmpty()) {
+            Toast.makeText(this, "No duplicate groups to resolve!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        gameGroupIndex = 0;
+        gameSpaceFreed = 0;
+        showGameScreen();
+    }
+
+    private void showGameScreen() {
+        if (gameGroupIndex >= gameGroups.size()) {
+            showGameComplete();
+            return;
+        }
+        DuplicateGroup group = gameGroups.get(gameGroupIndex);
+        List<HubFile> files = getFilesForGroup(group.id);
+        if (files.size() < 2) { gameGroupIndex++; showGameScreen(); return; }
+        HubFile left = files.get(0); HubFile right = files.get(1);
+
+        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.parseColor("#0F172A"));
+        root.setPadding(24, 48, 24, 48);
+        dialog.setContentView(root);
+
+        // Header
+        TextView tvHeader = new TextView(this);
+        tvHeader.setText("🎮 Which one to keep?");
+        tvHeader.setTextColor(Color.WHITE); tvHeader.setTextSize(20);
+        tvHeader.setTypeface(null, Typeface.BOLD);
+        tvHeader.setGravity(Gravity.CENTER);
+        root.addView(tvHeader);
+
+        TextView tvProgress = new TextView(this);
+        tvProgress.setText("Group " + (gameGroupIndex + 1) + " of " + gameGroups.size() +
+                "  •  Freed: " + formatBytes(gameSpaceFreed));
+        tvProgress.setTextColor(Color.parseColor("#6B7280")); tvProgress.setTextSize(12);
+        tvProgress.setGravity(Gravity.CENTER);
+        root.addView(tvProgress);
+
+        // Add 16dp space
+        View sp = new View(this);
+        sp.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 32));
+        root.addView(sp);
+
+        // Two cards side by side
+        LinearLayout cardRow = new LinearLayout(this);
+        cardRow.setOrientation(LinearLayout.HORIZONTAL);
+        cardRow.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        cardRow.addView(buildGameCard(left, 1f));
+        cardRow.addView(buildVS());
+        cardRow.addView(buildGameCard(right, 1f));
+        root.addView(cardRow);
+
+        // Add space
+        View sp2 = new View(this);
+        sp2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 24));
+        root.addView(sp2);
+
+        // Keep buttons
+        LinearLayout btns = new LinearLayout(this);
+        btns.setOrientation(LinearLayout.HORIZONTAL);
+        btns.setGravity(Gravity.CENTER);
+        btns.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        Button btnLeft = new Button(this);
+        btnLeft.setText("◀ Keep Left");
+        btnLeft.setTextColor(Color.WHITE);
+        GradientDrawable leftBg = new GradientDrawable();
+        leftBg.setColor(Color.parseColor("#3B82F6")); leftBg.setCornerRadius(20f);
+        btnLeft.setBackground(leftBg);
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        btnLp.setMargins(0, 0, 8, 0);
+        btnLeft.setLayoutParams(btnLp);
+        btnLeft.setOnClickListener(v -> {
+            gameSpaceFreed += right.fileSize;
+            repo.deleteFile(right.id);
+            gameGroupIndex++;
+            dialog.dismiss();
+            showGameScreen();
+        });
+
+        Button btnRight = new Button(this);
+        btnRight.setText("Keep Right ▶");
+        btnRight.setTextColor(Color.WHITE);
+        GradientDrawable rightBg = new GradientDrawable();
+        rightBg.setColor(Color.parseColor("#3B82F6")); rightBg.setCornerRadius(20f);
+        btnRight.setBackground(rightBg);
+        LinearLayout.LayoutParams btnRLp = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        btnRLp.setMargins(8, 0, 0, 0);
+        btnRight.setLayoutParams(btnRLp);
+        btnRight.setOnClickListener(v -> {
+            gameSpaceFreed += left.fileSize;
+            repo.deleteFile(left.id);
+            gameGroupIndex++;
+            dialog.dismiss();
+            showGameScreen();
+        });
+
+        btns.addView(btnLeft); btns.addView(btnRight);
+        root.addView(btns);
+
+        // Skip button
+        Button btnSkip = new Button(this);
+        btnSkip.setText("Skip →");
+        btnSkip.setTextColor(Color.parseColor("#6B7280")); btnSkip.setTextSize(12);
+        btnSkip.setBackground(null);
+        btnSkip.setOnClickListener(v -> { gameGroupIndex++; dialog.dismiss(); showGameScreen(); });
+        LinearLayout.LayoutParams skipLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        skipLp.setMargins(0, 8, 0, 0);
+        btnSkip.setLayoutParams(skipLp);
+        root.addView(btnSkip);
+
+        dialog.show();
+    }
+
+    private View buildGameCard(HubFile f, float weight) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.parseColor("#1E293B")); bg.setCornerRadius(14f);
+        card.setBackground(bg); card.setPadding(14, 18, 14, 18);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, weight);
+        lp.setMargins(4, 0, 4, 0); card.setLayoutParams(lp);
+
+        TextView tvEmoji = new TextView(this);
+        tvEmoji.setText(f.getTypeEmoji()); tvEmoji.setTextSize(32);
+        tvEmoji.setGravity(Gravity.CENTER);
+        card.addView(tvEmoji);
+
+        String name = f.displayName != null ? f.displayName : f.originalFileName;
+        if (name != null && name.length() > 18) name = name.substring(0, 15) + "…";
+        TextView tvName = new TextView(this);
+        tvName.setText(name != null ? name : "Unknown");
+        tvName.setTextColor(Color.WHITE); tvName.setTextSize(12);
+        tvName.setGravity(Gravity.CENTER);
+        card.addView(tvName);
+
+        TextView tvSize = new TextView(this);
+        tvSize.setText(f.getFormattedSize());
+        tvSize.setTextColor(Color.parseColor("#6366F1")); tvSize.setTextSize(11);
+        tvSize.setGravity(Gravity.CENTER);
+        card.addView(tvSize);
+
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM d, yy", java.util.Locale.getDefault());
+        TextView tvDate = new TextView(this);
+        tvDate.setText(sdf.format(new java.util.Date(f.importedAt)));
+        tvDate.setTextColor(Color.parseColor("#6B7280")); tvDate.setTextSize(10);
+        tvDate.setGravity(Gravity.CENTER);
+        card.addView(tvDate);
+        return card;
+    }
+
+    private View buildVS() {
+        TextView tv = new TextView(this);
+        tv.setText("VS"); tv.setTextColor(Color.parseColor("#F59E0B"));
+        tv.setTextSize(16); tv.setTypeface(null, Typeface.BOLD);
+        tv.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        lp.setMargins(8, 0, 8, 0); tv.setLayoutParams(lp);
+        return tv;
+    }
+
+    private void showGameComplete() {
+        new AlertDialog.Builder(this)
+                .setTitle("🎉 All Resolved!")
+                .setMessage("You resolved all " + gameGroups.size() + " duplicate groups!\n\n" +
+                        "Total space freed: " + formatBytes(gameSpaceFreed))
+                .setPositiveButton("🎊 Done", (d, w) -> loadGroups())
+                .show();
     }
 }

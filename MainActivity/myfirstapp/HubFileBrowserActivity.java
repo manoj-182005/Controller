@@ -373,6 +373,16 @@ public class HubFileBrowserActivity extends AppCompatActivity {
         info.addView(meta);
 
         row.addView(info);
+
+        // Mood tag overlay
+        if (file.moodTag != null && !file.moodTag.isEmpty()) {
+            TextView tvMood = new TextView(this);
+            tvMood.setText(file.moodTag);
+            tvMood.setTextSize(14);
+            tvMood.setPadding(4, 0, 0, 0);
+            row.addView(tvMood);
+        }
+
         row.setOnClickListener(v -> openFile(file));
         return row;
     }

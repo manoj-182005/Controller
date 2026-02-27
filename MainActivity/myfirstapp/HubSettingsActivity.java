@@ -116,6 +116,53 @@ public class HubSettingsActivity extends AppCompatActivity {
                                 Toast.makeText(this, "Activity log cleared", Toast.LENGTH_SHORT).show())
                         .setNegativeButton("Cancel", null)
                         .show());
+        addButton("🛡️ Privacy Analyzer", () ->
+                startActivity(new android.content.Intent(this, HubPrivacyAnalyzerActivity.class)));
+        addButton("📒 Access Audit Log", () ->
+                startActivity(new android.content.Intent(this, HubAuditLogActivity.class)));
+
+        // Stealth Mode
+        addSectionHeader("🕵️ Stealth Mode");
+        addToggle("Enable Stealth Mode", "stealth_enabled", false);
+        addButton("🔑 Set Secret Code", () -> {
+            android.widget.EditText et = new android.widget.EditText(this);
+            et.setHint("Secret code (e.g. 1337)");
+            et.setText(prefs.getString("stealth_code", "1337"));
+            et.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+            new AlertDialog.Builder(this)
+                    .setTitle("Secret Code")
+                    .setView(et)
+                    .setPositiveButton("Save", (d, w) -> {
+                        String code = et.getText().toString().trim();
+                        if (!code.isEmpty()) {
+                            prefs.edit().putString("stealth_code", code).apply();
+                            Toast.makeText(this, "Code saved", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null).show();
+        });
+        addButton("🏷️ Set Display Label", () -> {
+            String[] labels = {"Calculator", "Utilities", "Tools", "Custom…"};
+            new AlertDialog.Builder(this)
+                    .setTitle("Display Label")
+                    .setItems(labels, (d, which) -> {
+                        if (which == labels.length - 1) {
+                            android.widget.EditText et = new android.widget.EditText(this);
+                            et.setHint("Custom label");
+                            new AlertDialog.Builder(this)
+                                    .setTitle("Custom Label")
+                                    .setView(et)
+                                    .setPositiveButton("Save", (d2, w2) -> {
+                                        String lbl = et.getText().toString().trim();
+                                        if (!lbl.isEmpty()) prefs.edit().putString("stealth_label", lbl).apply();
+                                    })
+                                    .setNegativeButton("Cancel", null).show();
+                        } else {
+                            prefs.edit().putString("stealth_label", labels[which]).apply();
+                            Toast.makeText(this, "Label set to: " + labels[which], Toast.LENGTH_SHORT).show();
+                        }
+                    }).show();
+        });
 
         // Data
         addSectionHeader("📦 Data");

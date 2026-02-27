@@ -77,6 +77,8 @@ public class HubFile {
     public boolean modifiedExternally;
     /** Whether content has been indexed (to avoid re-indexing unchanged files). */
     public boolean contentIndexed;
+    /** Emoji mood tag set by user (e.g. 🔥⭐💡). Nullable. */
+    public String moodTag;
 
     public HubFile() {
         this.id = UUID.randomUUID().toString();
@@ -201,6 +203,7 @@ public class HubFile {
             o.put("isWatchlisted", isWatchlisted);
             o.put("modifiedExternally", modifiedExternally);
             o.put("contentIndexed", contentIndexed);
+            o.put("moodTag", moodTag != null ? moodTag : "");
             return o;
         } catch (Exception e) {
             return new JSONObject();
@@ -271,6 +274,8 @@ public class HubFile {
             f.isWatchlisted = o.optBoolean("isWatchlisted", false);
             f.modifiedExternally = o.optBoolean("modifiedExternally", false);
             f.contentIndexed = o.optBoolean("contentIndexed", false);
+            f.moodTag = o.optString("moodTag", "");
+            if (f.moodTag.isEmpty()) f.moodTag = null;
             return f;
         } catch (Exception e) {
             return null;

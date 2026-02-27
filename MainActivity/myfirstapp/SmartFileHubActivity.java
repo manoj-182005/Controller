@@ -174,6 +174,10 @@ public class SmartFileHubActivity extends AppCompatActivity {
         findViewById(R.id.btnHubSettings).setOnClickListener(v ->
                 startActivity(new Intent(this, HubSettingsActivity.class)));
 
+        // Privacy Analyzer
+        safeClick(R.id.btnHubPrivacy, () ->
+                startActivity(new Intent(this, HubPrivacyAnalyzerActivity.class)));
+
         // Inbox card
         findViewById(R.id.inboxCard).setOnClickListener(v -> openInbox());
 
@@ -226,25 +230,43 @@ public class SmartFileHubActivity extends AppCompatActivity {
         findViewById(R.id.drawerItemRecent).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showRecent(); });
 
         // ── New advanced navigation items in drawer ──────────────────────────
-        safeDrawerItem(R.id.drawerItemAnalytics, () -> {
+        safeClick(R.id.drawerItemAnalytics, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubAnalyticsActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemTimeline, () -> {
+        safeClick(R.id.drawerItemTimeline, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubFileTimelineActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemCollections, () -> {
+        safeClick(R.id.drawerItemCollections, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubCollectionsActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemWatchlist, () -> {
+        safeClick(R.id.drawerItemWatchlist, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubWatchlistActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemBatchOps, () -> {
+        safeClick(R.id.drawerItemBatchOps, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubBatchOperationsActivity.class));
+        });
+
+        // Prompt 2 drawer items
+        safeClick(R.id.drawerItemShareProfiles, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubShareProfilesActivity.class));
+        });
+        safeClick(R.id.drawerItemShareHistory, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubShareHistoryActivity.class));
+        });
+        safeClick(R.id.drawerItemExpiryCalendar, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubExpiryCalendarActivity.class));
+        });
+        safeClick(R.id.drawerItemTimeCapsule, () -> {
+            drawerLayout.closeDrawer(Gravity.START);
+            startActivity(new Intent(this, HubTimeCapsuleActivity.class));
         });
 
         // Drawer type items
@@ -263,25 +285,33 @@ public class SmartFileHubActivity extends AppCompatActivity {
                 startActivity(new Intent(this, HubStorageIntelligenceActivity.class)));
 
         // Speed dial items
-        findViewById(R.id.fabImportFiles).setOnClickListener(v -> {
+        safeClick(R.id.fabImportFiles, () -> {
             collapseFab();
             openFilePicker();
         });
-        findViewById(R.id.fabScanNow).setOnClickListener(v -> {
+        safeClick(R.id.fabScanNow, () -> {
             collapseFab();
             triggerManualScan();
         });
-        findViewById(R.id.fabNewFolder).setOnClickListener(v -> {
+        safeClick(R.id.fabNewFolder, () -> {
             collapseFab();
             showCreateFolderDialog();
         });
-        findViewById(R.id.fabNewProject).setOnClickListener(v -> {
+        safeClick(R.id.fabNewProject, () -> {
             collapseFab();
             showCreateProjectDialog();
         });
-        findViewById(R.id.fabNewSmartFolder).setOnClickListener(v -> {
+        safeClick(R.id.fabNewSmartFolder, () -> {
             collapseFab();
             startActivity(new Intent(this, HubSmartFolderBuilderActivity.class));
+        });
+        safeClick(R.id.fabPackageSend, () -> {
+            collapseFab();
+            startActivity(new Intent(this, HubPackageAndSendActivity.class));
+        });
+        safeClick(R.id.fabFocusMode, () -> {
+            collapseFab();
+            startActivity(new Intent(this, HubFocusModeActivity.class));
         });
 
         // Long-press on search bar → Command Palette
@@ -294,8 +324,8 @@ public class SmartFileHubActivity extends AppCompatActivity {
         }
     }
 
-    /** Helper: attaches a click listener to a drawer item only if the view exists. */
-    private void safeDrawerItem(int viewId, Runnable action) {
+    /** Helper: attaches a click listener to any view if it exists. */
+    private void safeClick(int viewId, Runnable action) {
         View v = findViewById(viewId);
         if (v != null) v.setOnClickListener(ignored -> action.run());
     }

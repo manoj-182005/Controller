@@ -461,6 +461,116 @@ public class HubFileViewerActivity extends AppCompatActivity {
         if (tvInfoDate != null) tvInfoDate.setText(
                 new SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault()).format(new Date(file.importedAt)));
         if (tvInfoPath != null) tvInfoPath.setText(file.filePath != null ? file.filePath : "—");
+
+        // Add File DNA view and mood tag picker to the info panel
+        if (fileInfoPanel != null) {
+            addFileDnaAndMoodPicker();
+        }
+    }
+
+    private void addFileDnaAndMoodPicker() {
+        // Check if already added
+        if (fileInfoPanel.findViewWithTag("dna_section") != null) return;
+
+        // File DNA
+        android.widget.LinearLayout dnaSection = new android.widget.LinearLayout(this);
+        dnaSection.setTag("dna_section");
+        dnaSection.setOrientation(android.widget.LinearLayout.VERTICAL);
+        dnaSection.setPadding(0, 16, 0, 0);
+
+        android.widget.TextView tvDnaLabel = new android.widget.TextView(this);
+        tvDnaLabel.setText("🧬 File DNA");
+        tvDnaLabel.setTextColor(android.graphics.Color.parseColor("#9CA3AF"));
+        tvDnaLabel.setTextSize(12);
+        dnaSection.addView(tvDnaLabel);
+
+        HubFileDnaView dnaView = new HubFileDnaView(this);
+        // Generate a deterministic hash from file id + name for display
+        String hashInput = (file.id != null ? file.id : "") +
+                (file.originalFileName != null ? file.originalFileName : "") +
+                file.fileSize;
+        dnaView.setHash(simpleHash(hashInput));
+        android.widget.LinearLayout.LayoutParams dnaLp = new android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+        dnaLp.topMargin = 8;
+        dnaView.setLayoutParams(dnaLp);
+        dnaSection.addView(dnaView);
+        fileInfoPanel.addView(dnaSection);
+
+        // Mood Tag Picker
+        android.widget.LinearLayout moodSection = new android.widget.LinearLayout(this);
+        moodSection.setTag("mood_section");
+        moodSection.setOrientation(android.widget.LinearLayout.VERTICAL);
+        moodSection.setPadding(0, 16, 0, 0);
+
+        android.widget.TextView tvMoodLabel = new android.widget.TextView(this);
+        tvMoodLabel.setText("😊 Mood Tag");
+        tvMoodLabel.setTextColor(android.graphics.Color.parseColor("#9CA3AF"));
+        tvMoodLabel.setTextSize(12);
+        moodSection.addView(tvMoodLabel);
+
+        String[] moods = {"🔥", "⭐", "💡", "😤", "✅", "🎯", "💤", "🚀"};
+        android.widget.HorizontalScrollView moodScroll = new android.widget.HorizontalScrollView(this);
+        moodScroll.setHorizontalScrollBarEnabled(false);
+        android.widget.LinearLayout moodRow = new android.widget.LinearLayout(this);
+        moodRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        moodRow.setPadding(0, 8, 0, 0);
+
+        for (String mood : moods) {
+            android.widget.Button moodBtn = new android.widget.Button(this);
+            moodBtn.setText(mood);
+            moodBtn.setTextSize(20);
+            moodBtn.setPadding(12, 8, 12, 8);
+            boolean isSelected = mood.equals(file.moodTag);
+            android.graphics.drawable.GradientDrawable moodBg = new android.graphics.drawable.GradientDrawable();
+            moodBg.setColor(isSelected ? android.graphics.Color.parseColor("#6366F1")
+                    : android.graphics.Color.parseColor("#1E293B"));
+            moodBg.setCornerRadius(20f);
+            moodBtn.setBackground(moodBg);
+            android.widget.LinearLayout.LayoutParams moodLp = new android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT);
+            moodLp.setMargins(0, 0, 8, 0);
+            moodBtn.setLayoutParams(moodLp);
+            moodBtn.setOnClickListener(v -> {
+                if (mood.equals(file.moodTag)) {
+                    file.moodTag = null;
+                } else {
+                    file.moodTag = mood;
+                }
+                repo.updateFile(file);
+                // Refresh the panel
+                removeTaggedView(fileInfoPanel, "mood_section");
+                removeTaggedView(fileInfoPanel, "dna_section");
+                addFileDnaAndMoodPicker();
+                android.widget.Toast.makeText(this,
+                        file.moodTag != null ? "Mood set to " + file.moodTag : "Mood cleared",
+                        android.widget.Toast.LENGTH_SHORT).show();
+                repo.logAudit("VIEW", "Set mood tag: " + file.moodTag + " on " + file.displayName);
+            });
+            moodRow.addView(moodBtn);
+        }
+        moodScroll.addView(moodRow);
+        moodSection.addView(moodScroll);
+        fileInfoPanel.addView(moodSection);
+    }
+
+    private String simpleHash(String input) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+            byte[] bytes = md.digest(input.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : bytes) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) { return input.length() > 32 ? input.substring(0, 32) : input; }
+    }
+
+    private void removeTaggedView(android.widget.LinearLayout parent, Object tag) {
+        for (int i = parent.getChildCount() - 1; i >= 0; i--) {
+            android.view.View child = parent.getChildAt(i);
+            if (tag.equals(child.getTag())) { parent.removeViewAt(i); return; }
+        }
     }
 
     private String readFileContent(String path) {
