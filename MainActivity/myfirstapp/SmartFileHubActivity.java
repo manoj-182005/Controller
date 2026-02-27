@@ -147,6 +147,10 @@ public class SmartFileHubActivity extends AppCompatActivity {
         // Back
         findViewById(R.id.btnHubBack).setOnClickListener(v -> finish());
 
+        // Duplicates count — open Duplicate Manager
+        tvDuplicatesCount.setOnClickListener(v ->
+                startActivity(new Intent(this, HubDuplicateManagerActivity.class)));
+
         // Drawer toggle
         findViewById(R.id.btnHubDrawer).setOnClickListener(v -> {
             if (drawerLayout.isDrawerOpen(Gravity.START)) {
@@ -158,7 +162,7 @@ public class SmartFileHubActivity extends AppCompatActivity {
 
         // Search
         findViewById(R.id.btnHubSearch).setOnClickListener(v ->
-                Toast.makeText(this, "Search — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+                startActivity(new Intent(this, HubSearchActivity.class)));
 
         // Settings
         findViewById(R.id.btnHubSettings).setOnClickListener(v ->
@@ -172,20 +176,31 @@ public class SmartFileHubActivity extends AppCompatActivity {
         findViewById(R.id.btnAutoOrganize).setOnClickListener(v -> autoOrganizeHighConfidence());
 
         // View all recent
-        findViewById(R.id.btnViewAllRecent).setOnClickListener(v ->
-                Toast.makeText(this, "All Recent Files — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnViewAllRecent).setOnClickListener(v -> {
+            Intent i = new Intent(this, HubFileBrowserActivity.class);
+            i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Recent Files");
+            i.putExtra(HubFileBrowserActivity.EXTRA_RECENT_ONLY, true);
+            startActivity(i);
+        });
 
         // View all projects
         findViewById(R.id.btnViewAllProjects).setOnClickListener(v ->
-                Toast.makeText(this, "All Projects — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+                startActivity(new Intent(this, HubProjectsActivity.class)));
 
         // View all activity
-        findViewById(R.id.btnViewAllActivity).setOnClickListener(v ->
-                Toast.makeText(this, "Full Activity Log — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnViewAllActivity).setOnClickListener(v -> {
+            Intent i = new Intent(this, HubFileBrowserActivity.class);
+            i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Recent Files");
+            i.putExtra(HubFileBrowserActivity.EXTRA_RECENT_ONLY, true);
+            startActivity(i);
+        });
 
         // Manage smart folders
-        findViewById(R.id.btnManageSmartFolders).setOnClickListener(v ->
-                Toast.makeText(this, "Smart Folder Manager — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+        findViewById(R.id.btnManageSmartFolders).setOnClickListener(v -> {
+            Intent i = new Intent(this, HubFileBrowserActivity.class);
+            i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Smart Folders");
+            startActivity(i);
+        });
 
         // Type cards
         setupTypeCard(R.id.typeCardPdf, HubFile.FileType.PDF);
@@ -200,9 +215,9 @@ public class SmartFileHubActivity extends AppCompatActivity {
         // Drawer items
         findViewById(R.id.drawerItemHome).setOnClickListener(v -> drawerLayout.closeDrawer(Gravity.START));
         findViewById(R.id.drawerItemInbox).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); openInbox(); });
-        findViewById(R.id.drawerItemAllFiles).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showAllFilesToast(); });
-        findViewById(R.id.drawerItemFavourites).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showFavouritesToast(); });
-        findViewById(R.id.drawerItemRecent).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showRecentToast(); });
+        findViewById(R.id.drawerItemAllFiles).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showAllFiles(); });
+        findViewById(R.id.drawerItemFavourites).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showFavourites(); });
+        findViewById(R.id.drawerItemRecent).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showRecent(); });
 
         // Drawer type items
         setupDrawerTypeItem(R.id.drawerTypePdf, HubFile.FileType.PDF);
@@ -241,8 +256,12 @@ public class SmartFileHubActivity extends AppCompatActivity {
     private void setupTypeCard(int viewId, HubFile.FileType type) {
         View card = findViewById(viewId);
         if (card != null) {
-            card.setOnClickListener(v ->
-                    Toast.makeText(this, type.name() + " browser — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+            card.setOnClickListener(v -> {
+                Intent intent = new Intent(this, HubFileBrowserActivity.class);
+                intent.putExtra(HubFileBrowserActivity.EXTRA_FILTER_TYPE, type.name());
+                intent.putExtra(HubFileBrowserActivity.EXTRA_TITLE, type.name() + " Files");
+                startActivity(intent);
+            });
         }
     }
 
@@ -251,20 +270,35 @@ public class SmartFileHubActivity extends AppCompatActivity {
         if (item != null) {
             item.setOnClickListener(v -> {
                 drawerLayout.closeDrawer(Gravity.START);
-                Toast.makeText(this, type.name() + " browser — coming in Prompt 2", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, HubFileBrowserActivity.class);
+                intent.putExtra(HubFileBrowserActivity.EXTRA_FILTER_TYPE, type.name());
+                intent.putExtra(HubFileBrowserActivity.EXTRA_TITLE, type.name() + " Files");
+                startActivity(intent);
             });
         }
     }
 
-    private void showAllFilesToast() {
-        Toast.makeText(this, "All Files — coming in Prompt 2", Toast.LENGTH_SHORT).show();
+    private void showAllFiles() {
+        Intent i = new Intent(this, HubFileBrowserActivity.class);
+        i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "All Files");
+        startActivity(i);
     }
-    private void showFavouritesToast() {
-        Toast.makeText(this, "Favourites — coming in Prompt 2", Toast.LENGTH_SHORT).show();
+    private void showFavourites() {
+        Intent i = new Intent(this, HubFileBrowserActivity.class);
+        i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Favourites");
+        i.putExtra(HubFileBrowserActivity.EXTRA_FAVOURITES_ONLY, true);
+        startActivity(i);
     }
-    private void showRecentToast() {
-        Toast.makeText(this, "Recent Files — coming in Prompt 2", Toast.LENGTH_SHORT).show();
+    private void showRecent() {
+        Intent i = new Intent(this, HubFileBrowserActivity.class);
+        i.putExtra(HubFileBrowserActivity.EXTRA_TITLE, "Recent Files");
+        i.putExtra(HubFileBrowserActivity.EXTRA_RECENT_ONLY, true);
+        startActivity(i);
     }
+    // Legacy methods kept for any remaining references
+    private void showAllFilesToast() { showAllFiles(); }
+    private void showFavouritesToast() { showFavourites(); }
+    private void showRecentToast() { showRecent(); }
 
     // ─── Data Loading ─────────────────────────────────────────────────────────
 
@@ -529,8 +563,12 @@ public class SmartFileHubActivity extends AppCompatActivity {
         card.addView(count);
 
         HubFolder finalFolder = folder;
-        card.setOnClickListener(v ->
-                Toast.makeText(this, folder.name + " — file browser coming in Prompt 2", Toast.LENGTH_SHORT).show());
+        card.setOnClickListener(v -> {
+            Intent intent = new Intent(this, HubFileBrowserActivity.class);
+            intent.putExtra(HubFileBrowserActivity.EXTRA_FOLDER_ID, finalFolder.id);
+            intent.putExtra(HubFileBrowserActivity.EXTRA_TITLE, finalFolder.name);
+            startActivity(intent);
+        });
 
         return card;
     }
@@ -633,8 +671,11 @@ public class SmartFileHubActivity extends AppCompatActivity {
         size.setTextSize(10);
         card.addView(size);
 
-        card.setOnClickListener(v ->
-                Toast.makeText(this, project.name + " detail — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+        card.setOnClickListener(v -> {
+            Intent intent = new Intent(this, HubProjectDetailActivity.class);
+            intent.putExtra(HubProjectDetailActivity.EXTRA_PROJECT_ID, project.id);
+            startActivity(intent);
+        });
 
         return card;
     }
@@ -745,8 +786,11 @@ public class SmartFileHubActivity extends AppCompatActivity {
             card.addView(fileName);
 
             HubFile finalFile = file;
-            card.setOnClickListener(v ->
-                    Toast.makeText(this, "File viewer — coming in Prompt 2", Toast.LENGTH_SHORT).show());
+            card.setOnClickListener(v -> {
+                Intent intent = new Intent(this, HubFileViewerActivity.class);
+                intent.putExtra(HubFileViewerActivity.EXTRA_FILE_ID, finalFile.id);
+                startActivity(intent);
+            });
 
             recentFilesStrip.addView(card);
         }
