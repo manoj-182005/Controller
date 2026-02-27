@@ -8,6 +8,12 @@ import java.util.List;
  */
 public class HubAutoCategorizeEngine {
 
+    /** Regex matching a 4-digit year (19xx or 20xx) as a whole word. */
+    private static final String DATE_YEAR_REGEX = ".*\\b(19|20)\\d{2}\\b.*";
+
+    /** Document-related keywords used alongside date detection. */
+    private static final String[] DATE_DOC_KEYWORDS = {"doc", "report", "letter", "memo"};
+
     public static class CategorizeResult {
         public HubFile.FileType suggestedFileType;
         public String suggestedFolder;
@@ -45,7 +51,7 @@ public class HubAutoCategorizeEngine {
         }
 
         // Date-like pattern in name (e.g. 2024, 20240101)
-        if (name.matches(".*\\b(19|20)\\d{2}\\b.*") && containsAny(name, "doc", "report", "letter", "memo")) {
+        if (name.matches(DATE_YEAR_REGEX) && containsAny(name, DATE_DOC_KEYWORDS)) {
             result.suggestedTags.add("#dated");
         }
 

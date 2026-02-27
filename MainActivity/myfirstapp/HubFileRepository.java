@@ -692,7 +692,9 @@ public class HubFileRepository {
     public synchronized List<String> getQuickSharePins() { return new ArrayList<>(quickSharePins); }
 
     public synchronized void addQuickSharePin(String fileId) {
-        if (!quickSharePins.contains(fileId) && quickSharePins.size() < 10) {
+        int maxPins = context.getSharedPreferences("hub_settings", Context.MODE_PRIVATE)
+                .getInt("max_pins", 10);
+        if (!quickSharePins.contains(fileId) && quickSharePins.size() < maxPins) {
             quickSharePins.add(fileId);
             saveQuickSharePins();
         }
