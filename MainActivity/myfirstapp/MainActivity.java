@@ -994,6 +994,12 @@ public class MainActivity extends AppCompatActivity {
             startActivity(mediaVaultIntent);
         });
 
+        // Smart File Hub Card
+        findViewById(R.id.cardSmartFileHub).setOnClickListener(v -> {
+            Intent hubIntent = new Intent(MainActivity.this, SmartFileHubActivity.class);
+            startActivity(hubIntent);
+        });
+
         // ─── New Feature Cards ───
         // System Monitor Card
         findViewById(R.id.cardSystemMonitor).setOnClickListener(v -> showSystemMonitorMenu());
