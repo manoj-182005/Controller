@@ -10,6 +10,7 @@ import android.provider.MediaStore;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -81,7 +82,7 @@ public class TaskExportManager {
                     if (uri == null) throw new Exception("Could not create file in Downloads");
                     try (OutputStream os = context.getContentResolver().openOutputStream(uri)) {
                         if (os == null) throw new Exception("Could not open output stream");
-                        os.write(csvContent.getBytes("UTF-8"));
+                        os.write(csvContent.getBytes(StandardCharsets.UTF_8));
                     }
                 } else {
                     File dir = Environment.getExternalStoragePublicDirectory(
@@ -90,7 +91,7 @@ public class TaskExportManager {
                     dir.mkdirs();
                     File file = new File(dir, fileName);
                     try (FileOutputStream fos = new FileOutputStream(file)) {
-                        fos.write(csvContent.getBytes("UTF-8"));
+                        fos.write(csvContent.getBytes(StandardCharsets.UTF_8));
                     }
                 }
 

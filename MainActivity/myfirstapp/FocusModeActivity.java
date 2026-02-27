@@ -31,7 +31,7 @@ import java.util.Locale;
  */
 public class FocusModeActivity extends AppCompatActivity {
 
-    private static final long POMODORO_MILLIS = 25 * 60 * 1000L;
+    private long pomodoroMillis = 25 * 60 * 1000L; // default; overridden from settings
 
     private TaskRepository repo;
     private List<Task> todayTasks = new ArrayList<>();
@@ -47,13 +47,18 @@ public class FocusModeActivity extends AppCompatActivity {
     // ── Timer ────────────────────────────────────────────────────
     private CountDownTimer countDownTimer;
     private boolean timerRunning = false;
-    private long remainingMillis = POMODORO_MILLIS;
+    private long remainingMillis;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         repo = new TaskRepository(this);
+
+        // Read pomodoro duration from settings
+        TaskManagerSettings settings = TaskManagerSettings.getInstance(this);
+        pomodoroMillis = settings.pomodoroFocusMinutes * 60 * 1000L;
+        remainingMillis = pomodoroMillis;
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -308,7 +313,7 @@ public class FocusModeActivity extends AppCompatActivity {
             public void onTick(long millis) {
                 remainingMillis = millis;
                 updateTimerDisplay(millis);
-                ringView.setProgress(1f - (float) millis / POMODORO_MILLIS);
+                ringView.setProgress(1f - (float) millis / pomodoroMillis);
             }
 
             @Override
@@ -325,7 +330,7 @@ public class FocusModeActivity extends AppCompatActivity {
     private void resetTimer(TextView btnStart) {
         if (countDownTimer != null) countDownTimer.cancel();
         timerRunning = false;
-        remainingMillis = POMODORO_MILLIS;
+        remainingMillis = pomodoroMillis;
         updateTimerDisplay(remainingMillis);
         ringView.setProgress(0f);
         if (btnStart != null) btnStart.setText("▶ Start");

@@ -83,7 +83,7 @@ public class TaskImportActivity extends AppCompatActivity {
         tvPickFile.setTextColor(Color.parseColor("#6C63FF"));
         tvPickFile.setTextSize(16);
         tvPickFile.setTypeface(null, Typeface.BOLD);
-        tvPickFile.setOnClickListener(v -> filePicker.launch(new String[]{"*/*"}));
+        tvPickFile.setOnClickListener(v -> filePicker.launch(new String[]{"text/csv", "text/comma-separated-values", "text/plain"}));
         root.addView(tvPickFile);
 
         // ── Summary ───────────────────────────────────────────────

@@ -196,8 +196,10 @@ public class TaskManagerSettings {
         Log.d(TAG, "Settings saved");
     }
 
-    public void reset() {
+    public synchronized void reset() {
         prefs.edit().clear().apply();
-        instance = null; // force reload on next getInstance()
+        synchronized (TaskManagerSettings.class) {
+            instance = null; // force reload on next getInstance()
+        }
     }
 }

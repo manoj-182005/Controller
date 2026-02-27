@@ -77,7 +77,7 @@ public class TaskTemplatesManager {
                     for (int i = 0; i < arr.length(); i++) titles.add(arr.getString(i));
                 }
                 return new TaskTemplate(
-                        json.optString("id", UUID.randomUUID().toString().substring(0, 12)),
+                        json.optString("id", UUID.randomUUID().toString()),
                         json.optString("name", ""),
                         json.optString("description", ""),
                         json.optString("priority", Task.PRIORITY_NORMAL),
@@ -187,7 +187,7 @@ public class TaskTemplatesManager {
 
     public void saveCustomTemplate(TaskTemplate template) {
         if (template.id == null || template.id.isEmpty()) {
-            template.id = "custom_" + UUID.randomUUID().toString().substring(0, 12);
+            template.id = "custom_" + UUID.randomUUID().toString();
         }
         template.isCustom = true;
         List<TaskTemplate> customs = getCustomTemplates();
