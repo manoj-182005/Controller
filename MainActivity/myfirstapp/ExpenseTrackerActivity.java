@@ -163,6 +163,10 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         // Back button
         findViewById(R.id.btnBackExpense).setOnClickListener(v -> finish());
 
+        // Net Worth Dashboard
+        findViewById(R.id.btnNetWorth).setOnClickListener(v ->
+            startActivity(new Intent(this, NetWorthDashboardActivity.class)));
+
         // Set budget button
         findViewById(R.id.btnSetBudget).setOnClickListener(v -> showBudgetDialog());
 
