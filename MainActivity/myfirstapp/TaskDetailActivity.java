@@ -70,6 +70,8 @@ public class TaskDetailActivity extends AppCompatActivity
     private LinearLayout detailRemindersSection, detailRemindersContainer;
     private TextView tvCreatedAt, tvUpdatedAt, tvCompletedAt;
     private TextView btnComplete, btnSkipRecurrence;
+    private TextView btnAddToCalendar;
+    private TextView btnConvertToMeeting;
 
     // ═════════════════════════════════════════════════════════════
     // LIFECYCLE
@@ -181,6 +183,11 @@ public class TaskDetailActivity extends AppCompatActivity
         btnSkipRecurrence.setOnClickListener(v -> skipRecurrence());
 
         btnStar.setOnClickListener(v -> toggleStar());
+
+        btnAddToCalendar = findViewById(R.id.btnAddToCalendar);
+        btnConvertToMeeting = findViewById(R.id.btnConvertToMeeting);
+        btnAddToCalendar.setOnClickListener(v -> addTaskToCalendar());
+        btnConvertToMeeting.setOnClickListener(v -> convertTaskToMeeting());
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -750,5 +757,47 @@ public class TaskDetailActivity extends AppCompatActivity
 
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density);
+    }
+
+    private void addTaskToCalendar() {
+        Intent calIntent = new Intent(Intent.ACTION_INSERT);
+        calIntent.setData(android.provider.CalendarContract.Events.CONTENT_URI);
+        calIntent.putExtra(android.provider.CalendarContract.Events.TITLE, task.title);
+        if (task.description != null && !task.description.isEmpty()) {
+            calIntent.putExtra(android.provider.CalendarContract.Events.DESCRIPTION, task.description);
+        }
+        if (task.hasDueDate()) {
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+                java.util.Date d = sdf.parse(task.dueDate);
+                if (d != null) {
+                    long beginMs = d.getTime();
+                    if (task.hasDueTime()) {
+                        String[] parts = task.dueTime.split(":");
+                        java.util.Calendar cal = java.util.Calendar.getInstance();
+                        cal.setTime(d);
+                        cal.set(java.util.Calendar.HOUR_OF_DAY, Integer.parseInt(parts[0]));
+                        cal.set(java.util.Calendar.MINUTE, Integer.parseInt(parts[1]));
+                        beginMs = cal.getTimeInMillis();
+                    }
+                    calIntent.putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, beginMs);
+                    calIntent.putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, beginMs + 3600000L);
+                }
+            } catch (Exception ignored) {}
+        }
+        try {
+            startActivity(calIntent);
+        } catch (Exception e) {
+            Toast.makeText(this, "No calendar app found", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void convertTaskToMeeting() {
+        Intent intent = new Intent(this, CreateMeetingActivity.class);
+        intent.putExtra(CreateMeetingActivity.EXTRA_PREFILL_TITLE, task.title);
+        if (task.hasDueDate()) {
+            intent.putExtra(CreateMeetingActivity.EXTRA_PREFILL_DATE, task.dueDate);
+        }
+        startActivity(intent);
     }
 }
