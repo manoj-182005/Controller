@@ -8,6 +8,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- Android 13+ media permissions for vault import -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -235,6 +239,49 @@
             android:name=".PasswordManagerActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- ─── Personal Media Vault Activities ─── -->
+
+        <!-- Vault Unlock Screen -->
+        <activity
+            android:name=".VaultUnlockActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustPan" />
+
+        <!-- Vault Home Screen -->
+        <activity
+            android:name=".VaultHomeActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault File Browser -->
+        <activity
+            android:name=".VaultFileBrowserActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault Album Detail -->
+        <activity
+            android:name=".VaultAlbumDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault Activity Log -->
+        <activity
+            android:name=".VaultActivityLogActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
 
         <!-- Foreground Service -->
         <service
