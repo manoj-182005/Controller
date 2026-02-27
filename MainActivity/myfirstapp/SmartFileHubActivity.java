@@ -166,7 +166,7 @@ public class SmartFileHubActivity extends AppCompatActivity {
 
         // Settings
         findViewById(R.id.btnHubSettings).setOnClickListener(v ->
-                Toast.makeText(this, "Hub Settings — coming in Prompt 3", Toast.LENGTH_SHORT).show());
+                startActivity(new Intent(this, HubSettingsActivity.class)));
 
         // Inbox card
         findViewById(R.id.inboxCard).setOnClickListener(v -> openInbox());
@@ -229,6 +229,10 @@ public class SmartFileHubActivity extends AppCompatActivity {
 
         // FAB
         fabMain.setOnClickListener(v -> toggleFabSpeedDial());
+
+        // Storage arc → Storage Intelligence
+        storageArcView.setOnClickListener(v ->
+                startActivity(new Intent(this, HubStorageIntelligenceActivity.class)));
 
         // Speed dial items
         findViewById(R.id.fabImportFiles).setOnClickListener(v -> {

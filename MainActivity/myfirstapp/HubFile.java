@@ -54,6 +54,7 @@ public class HubFile {
     public String notes;
     public long createdAt;
     public long updatedAt;
+    public int accessCount;
 
     public HubFile() {
         this.id = UUID.randomUUID().toString();
@@ -157,6 +158,7 @@ public class HubFile {
             o.put("notes", notes != null ? notes : "");
             o.put("createdAt", createdAt);
             o.put("updatedAt", updatedAt);
+            o.put("accessCount", accessCount);
             return o;
         } catch (Exception e) {
             return new JSONObject();
@@ -205,6 +207,7 @@ public class HubFile {
             f.notes = o.optString("notes", "");
             f.createdAt = o.optLong("createdAt", System.currentTimeMillis());
             f.updatedAt = o.optLong("updatedAt", System.currentTimeMillis());
+            f.accessCount = o.optInt("accessCount", 0);
             return f;
         } catch (Exception e) {
             return null;
