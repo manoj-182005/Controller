@@ -49,6 +49,7 @@ public class CalendarEvent {
     public String originalRecurrenceDate;      // "YYYY-MM-DD" for edited single instances of recurring events
     public long createdAt;
     public long updatedAt;
+    public String linkedNoteId;                // null = no linked note
 
     // ─── Compatibility Aliases ───────────────────────────────────
     // These provide backward compatibility for code using old field names
@@ -614,6 +615,7 @@ public class CalendarEvent {
             json.put("originalRecurrenceDate", originalRecurrenceDate != null ? originalRecurrenceDate : "");
             json.put("createdAt", createdAt);
             json.put("updatedAt", updatedAt);
+            json.put("linkedNoteId", linkedNoteId != null ? linkedNoteId : "");
         } catch (JSONException e) {
             // Should not happen with put()
         }
@@ -669,6 +671,7 @@ public class CalendarEvent {
             event.originalRecurrenceDate = emptyToNull(json.optString("originalRecurrenceDate", ""));
             event.createdAt = json.optLong("createdAt", System.currentTimeMillis());
             event.updatedAt = json.optLong("updatedAt", System.currentTimeMillis());
+            event.linkedNoteId = emptyToNull(json.optString("linkedNoteId", ""));
 
             // Sync compatibility aliases
             event.syncAliases();

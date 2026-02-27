@@ -54,6 +54,8 @@ public class TodoItemDetailActivity extends AppCompatActivity {
     // ─── Timer state ─────────────────────────────────────────────
 
     private static final long MIN_SESSION_DURATION_SECONDS = 5;
+    private static final SimpleDateFormat SDF_DATE =
+            new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     private boolean  isTimerRunning = false;
     private long     timerStartMs   = 0;
@@ -162,6 +164,9 @@ public class TodoItemDetailActivity extends AppCompatActivity {
 
         if (btnTimer        != null) btnTimer.setOnClickListener(v -> toggleTimer());
         if (btnCompleteTask != null) btnCompleteTask.setOnClickListener(v -> completeItem());
+
+        View btnAddToCalendar = findViewById(R.id.btnAddToCalendar);
+        if (btnAddToCalendar != null) btnAddToCalendar.setOnClickListener(v -> addTaskToCalendar());
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -594,5 +599,38 @@ public class TodoItemDetailActivity extends AppCompatActivity {
     private String capitalize(String s) {
         if (s == null || s.isEmpty()) return s;
         return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
+    }
+
+    /** Creates a calendar event pre-filled with the task details. */
+    private void addTaskToCalendar() {
+        if (currentItem == null) return;
+
+        CalendarRepository calRepo = new CalendarRepository(this);
+        CalendarEvent event = new CalendarEvent();
+        event.title = currentItem.title;
+        event.description = currentItem.description != null ? currentItem.description : "";
+        event.startDate = currentItem.dueDate != null ? currentItem.dueDate : getTodayDate();
+        event.endDate = event.startDate;
+        event.startTime = currentItem.dueTime != null ? currentItem.dueTime : "09:00";
+        event.endTime = event.startTime;
+        event.isAllDay = (currentItem.dueTime == null || currentItem.dueTime.isEmpty());
+        event.eventType = CalendarEvent.TYPE_PERSONAL;
+
+        // Show confirmation before creating
+        String details = event.title + "\n" + event.startDate
+                + (event.isAllDay ? " (All day)" : " at " + event.startTime);
+        new AlertDialog.Builder(this)
+                .setTitle("Add to Calendar")
+                .setMessage("Create calendar event:\n\n" + details)
+                .setPositiveButton("Create Event", (d, w) -> {
+                    calRepo.addEvent(event);
+                    Toast.makeText(this, "📅 Event added to Calendar", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private String getTodayDate() {
+        return SDF_DATE.format(new Date());
     }
 }

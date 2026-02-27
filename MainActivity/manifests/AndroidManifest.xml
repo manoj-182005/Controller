@@ -379,6 +379,12 @@
             android:excludeFromRecents="true"
             android:taskAffinity="" />
 
+        <!-- Notes Settings -->
+        <activity
+            android:name=".NotesSettingsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Foreground Service -->
         <service
             android:name=".ConnectionForegroundService"
