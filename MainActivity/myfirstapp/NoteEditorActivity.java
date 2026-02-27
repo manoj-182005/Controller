@@ -172,6 +172,7 @@ public class NoteEditorActivity extends AppCompatActivity {
         Intent intent = getIntent();
         isNewNote = intent.getBooleanExtra(EXTRA_NEW_NOTE, true);
         initialCategory = intent.getStringExtra(EXTRA_CATEGORY);
+        String initialFolderId = intent.getStringExtra("folder_id");
 
         if (!isNewNote) {
             String noteId = intent.getStringExtra(EXTRA_NOTE_ID);
@@ -196,6 +197,9 @@ public class NoteEditorActivity extends AppCompatActivity {
             currentNote = new Note();
             if (initialCategory != null) {
                 currentNote.category = initialCategory;
+            }
+            if (initialFolderId != null && !initialFolderId.isEmpty()) {
+                currentNote.folderId = initialFolderId;
             }
             updateCategoryDisplay();
             etTitle.requestFocus();

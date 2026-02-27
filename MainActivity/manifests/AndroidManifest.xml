@@ -107,6 +107,20 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Note Folders Home Activity -->
+        <activity
+            android:name=".NoteFoldersHomeActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
+        <!-- Note Folder Activity -->
+        <activity
+            android:name=".NoteFolderActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:screenOrientation="portrait"
+            android:exported="false" />
+
         <!-- Notes Archive Activity -->
         <activity
             android:name=".NotesArchiveActivity"
