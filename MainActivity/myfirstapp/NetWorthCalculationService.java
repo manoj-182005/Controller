@@ -24,6 +24,8 @@ public class NetWorthCalculationService {
     private final MoneyRecordRepository    iouRepo;
     private final CategoryBudgetRepository budgetRepo;
 
+    private static final double SAVINGS_MILESTONE_TARGET = 100_000;
+
     public NetWorthCalculationService(Context context) {
         this.context     = context;
         this.walletRepo  = new WalletRepository(context);
@@ -463,7 +465,7 @@ public class NetWorthCalculationService {
         if (savingsRate > 0 && incomeThisMonth > 0) {
             double monthlySavings = incomeThisMonth - expensesThisMonth;
             if (monthlySavings > 0) {
-                double target = 100_000;
+                double target = SAVINGS_MILESTONE_TARGET;
                 double months = target / monthlySavings;
                 if (months <= 24) {
                     pool.add(new String[]{"🎯", "₹1 Lakh milestone",
