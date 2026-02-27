@@ -68,9 +68,9 @@ public class NetWorthRepository {
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
         // Check if today's snapshot already exists
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         for (NetWorthSnapshot s : all) {
-            String d = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    .format(new Date(s.recordedAt));
+            String d = sdf.format(new Date(s.recordedAt));
             if (today.equals(d)) return; // Already have today's
         }
 
@@ -103,24 +103,23 @@ public class NetWorthRepository {
     public double[] getDailyTrend(int days) {
         double[] trend = new double[days];
         ArrayList<NetWorthSnapshot> all = loadAll(); // newest first
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
         for (int i = 0; i < days; i++) {
             Calendar cal = Calendar.getInstance();
             cal.add(Calendar.DAY_OF_YEAR, -(days - 1 - i));
-            String dayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    .format(cal.getTime());
+            String dayStr = sdf.format(cal.getTime());
 
             // Find snapshot for this day (exact match)
-            double val = Double.MIN_VALUE;
+            Double val = null;
             for (NetWorthSnapshot s : all) {
-                String d = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        .format(new Date(s.recordedAt));
+                String d = sdf.format(new Date(s.recordedAt));
                 if (dayStr.equals(d)) { val = s.netWorth; break; }
             }
 
-            if (val == Double.MIN_VALUE) {
+            if (val == null) {
                 // Forward-fill from earlier snapshots
-                val = i > 0 ? trend[i - 1] : 0;
+                val = i > 0 ? trend[i - 1] : 0.0;
             }
             trend[i] = val;
         }
