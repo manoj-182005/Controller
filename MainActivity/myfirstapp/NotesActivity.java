@@ -99,6 +99,13 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     private RecyclerView notesRecyclerView;
     private NotesAdapter notesAdapter;
     private LinearLayout emptyStateContainer;
+    private TextView btnEmptyCreateNote;
+
+    // Views - Recently Viewed
+    private LinearLayout recentlyViewedSection, recentlyViewedContainer;
+
+    // Views - Sort
+    private ImageButton btnSortNotes;
 
     // Views - Multi-select
     private LinearLayout multiSelectBar;
@@ -176,6 +183,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         super.onResume();
         refreshNotes();
         setupFolderStrip();
+        setupRecentlyViewed();
     }
 
     @Override
@@ -242,6 +250,14 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         // Grid
         notesRecyclerView = findViewById(R.id.notesRecyclerView);
         emptyStateContainer = findViewById(R.id.emptyStateContainer);
+        btnEmptyCreateNote = findViewById(R.id.btnEmptyCreateNote);
+
+        // Recently Viewed
+        recentlyViewedSection = findViewById(R.id.recentlyViewedSection);
+        recentlyViewedContainer = findViewById(R.id.recentlyViewedContainer);
+
+        // Sort button
+        btnSortNotes = findViewById(R.id.btnSortNotes);
 
         // Multi-select
         multiSelectBar = findViewById(R.id.multiSelectBar);
@@ -290,6 +306,14 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         });
 
         btnMoreMenu.setOnClickListener(this::showMoreMenu);
+
+        if (btnSortNotes != null) {
+            btnSortNotes.setOnClickListener(this::showSortMenu);
+        }
+
+        if (btnEmptyCreateNote != null) {
+            btnEmptyCreateNote.setOnClickListener(v -> createNewNote("note"));
+        }
     }
 
     private void updateViewToggleIcon() {
@@ -304,9 +328,14 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     }
 
     private void updateNoteCount(int count) {
-        String text = count + (count == 1 ? " note" : " notes");
-        
-        // Animate count change
+        int folderCount = 0;
+        try {
+            folderCount = folderRepository.getAllFolders().size();
+        } catch (Exception ignored) {}
+
+        int fCount = folderCount;
+        String text = count + (count == 1 ? " Note" : " Notes") + " · " + fCount + " Folder" + (fCount == 1 ? "" : "s");
+
         tvNoteCount.animate()
             .scaleX(1.1f).scaleY(1.1f)
             .setDuration(100)
@@ -353,9 +382,43 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         popup.show();
     }
 
+    private void showSortMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        popup.getMenu().add(0, 0, 0, "📅  By Date");
+        popup.getMenu().add(0, 1, 1, "🔤  By Title");
+        popup.getMenu().add(0, 2, 2, "📂  By Category");
+
+        popup.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 0: // Sort by date
+                    displayedNotes.sort((a, b) -> Long.compare(b.updatedAt, a.updatedAt));
+                    notesAdapter.notifyDataSetChanged();
+                    return true;
+                case 1: // Sort by title
+                    displayedNotes.sort((a, b) -> {
+                        String ta = a.title != null ? a.title : "";
+                        String tb = b.title != null ? b.title : "";
+                        return ta.compareToIgnoreCase(tb);
+                    });
+                    notesAdapter.notifyDataSetChanged();
+                    return true;
+                case 2: // Sort by category
+                    displayedNotes.sort((a, b) -> {
+                        String ca = a.category != null ? a.category : "";
+                        String cb = b.category != null ? b.category : "";
+                        return ca.compareToIgnoreCase(cb);
+                    });
+                    notesAdapter.notifyDataSetChanged();
+                    return true;
+            }
+            return false;
+        });
+
+        popup.show();
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  SEARCH
-    // ═══════════════════════════════════════════════════════════════
 
     private void setupSearch() {
         etSearchNotes.addTextChangedListener(new TextWatcher() {
@@ -1364,6 +1427,51 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         } catch (Exception e) {
             Log.e(TAG, "Failed to setup folder strip", e);
             if (folderStripSection != null) folderStripSection.setVisibility(View.GONE);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  RECENTLY VIEWED STRIP
+    // ═══════════════════════════════════════════════════════════════
+
+    private void setupRecentlyViewed() {
+        if (recentlyViewedSection == null || recentlyViewedContainer == null) return;
+
+        try {
+            ArrayList<Note> candidates = repository.filterUnpinnedNotes("All", "");
+            List<Note> recentNotes = new ArrayList<>();
+            for (Note n : candidates) {
+                if (!n.isLocked) {
+                    recentNotes.add(n);
+                    if (recentNotes.size() >= 5) break;
+                }
+            }
+
+            if (recentNotes.size() < 3) {
+                recentlyViewedSection.setVisibility(View.GONE);
+                return;
+            }
+
+            recentlyViewedSection.setVisibility(View.VISIBLE);
+            recentlyViewedContainer.removeAllViews();
+
+            LayoutInflater inflater = LayoutInflater.from(this);
+            for (Note note : recentNotes) {
+                View card = inflater.inflate(R.layout.item_recently_viewed_card, recentlyViewedContainer, false);
+                TextView tvTitle = card.findViewById(R.id.tvRecentNoteTitle);
+                View accent = card.findViewById(R.id.recentCategoryAccent);
+
+                tvTitle.setText(note.title.isEmpty() ? "Untitled" : note.title);
+
+                int accentColor = Note.getCategoryColor(note.category);
+                accent.setBackgroundColor(accentColor);
+
+                card.setOnClickListener(v -> openNote(note));
+                recentlyViewedContainer.addView(card);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to setup recently viewed", e);
+            if (recentlyViewedSection != null) recentlyViewedSection.setVisibility(View.GONE);
         }
     }
 

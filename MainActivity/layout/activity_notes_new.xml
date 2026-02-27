@@ -117,6 +117,16 @@
                         android:contentDescription="More"
                         android:tint="#94A3B8"
                         android:scaleType="centerInside" />
+
+                    <ImageButton
+                        android:id="@+id/btnSortNotes"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@android:drawable/ic_menu_sort_by_size"
+                        android:contentDescription="Sort"
+                        android:tint="#94A3B8"
+                        android:scaleType="centerInside" />
                 </LinearLayout>
 
                 <!-- Date line -->
@@ -125,7 +135,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Wednesday, Feb 25"
-                    android:textColor="#475569"
+                    android:textColor="#F59E0B"
                     android:textSize="13sp"
                     android:fontFamily="sans-serif"
                     android:layout_marginStart="48dp"
@@ -219,8 +229,50 @@
                     android:gravity="center_vertical" />
             </HorizontalScrollView>
 
-            <!-- ═══ FOLDER STRIP ═══ -->
+            <!-- ═══ RECENTLY VIEWED STRIP ═══ -->
             <LinearLayout
+                android:id="@+id/recentlyViewedSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="16dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🕐 Recently Viewed"
+                        android:textColor="#94A3B8"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:clipToPadding="false">
+
+                    <LinearLayout
+                        android:id="@+id/recentlyViewedContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="16dp" />
+                </HorizontalScrollView>
+            </LinearLayout>
+
+            <!-- ═══ FOLDER STRIP ═══ -->            <LinearLayout
                 android:id="@+id/folderStripSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -342,7 +394,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
-                android:paddingTop="80dp"
+                android:paddingTop="60dp"
                 android:paddingHorizontal="40dp"
                 android:visibility="gone">
 
@@ -351,14 +403,14 @@
                     android:layout_height="wrap_content"
                     android:text="📓"
                     android:textSize="72sp"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="20dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Your notebook is empty"
+                    android:text="No notes yet"
                     android:textColor="#E2E8F0"
-                    android:textSize="20sp"
+                    android:textSize="22sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif-medium"
                     android:gravity="center" />
@@ -366,12 +418,24 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Tap the + button to create your first note.\nCapture thoughts, ideas, and everything in between."
+                    android:text="Tap + to write your first thought.\nCapture ideas, tasks, and everything between."
                     android:textColor="#64748B"
                     android:textSize="14sp"
                     android:gravity="center"
                     android:lineSpacingExtra="4dp"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="24dp" />
+
+                <TextView
+                    android:id="@+id/btnEmptyCreateNote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create your first note"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:background="@drawable/notes_fab_bg"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="12dp" />
             </LinearLayout>
 
         </LinearLayout>
@@ -494,7 +558,7 @@
         <FrameLayout
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="@drawable/notes_speed_dial_bg">
+            android:background="@drawable/notes_speed_dial_teal_bg">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:layout_gravity="center" android:text="🖼️" android:textSize="20sp" />
         </FrameLayout>
@@ -523,7 +587,7 @@
         <FrameLayout
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="@drawable/notes_speed_dial_bg">
+            android:background="@drawable/notes_speed_dial_purple_bg">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:layout_gravity="center" android:text="🎤" android:textSize="20sp" />
         </FrameLayout>
@@ -552,7 +616,7 @@
         <FrameLayout
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="@drawable/notes_speed_dial_bg">
+            android:background="@drawable/notes_speed_dial_blue_bg">
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:layout_gravity="center" android:text="☑️" android:textSize="20sp" />
         </FrameLayout>

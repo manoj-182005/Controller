@@ -3,6 +3,7 @@ package com.prajwal.myfirstapp;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -86,6 +87,9 @@ public class NoteEditorActivity extends AppCompatActivity {
     private static final String EXTRA_NOTE_ID = "note_id";
     private static final String EXTRA_NEW_NOTE = "new_note";
     private static final String EXTRA_CATEGORY = "category";
+    private static final String LABEL_EDITING = "✏️ Editing...";
+    private static final String LABEL_SAVING = "💾 Saving...";
+    private static final String LABEL_SAVED = "✓ Saved";
 
     // ═══ UI Elements ═══
     private LinearLayout topToolbar;
@@ -351,8 +355,9 @@ public class NoteEditorActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 hasUnsavedChanges = true;
                 updateStats();
-                tvLastSaved.setText("Editing...");
+                tvLastSaved.setText(LABEL_EDITING);
                 tvLastSaved.setTextColor(Color.parseColor("#F59E0B"));
+                tvLastSaved.animate().alpha(1f).setDuration(150).start();
             }
 
             @Override
@@ -377,8 +382,9 @@ public class NoteEditorActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 hasUnsavedChanges = true;
                 updateStats();
-                tvLastSaved.setText("Editing...");
+                tvLastSaved.setText(LABEL_EDITING);
                 tvLastSaved.setTextColor(Color.parseColor("#F59E0B"));
+                tvLastSaved.animate().alpha(1f).setDuration(150).start();
             }
 
             @Override
@@ -544,7 +550,7 @@ public class NoteEditorActivity extends AppCompatActivity {
         updateReminderDisplay();
         updateStats();
 
-        tvLastSaved.setText("Saved");
+        tvLastSaved.setText(LABEL_SAVED);
         tvLastSaved.setTextColor(Color.parseColor("#22C55E"));
     }
 
@@ -606,8 +612,17 @@ public class NoteEditorActivity extends AppCompatActivity {
         }
 
         hasUnsavedChanges = false;
-        tvLastSaved.setText("Saved");
-        tvLastSaved.setTextColor(Color.parseColor("#22C55E"));
+        tvLastSaved.setText(LABEL_SAVING);
+        tvLastSaved.setTextColor(Color.parseColor("#94A3B8"));
+        ValueAnimator pulse = ValueAnimator.ofFloat(1f, 0.4f, 1f);
+        pulse.setDuration(600);
+        pulse.addUpdateListener(anim -> tvLastSaved.setAlpha((float) anim.getAnimatedValue()));
+        pulse.start();
+        tvLastSaved.postDelayed(() -> {
+            tvLastSaved.setText(LABEL_SAVED);
+            tvLastSaved.setTextColor(Color.parseColor("#22C55E"));
+            tvLastSaved.setAlpha(1f);
+        }, 500);
 
         if (finish) {
             setResult(RESULT_OK);
