@@ -1,5 +1,6 @@
 package com.prajwal.myfirstapp;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -39,6 +40,8 @@ public class HubFileBrowserActivity extends AppCompatActivity {
     public static final String EXTRA_TITLE = "title";
     public static final String EXTRA_FAVOURITES_ONLY = "favourites_only";
     public static final String EXTRA_RECENT_ONLY = "recent_only";
+    public static final String EXTRA_PICK_MODE = "pick_mode";
+    public static final String EXTRA_PICKED_FILE_ID = "picked_file_id";
 
     private static final int VIEW_GRID = 0;
     private static final int VIEW_LIST = 1;
@@ -75,6 +78,7 @@ public class HubFileBrowserActivity extends AppCompatActivity {
     private String title;
     private boolean favouritesOnly;
     private boolean recentOnly;
+    private boolean pickMode;
 
     private Set<HubFile.FileType> activeTypeFilters = new HashSet<>();
     private Set<HubFile.Source> activeSourceFilters = new HashSet<>();
@@ -93,6 +97,7 @@ public class HubFileBrowserActivity extends AppCompatActivity {
         title = getIntent().getStringExtra(EXTRA_TITLE);
         favouritesOnly = getIntent().getBooleanExtra(EXTRA_FAVOURITES_ONLY, false);
         recentOnly = getIntent().getBooleanExtra(EXTRA_RECENT_ONLY, false);
+        pickMode = getIntent().getBooleanExtra(EXTRA_PICK_MODE, false);
 
         bindViews();
         setupClickListeners();
@@ -478,6 +483,13 @@ public class HubFileBrowserActivity extends AppCompatActivity {
     }
 
     private void openFile(HubFile file) {
+        if (pickMode) {
+            Intent result = new Intent();
+            result.putExtra(EXTRA_PICKED_FILE_ID, file.id);
+            setResult(Activity.RESULT_OK, result);
+            finish();
+            return;
+        }
         Intent intent = new Intent(this, HubFileViewerActivity.class);
         intent.putExtra(HubFileViewerActivity.EXTRA_FILE_ID, file.id);
         startActivity(intent);
