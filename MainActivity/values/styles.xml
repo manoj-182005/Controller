@@ -62,6 +62,17 @@
     </style>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════
+         VAULT PIN PAD BUTTON STYLE
+         ═══════════════════════════════════════════════════════════════════════════ -->
+    <style name="PinButton" parent="Widget.AppCompat.Button">
+        <item name="android:layout_width">80dp</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">#F1F5F9</item>
+        <item name="android:backgroundTint">#1E293B</item>
+    </style>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════
          EDIT TEXT STYLE FOR DARK DIALOGS
          ═══════════════════════════════════════════════════════════════════════════ -->
     <style name="DarkEditText" parent="Widget.AppCompat.EditText">
