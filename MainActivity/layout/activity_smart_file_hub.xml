@@ -1046,6 +1046,57 @@
                     android:text="🕐  Recent" android:textColor="#F1F5F9" android:textSize="14sp" />
             </LinearLayout>
 
+            <!-- Advanced Hub Section -->
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="INTELLIGENCE" android:textColor="#4B5563" android:textSize="10sp"
+                android:letterSpacing="0.15" android:paddingStart="16dp" android:paddingTop="16dp"
+                android:paddingBottom="4dp" android:fontFamily="sans-serif-medium" />
+
+            <LinearLayout android:id="@+id/drawerItemAnalytics"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📊  Analytics" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemTimeline"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📈  File Timeline" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemCollections"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📦  Collections" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemWatchlist"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="👁️  Watchlist" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/drawerItemBatchOps"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:paddingStart="16dp" android:clickable="true" android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="⚡  Batch Operations" android:textColor="#F1F5F9" android:textSize="14sp" />
+            </LinearLayout>
+
             <!-- File Types Section -->
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:text="FILE TYPES" android:textColor="#4B5563" android:textSize="10sp"

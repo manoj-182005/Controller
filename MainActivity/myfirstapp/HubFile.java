@@ -56,13 +56,40 @@ public class HubFile {
     public long updatedAt;
     public int accessCount;
 
+    // ── Advanced intelligence fields ──────────────────────────────────────────
+    /** Full-text content extracted from PDF/text/code files for content-aware search. */
+    public String contentIndex;
+    /** JSON string with EXIF metadata for image files (camera, GPS, ISO, aperture, etc.). */
+    public String exifJson;
+    /** IDs of linked notes from the Notes feature. */
+    public List<String> linkedNoteIds;
+    /** Epoch ms when the user wants a reminder to review/delete this file. 0 = no expiry. */
+    public long expiryReminderAt;
+    /** ID of the HubVersionChain this file belongs to, or null. */
+    public String versionChainId;
+    /** Human-readable version label extracted from file name (e.g. "v2", "final", "(3)"). */
+    public String versionLabel;
+    /** IDs of HubCollections this file belongs to. */
+    public List<String> collectionIds;
+    /** Whether this file is on the watchlist. */
+    public boolean isWatchlisted;
+    /** Whether this file has been detected as externally modified since last index. */
+    public boolean modifiedExternally;
+    /** Whether content has been indexed (to avoid re-indexing unchanged files). */
+    public boolean contentIndexed;
+
     public HubFile() {
         this.id = UUID.randomUUID().toString();
         this.tags = new ArrayList<>();
+        this.linkedNoteIds = new ArrayList<>();
+        this.collectionIds = new ArrayList<>();
         this.isFavourited = false;
         this.isPinned = false;
         this.isHidden = false;
         this.isDuplicate = false;
+        this.isWatchlisted = false;
+        this.modifiedExternally = false;
+        this.contentIndexed = false;
         this.colorLabel = ColorLabel.NONE;
         long now = System.currentTimeMillis();
         this.importedAt = now;
@@ -159,6 +186,21 @@ public class HubFile {
             o.put("createdAt", createdAt);
             o.put("updatedAt", updatedAt);
             o.put("accessCount", accessCount);
+            // Advanced intelligence fields
+            o.put("contentIndex", contentIndex != null ? contentIndex : "");
+            o.put("exifJson", exifJson != null ? exifJson : "");
+            JSONArray linkedArr = new JSONArray();
+            if (linkedNoteIds != null) for (String nid : linkedNoteIds) linkedArr.put(nid);
+            o.put("linkedNoteIds", linkedArr);
+            o.put("expiryReminderAt", expiryReminderAt);
+            o.put("versionChainId", versionChainId != null ? versionChainId : "");
+            o.put("versionLabel", versionLabel != null ? versionLabel : "");
+            JSONArray colArr = new JSONArray();
+            if (collectionIds != null) for (String cid : collectionIds) colArr.put(cid);
+            o.put("collectionIds", colArr);
+            o.put("isWatchlisted", isWatchlisted);
+            o.put("modifiedExternally", modifiedExternally);
+            o.put("contentIndexed", contentIndexed);
             return o;
         } catch (Exception e) {
             return new JSONObject();
@@ -208,6 +250,27 @@ public class HubFile {
             f.createdAt = o.optLong("createdAt", System.currentTimeMillis());
             f.updatedAt = o.optLong("updatedAt", System.currentTimeMillis());
             f.accessCount = o.optInt("accessCount", 0);
+            // Advanced intelligence fields
+            f.contentIndex = o.optString("contentIndex", "");
+            f.exifJson = o.optString("exifJson", "");
+            f.linkedNoteIds = new ArrayList<>();
+            JSONArray linkedArr = o.optJSONArray("linkedNoteIds");
+            if (linkedArr != null) {
+                for (int i = 0; i < linkedArr.length(); i++) f.linkedNoteIds.add(linkedArr.getString(i));
+            }
+            f.expiryReminderAt = o.optLong("expiryReminderAt", 0);
+            f.versionChainId = o.optString("versionChainId", "");
+            if (f.versionChainId.isEmpty()) f.versionChainId = null;
+            f.versionLabel = o.optString("versionLabel", "");
+            if (f.versionLabel.isEmpty()) f.versionLabel = null;
+            f.collectionIds = new ArrayList<>();
+            JSONArray colArr = o.optJSONArray("collectionIds");
+            if (colArr != null) {
+                for (int i = 0; i < colArr.length(); i++) f.collectionIds.add(colArr.getString(i));
+            }
+            f.isWatchlisted = o.optBoolean("isWatchlisted", false);
+            f.modifiedExternally = o.optBoolean("modifiedExternally", false);
+            f.contentIndexed = o.optBoolean("contentIndexed", false);
             return f;
         } catch (Exception e) {
             return null;

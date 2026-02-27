@@ -59,6 +59,8 @@ public class HubSearchActivity extends AppCompatActivity {
 
     private List<HubFile> results = new ArrayList<>();
     private SearchResultAdapter adapter;
+    /** IDs of files that matched by content (rather than name/tags). */
+    private final java.util.Set<String> contentMatchSet = new java.util.HashSet<>();
 
     private final String[] SUGGESTIONS = {
             "PDFs this week", "Large videos", "WhatsApp files", "Favourites", "Recent images"
@@ -210,27 +212,26 @@ public class HubSearchActivity extends AppCompatActivity {
         searchPreSearchLayout.setVisibility(View.GONE);
         searchEmptyState.setVisibility(View.GONE);
 
-        List<HubFile> raw = repo.searchFiles(query);
+        // Use content-aware search that also searches inside files
+        List<HubFileRepository.SearchResult> raw = repo.searchFilesWithContent(query);
 
-        // Group: exact name, partial name, tag matches
-        List<HubFile> exactName = new ArrayList<>();
-        List<HubFile> partialName = new ArrayList<>();
-        List<HubFile> tagMatch = new ArrayList<>();
-        String q = query.toLowerCase(Locale.getDefault());
-
-        for (HubFile f : raw) {
-            String name = f.displayName != null ? f.displayName : f.originalFileName;
-            if (name != null) {
-                if (name.equalsIgnoreCase(query)) { exactName.add(f); continue; }
-                if (name.toLowerCase(Locale.getDefault()).contains(q)) { partialName.add(f); continue; }
-            }
-            tagMatch.add(f);
+        // Sort: name matches first, then content matches
+        List<HubFileRepository.SearchResult> nameMatches = new ArrayList<>();
+        List<HubFileRepository.SearchResult> contentMatches = new ArrayList<>();
+        for (HubFileRepository.SearchResult r : raw) {
+            if (r.contentMatch) contentMatches.add(r);
+            else nameMatches.add(r);
         }
 
         results.clear();
-        results.addAll(exactName);
-        results.addAll(partialName);
-        results.addAll(tagMatch);
+        contentMatchSet.clear();
+        for (HubFileRepository.SearchResult r : nameMatches) {
+            results.add(r.file);
+        }
+        for (HubFileRepository.SearchResult r : contentMatches) {
+            results.add(r.file);
+            contentMatchSet.add(r.file.id);
+        }
 
         searchProgressBar.setVisibility(View.GONE);
 
@@ -240,7 +241,10 @@ public class HubSearchActivity extends AppCompatActivity {
         } else {
             searchResultsLayout.setVisibility(View.VISIBLE);
             searchEmptyState.setVisibility(View.GONE);
-            tvResultsCount.setText(results.size() + " results for \"" + query + "\"");
+            int contentCount = contentMatches.size();
+            String countText = results.size() + " results for \"" + query + "\"";
+            if (contentCount > 0) countText += " (" + contentCount + " content matches)";
+            tvResultsCount.setText(countText);
             adapter.notifyDataSetChanged();
         }
 
@@ -377,6 +381,25 @@ public class HubSearchActivity extends AppCompatActivity {
             badge.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             row.addView(badge);
+
+            // "Content Match" badge for files matched by content indexing
+            if (contentMatchSet.contains(f.id)) {
+                TextView contentBadge = new TextView(context);
+                contentBadge.setText("📄 Content Match");
+                contentBadge.setTextColor(Color.parseColor("#10B981"));
+                contentBadge.setTextSize(10);
+                GradientDrawable cbBg = new GradientDrawable();
+                cbBg.setShape(GradientDrawable.RECTANGLE);
+                cbBg.setCornerRadius(4 * dp);
+                cbBg.setColor(Color.parseColor("#064E3B"));
+                contentBadge.setBackground(cbBg);
+                LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                cbLp.setMargins((int)(4*dp), 0, 0, 0);
+                contentBadge.setLayoutParams(cbLp);
+                contentBadge.setPadding((int)(6*dp), (int)(2*dp), (int)(6*dp), (int)(2*dp));
+                row.addView(contentBadge);
+            }
 
             return row;
         }

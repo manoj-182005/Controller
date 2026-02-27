@@ -34,12 +34,16 @@ public class HubFileRepository {
     private static final String PREFS_DUPES = "hub_dupes";
     private static final String PREFS_ACTIVITY = "hub_activity";
     private static final String PREFS_INBOX = "hub_inbox";
+    private static final String PREFS_COLLECTIONS = "hub_collections";
+    private static final String PREFS_VERSION_CHAINS = "hub_version_chains";
     private static final String KEY_FILES = "files_json";
     private static final String KEY_FOLDERS = "folders_json";
     private static final String KEY_PROJECTS = "projects_json";
     private static final String KEY_DUPES = "dupes_json";
     private static final String KEY_ACTIVITY = "activity_json";
     private static final String KEY_INBOX = "inbox_json";
+    private static final String KEY_COLLECTIONS = "collections_json";
+    private static final String KEY_VERSION_CHAINS = "version_chains_json";
     private static final String KEY_LAST_SCAN = "last_scan_ts";
     private static final int MAX_ACTIVITY_ENTRIES = 100;
 
@@ -54,6 +58,8 @@ public class HubFileRepository {
     private final List<DuplicateGroup> duplicateGroups = new ArrayList<>();
     private final List<FileActivity> activities = new ArrayList<>();
     private final List<InboxItem> inboxItems = new ArrayList<>();
+    private final List<HubCollection> collections = new ArrayList<>();
+    private final List<HubVersionChain> versionChains = new ArrayList<>();
 
     private boolean loaded = false;
 
@@ -79,6 +85,8 @@ public class HubFileRepository {
         loadDuplicateGroups();
         loadActivities();
         loadInboxItems();
+        loadCollections();
+        loadVersionChains();
         if (folders.isEmpty()) seedDefaultSmartFolders();
         loadQuickSharePins();
         loaded = true;
@@ -770,5 +778,290 @@ public class HubFileRepository {
         List<HubFile> sorted = new ArrayList<>(files);
         sorted.sort((a, b) -> Long.compare(b.fileSize, a.fileSize));
         return sorted.subList(0, Math.min(limit, sorted.size()));
+    }
+
+    // ─── Content-Aware Search ─────────────────────────────────────────────────
+
+    /**
+     * Search files by name, tags, notes, AND full-text content index.
+     * Returns a result wrapper that indicates whether the match was by content.
+     */
+    public static class SearchResult {
+        public final HubFile file;
+        public final boolean contentMatch; // true = matched inside file content
+        public SearchResult(HubFile file, boolean contentMatch) {
+            this.file = file;
+            this.contentMatch = contentMatch;
+        }
+    }
+
+    public synchronized List<SearchResult> searchFilesWithContent(String query) {
+        String q = query.toLowerCase();
+        List<SearchResult> result = new ArrayList<>();
+        for (HubFile f : files) {
+            if (f.isHidden) continue;
+            String name = (f.displayName != null ? f.displayName : f.originalFileName);
+            // Name / tag / notes match
+            boolean nameMatch = name != null && name.toLowerCase().contains(q);
+            boolean tagMatch = false;
+            if (f.tags != null) {
+                for (String tag : f.tags) if (tag.toLowerCase().contains(q)) { tagMatch = true; break; }
+            }
+            boolean notesMatch = f.notes != null && f.notes.toLowerCase().contains(q);
+            if (nameMatch || tagMatch || notesMatch) {
+                result.add(new SearchResult(f, false));
+                continue;
+            }
+            // Content index match
+            if (f.contentIndex != null && f.contentIndex.toLowerCase().contains(q)) {
+                result.add(new SearchResult(f, true));
+                continue;
+            }
+            // EXIF match
+            if (f.exifJson != null && f.exifJson.toLowerCase().contains(q)) {
+                result.add(new SearchResult(f, true));
+            }
+        }
+        return result;
+    }
+
+    // ─── Collections ──────────────────────────────────────────────────────────
+
+    private void loadCollections() {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_COLLECTIONS, Context.MODE_PRIVATE);
+            String json = prefs.getString(KEY_COLLECTIONS, "[]");
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                HubCollection c = HubCollection.fromJson(arr.getJSONObject(i));
+                if (c != null) collections.add(c);
+            }
+        } catch (Exception e) { Log.e(TAG, "loadCollections", e); }
+    }
+
+    private void saveCollections() {
+        executor.execute(() -> {
+            try {
+                JSONArray arr = new JSONArray();
+                synchronized (collections) { for (HubCollection c : collections) arr.put(c.toJson()); }
+                context.getSharedPreferences(PREFS_COLLECTIONS, Context.MODE_PRIVATE)
+                        .edit().putString(KEY_COLLECTIONS, arr.toString()).apply();
+            } catch (Exception e) { Log.e(TAG, "saveCollections", e); }
+        });
+    }
+
+    public synchronized void addCollection(HubCollection collection) {
+        collections.add(collection);
+        saveCollections();
+    }
+
+    public synchronized List<HubCollection> getAllCollections() {
+        return new ArrayList<>(collections);
+    }
+
+    public synchronized HubCollection getCollectionById(String id) {
+        for (HubCollection c : collections) if (c.id.equals(id)) return c;
+        return null;
+    }
+
+    public synchronized void updateCollection(HubCollection collection) {
+        collection.updatedAt = System.currentTimeMillis();
+        for (int i = 0; i < collections.size(); i++) {
+            if (collections.get(i).id.equals(collection.id)) { collections.set(i, collection); break; }
+        }
+        saveCollections();
+    }
+
+    public synchronized void deleteCollection(String id) {
+        // Remove collection reference from all files
+        for (HubFile f : files) {
+            if (f.collectionIds != null && f.collectionIds.remove(id)) {
+                f.updatedAt = System.currentTimeMillis();
+            }
+        }
+        saveFiles();
+        collections.removeIf(c -> c.id.equals(id));
+        saveCollections();
+    }
+
+    public synchronized void addFileToCollection(String fileId, String collectionId) {
+        HubCollection col = getCollectionById(collectionId);
+        if (col == null) return;
+        if (!col.fileIds.contains(fileId)) {
+            col.fileIds.add(fileId);
+            updateCollection(col);
+        }
+        HubFile f = getFileById(fileId);
+        if (f != null && f.collectionIds != null && !f.collectionIds.contains(collectionId)) {
+            f.collectionIds.add(collectionId);
+            updateFile(f);
+        }
+    }
+
+    public synchronized void removeFileFromCollection(String fileId, String collectionId) {
+        HubCollection col = getCollectionById(collectionId);
+        if (col != null) {
+            col.fileIds.remove(fileId);
+            updateCollection(col);
+        }
+        HubFile f = getFileById(fileId);
+        if (f != null && f.collectionIds != null) {
+            f.collectionIds.remove(collectionId);
+            updateFile(f);
+        }
+    }
+
+    public synchronized List<HubFile> getFilesForCollection(String collectionId) {
+        HubCollection col = getCollectionById(collectionId);
+        if (col == null) return new ArrayList<>();
+        List<HubFile> result = new ArrayList<>();
+        for (String fid : col.fileIds) {
+            HubFile f = getFileById(fid);
+            if (f != null) result.add(f);
+        }
+        return result;
+    }
+
+    // ─── Version Chains ───────────────────────────────────────────────────────
+
+    private void loadVersionChains() {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_VERSION_CHAINS, Context.MODE_PRIVATE);
+            String json = prefs.getString(KEY_VERSION_CHAINS, "[]");
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                HubVersionChain c = HubVersionChain.fromJson(arr.getJSONObject(i));
+                if (c != null) versionChains.add(c);
+            }
+        } catch (Exception e) { Log.e(TAG, "loadVersionChains", e); }
+    }
+
+    private void saveVersionChains() {
+        executor.execute(() -> {
+            try {
+                JSONArray arr = new JSONArray();
+                synchronized (versionChains) { for (HubVersionChain c : versionChains) arr.put(c.toJson()); }
+                context.getSharedPreferences(PREFS_VERSION_CHAINS, Context.MODE_PRIVATE)
+                        .edit().putString(KEY_VERSION_CHAINS, arr.toString()).apply();
+            } catch (Exception e) { Log.e(TAG, "saveVersionChains", e); }
+        });
+    }
+
+    public synchronized List<HubVersionChain> getAllVersionChains() {
+        return new ArrayList<>(versionChains);
+    }
+
+    public synchronized HubVersionChain getVersionChain(String id) {
+        for (HubVersionChain c : versionChains) if (c.id.equals(id)) return c;
+        return null;
+    }
+
+    /**
+     * Runs version detection on all files and saves the resulting chains.
+     * Calls {@code onComplete} on the main thread when done.
+     */
+    public void detectVersionChains(Runnable onComplete) {
+        executor.execute(() -> {
+            List<HubFile> allFiles;
+            synchronized (this) { allFiles = new ArrayList<>(files); }
+            List<HubVersionChain> detected = HubVersionManager.detectVersionChains(allFiles);
+            synchronized (this) {
+                versionChains.clear();
+                versionChains.addAll(detected);
+            }
+            saveVersionChains();
+            saveFiles(); // versionChainId fields updated in-place by HubVersionManager
+            if (onComplete != null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
+            }
+        });
+    }
+
+    // ─── Smart Folder matching with custom rules ──────────────────────────────
+
+    /**
+     * Extended smart folder matching that supports the custom rule JSON format
+     * produced by {@link HubSmartFolderBuilderActivity}.
+     */
+    public synchronized List<HubFile> getFilesForSmartFolderExtended(HubFolder folder) {
+        if (!folder.isSmartFolder || folder.smartFolderRules == null) return new ArrayList<>();
+        try {
+            JSONObject rules = new JSONObject(folder.smartFolderRules);
+            // Custom rule builder format
+            if (rules.has("rules")) {
+                return matchCustomRules(rules);
+            }
+        } catch (Exception e) { Log.e(TAG, "getFilesForSmartFolderExtended parse", e); }
+        // Fall back to legacy format
+        return getFilesForSmartFolder(folder);
+    }
+
+    private List<HubFile> matchCustomRules(JSONObject rulesObj) throws Exception {
+        JSONArray rulesArr = rulesObj.getJSONArray("rules");
+        boolean matchAll = rulesObj.optBoolean("matchAll", true);
+        List<HubFile> result = new ArrayList<>();
+        for (HubFile f : files) {
+            if (f.isHidden) continue;
+            boolean overall = matchAll;
+            for (int i = 0; i < rulesArr.length(); i++) {
+                JSONObject r = rulesArr.getJSONObject(i);
+                String field = r.optString("field", "");
+                String op = r.optString("operator", "");
+                String val = r.optString("value", "").toLowerCase();
+                boolean rowMatch = evalCustomRule(f, field, op, val);
+                if (matchAll) overall = overall && rowMatch;
+                else overall = overall || rowMatch;
+            }
+            if (overall) result.add(f);
+        }
+        return result;
+    }
+
+    private boolean evalCustomRule(HubFile f, String field, String op, String val) {
+        switch (field) {
+            case "File Name": {
+                String name = (f.displayName != null ? f.displayName
+                        : f.originalFileName != null ? f.originalFileName : "").toLowerCase();
+                return applyStrOp(name, op, val);
+            }
+            case "File Type": {
+                return applyStrOp(f.fileType != null ? f.fileType.name().toLowerCase() : "", op, val);
+            }
+            case "Source": {
+                return applyStrOp(f.source != null ? f.source.name().toLowerCase() : "", op, val);
+            }
+            case "Is Favourite": return applyBoolOp(f.isFavourited, op, val);
+            case "Is Duplicate": return applyBoolOp(f.isDuplicate, op, val);
+            case "File Size (MB)": {
+                try {
+                    double mb = f.fileSize / (1024.0 * 1024);
+                    double thr = Double.parseDouble(val);
+                    return "Greater Than".equals(op) ? mb > thr : mb < thr;
+                } catch (NumberFormatException e) { return false; }
+            }
+            case "Date Added (days ago)": {
+                try {
+                    long days = Long.parseLong(val);
+                    long cutoff = System.currentTimeMillis() - days * MILLIS_PER_DAY;
+                    return "Less Than".equals(op) ? f.importedAt > cutoff : f.importedAt < cutoff;
+                } catch (NumberFormatException e) { return false; }
+            }
+        }
+        return false;
+    }
+
+    private boolean applyStrOp(String actual, String op, String val) {
+        switch (op) {
+            case "Contains": return actual.contains(val);
+            case "Does Not Contain": return !actual.contains(val);
+            case "Is": return actual.equals(val);
+            case "Is Not": return !actual.equals(val);
+        }
+        return false;
+    }
+
+    private boolean applyBoolOp(boolean actual, String op, String val) {
+        boolean target = "true".equals(val) || "yes".equals(val) || "1".equals(val);
+        return ("Is".equals(op) || "Greater Than".equals(op)) == (actual == target);
     }
 }
