@@ -1,4 +1,4 @@
-﻿package com.prajwal.myfirstapp;
+ackage com.prajwal.myfirstapp;
 
 import android.content.Intent;
 import android.graphics.Canvas;

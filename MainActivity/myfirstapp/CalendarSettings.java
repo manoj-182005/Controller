@@ -22,6 +22,7 @@ public class CalendarSettings {
     public boolean showWeekNumbers;
     public boolean showDeclinedEvents;
     public String notificationSound;       // "default", "silent", or URI
+    public boolean notificationSoundEnabled; // Alias for boolean switch compatibility
     public boolean dailyAgendaNotification;
     public String dailyAgendaTime;         // "08:00"
     public boolean weeklyPreviewNotification;
@@ -52,6 +53,7 @@ public class CalendarSettings {
         this.showWeekNumbers = false;
         this.showDeclinedEvents = true;
         this.notificationSound = "default";
+        this.notificationSoundEnabled = true;
         this.dailyAgendaNotification = false;
         this.dailyAgendaTime = "08:00";
         this.weeklyPreviewNotification = false;

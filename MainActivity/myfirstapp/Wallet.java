@@ -61,6 +61,7 @@ public class Wallet {
     public String currency;
     public int colorHex;
     public String iconIdentifier;           // Emoji icon
+    public String icon;                     // Alias for iconIdentifier (backward compatibility)
     public boolean isDefault;
     public boolean includeInTotalBalance;
     public double creditLimit;              // Only for Credit Card
@@ -83,6 +84,7 @@ public class Wallet {
         this.currency = "₹";
         this.colorHex = WALLET_COLORS[0];
         this.iconIdentifier = "💵";
+        this.icon = this.iconIdentifier;
         this.isDefault = false;
         this.includeInTotalBalance = true;
         this.creditLimit = 0;

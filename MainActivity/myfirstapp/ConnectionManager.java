@@ -57,6 +57,26 @@ public class ConnectionManager {
         }
     }
 
+    // ─── Singleton Pattern ───────────────────────────────────────
+    private static ConnectionManager sInstance;
+    private static Context sAppContext;
+
+    /**
+     * Get singleton instance. Creates new instance if not exists.
+     * Initializes outbox with the provided context.
+     */
+    public static synchronized ConnectionManager getInstance(Context context) {
+        if (sInstance == null) {
+            // Read saved IP from SharedPreferences
+            String savedIp = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    .getString("laptop_ip", "192.168.1.1");
+            sInstance = new ConnectionManager(savedIp);
+            sAppContext = context.getApplicationContext();
+            sInstance.initOutbox(sAppContext);
+        }
+        return sInstance;
+    }
+
     public ConnectionManager(String initialIp) {
         this.laptopIp = initialIp;
     }

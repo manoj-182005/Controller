@@ -172,8 +172,9 @@ public class CalendarSettingsActivity extends AppCompatActivity {
         LinearLayout notifCard = createSettingsCard();
 
         switchNotifSound = addSwitchRow(notifCard, "Notification Sound",
-                settings.notificationSound, (btn, checked) -> {
-                    settings.notificationSound = checked;
+                settings.notificationSoundEnabled, (btn, checked) -> {
+                    settings.notificationSoundEnabled = checked;
+                    settings.notificationSound = checked ? "default" : "silent";
                     saveSettings();
                 });
 

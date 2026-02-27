@@ -50,6 +50,18 @@ public class CalendarEvent {
     public long createdAt;
     public long updatedAt;
 
+    // ─── Compatibility Aliases ───────────────────────────────────
+    // These provide backward compatibility for code using old field names
+
+    /** Alias for startDate (backward compatibility) */
+    public String date;
+
+    /** Alias for categoryId (backward compatibility) */
+    public String category;
+
+    /** Computed status field (backward compatibility) */
+    public String status;
+
     // ─── Constants: Event Types ──────────────────────────────────
 
     public static final String TYPE_PERSONAL    = "personal";
@@ -62,6 +74,10 @@ public class CalendarEvent {
     public static final String TYPE_ANNIVERSARY = "anniversary";
     public static final String TYPE_HOLIDAY     = "holiday";
     public static final String TYPE_OTHER       = "other";
+
+    // Compatibility aliases
+    public static final String TYPE_EVENT       = TYPE_PERSONAL;  // Alias for backward compatibility
+    public static final String TYPE_BUSINESS    = TYPE_WORK;       // Alias for backward compatibility
 
     public static final String[] EVENT_TYPES = {
         TYPE_PERSONAL, TYPE_WORK, TYPE_STUDY, TYPE_HEALTH, TYPE_SOCIAL,
@@ -165,6 +181,11 @@ public class CalendarEvent {
         this.originalRecurrenceDate = null;
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = System.currentTimeMillis();
+
+        // Initialize compatibility aliases
+        this.date = this.startDate;
+        this.category = this.categoryId;
+        this.status = "active";
     }
 
     public CalendarEvent(String title, String startDate) {
@@ -172,6 +193,26 @@ public class CalendarEvent {
         this.title = title != null ? title : "";
         this.startDate = startDate != null ? startDate : this.startDate;
         this.endDate = this.startDate;
+        syncAliases();
+    }
+
+    /**
+     * Synchronize compatibility alias fields with primary fields.
+     * Call this after modifying primary fields to keep aliases in sync.
+     */
+    public void syncAliases() {
+        // date <-> startDate
+        this.date = this.startDate;
+        // category <-> categoryId
+        this.category = this.categoryId;
+        // status based on isCompleted/isCancelled
+        if (this.isCancelled) {
+            this.status = "cancelled";
+        } else if (this.isCompleted) {
+            this.status = "completed";
+        } else {
+            this.status = "active";
+        }
     }
 
     // ─── Date / Time Helpers ─────────────────────────────────────
@@ -629,6 +670,9 @@ public class CalendarEvent {
             event.createdAt = json.optLong("createdAt", System.currentTimeMillis());
             event.updatedAt = json.optLong("updatedAt", System.currentTimeMillis());
 
+            // Sync compatibility aliases
+            event.syncAliases();
+
             return event;
         } catch (Exception e) {
             return null;
@@ -682,6 +726,9 @@ public class CalendarEvent {
                 event.createdAt = (long) (timestamp * 1000); // Python time.time() is in seconds
                 event.updatedAt = event.createdAt;
             }
+
+            // Sync compatibility aliases
+            event.syncAliases();
 
             return event;
         } catch (Exception e) {
