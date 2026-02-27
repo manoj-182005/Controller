@@ -100,8 +100,8 @@ public class HubFileDnaView extends View {
         if (hex == null) return new byte[0];
         int len = hex.length();
         if (len == 0) return new byte[0];
-        // Make sure length is even
-        if (len % 2 != 0) hex = "0" + hex;
+        // Make sure length is even (append "0" to preserve leading hex digits)
+        if (len % 2 != 0) hex = hex + "0";
         byte[] result = new byte[hex.length() / 2];
         for (int i = 0; i < result.length; i++) {
             try {

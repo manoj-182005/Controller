@@ -1151,6 +1151,11 @@ public class HubFileRepository {
 
     // ─── Secure Delete ─────────────────────────────────────────────────────────
 
+    /**
+     * Overwrites file data with random bytes before deletion to hinder recovery.
+     * Note: on SSDs with wear-leveling, a single overwrite pass may not erase all physical copies
+     * of the data. This is a best-effort approach for typical use cases.
+     */
     public void secureDelete(HubFile file, Runnable onComplete) {
         executor.execute(() -> {
             if (file != null && file.filePath != null && !file.filePath.isEmpty()) {

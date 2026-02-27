@@ -67,7 +67,7 @@ public class HubAuditLogActivity extends AppCompatActivity {
         for (int i = 0; i < ACTION_FILTERS.length; i++) {
             final int idx = i;
             Button chip = makeChip(ACTION_FILTERS[i], i == currentFilter);
-            chip.setOnClickListener(v -> { currentFilter = idx; rebuildRoot(root); });
+            chip.setOnClickListener(v -> { currentFilter = idx; reloadEntries(); });
             filterRow.addView(chip);
             filterRow.addView(hspace(6));
         }
@@ -95,8 +95,8 @@ public class HubAuditLogActivity extends AppCompatActivity {
         repo.logAudit("VIEW", "Opened Audit Log");
     }
 
-    private void rebuildRoot(LinearLayout root) {
-        // Reload entries only
+    private void reloadEntries() {
+        // Reload entries with current filter applied
         loadEntries();
     }
 

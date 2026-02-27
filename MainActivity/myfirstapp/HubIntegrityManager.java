@@ -81,10 +81,9 @@ public class HubIntegrityManager {
     }
 
     private static String toHex(byte[] bytes) {
-        Formatter formatter = new Formatter();
-        for (byte b : bytes) formatter.format("%02x", b);
-        String result = formatter.toString();
-        formatter.close();
-        return result;
+        try (Formatter formatter = new Formatter()) {
+            for (byte b : bytes) formatter.format("%02x", b);
+            return formatter.toString();
+        }
     }
 }

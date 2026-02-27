@@ -230,41 +230,41 @@ public class SmartFileHubActivity extends AppCompatActivity {
         findViewById(R.id.drawerItemRecent).setOnClickListener(v -> { drawerLayout.closeDrawer(Gravity.START); showRecent(); });
 
         // ── New advanced navigation items in drawer ──────────────────────────
-        safeDrawerItem(R.id.drawerItemAnalytics, () -> {
+        safeClick(R.id.drawerItemAnalytics, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubAnalyticsActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemTimeline, () -> {
+        safeClick(R.id.drawerItemTimeline, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubFileTimelineActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemCollections, () -> {
+        safeClick(R.id.drawerItemCollections, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubCollectionsActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemWatchlist, () -> {
+        safeClick(R.id.drawerItemWatchlist, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubWatchlistActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemBatchOps, () -> {
+        safeClick(R.id.drawerItemBatchOps, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubBatchOperationsActivity.class));
         });
 
         // Prompt 2 drawer items
-        safeDrawerItem(R.id.drawerItemShareProfiles, () -> {
+        safeClick(R.id.drawerItemShareProfiles, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubShareProfilesActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemShareHistory, () -> {
+        safeClick(R.id.drawerItemShareHistory, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubShareHistoryActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemExpiryCalendar, () -> {
+        safeClick(R.id.drawerItemExpiryCalendar, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubExpiryCalendarActivity.class));
         });
-        safeDrawerItem(R.id.drawerItemTimeCapsule, () -> {
+        safeClick(R.id.drawerItemTimeCapsule, () -> {
             drawerLayout.closeDrawer(Gravity.START);
             startActivity(new Intent(this, HubTimeCapsuleActivity.class));
         });
@@ -322,12 +322,6 @@ public class SmartFileHubActivity extends AppCompatActivity {
                 return true;
             });
         }
-    }
-
-    /** Helper: attaches a click listener to a drawer item only if the view exists. */
-    private void safeDrawerItem(int viewId, Runnable action) {
-        View v = findViewById(viewId);
-        if (v != null) v.setOnClickListener(ignored -> action.run());
     }
 
     /** Helper: attaches a click listener to any view if it exists. */
