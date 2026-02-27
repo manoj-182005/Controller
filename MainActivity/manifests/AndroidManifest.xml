@@ -212,6 +212,12 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Income Tracker Activity -->
+        <activity
+            android:name=".IncomeTrackerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Subscriptions / Recurring Expenses Activity -->
         <activity
             android:name=".SubscriptionsActivity"
