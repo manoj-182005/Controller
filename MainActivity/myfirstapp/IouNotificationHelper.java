@@ -164,15 +164,18 @@ public class IouNotificationHelper extends BroadcastReceiver {
         }
 
         // Fire reminder notifications for reminder-enabled active records
+        long nowMs = System.currentTimeMillis();
+        long oneDayMs = 1000L * 60 * 60 * 24;
         for (MoneyRecord r : repo.loadAll()) {
             if (r.reminderEnabled && !MoneyRecord.STATUS_SETTLED.equals(r.status)
                     && !MoneyRecord.STATUS_WRITTEN_OFF.equals(r.status)) {
-                long daysSinceCreated = (System.currentTimeMillis() - r.createdAt)
-                        / (1000L * 60 * 60 * 24);
-                if (r.reminderFrequencyDays > 0
-                        && daysSinceCreated % r.reminderFrequencyDays == 0
-                        && daysSinceCreated > 0) {
-                    sendReminderNotification(context, r);
+                if (r.reminderFrequencyDays > 0) {
+                    // Use updatedAt as the last interaction point; compare days elapsed
+                    long lastCheck = Math.max(r.createdAt, r.updatedAt);
+                    long daysSinceLast = (nowMs - lastCheck) / oneDayMs;
+                    if (daysSinceLast >= r.reminderFrequencyDays) {
+                        sendReminderNotification(context, r);
+                    }
                 }
             }
         }

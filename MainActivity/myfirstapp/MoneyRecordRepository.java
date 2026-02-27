@@ -79,14 +79,33 @@ public class MoneyRecordRepository {
         saveAll(all);
     }
 
-    public void deleteRecord(String id) {
+    public void deleteRecord(String id, WalletRepository walletRepo) {
         ArrayList<MoneyRecord> all = loadAll();
+        MoneyRecord toDelete = null;
+        for (MoneyRecord r : all) {
+            if (r.id.equals(id)) { toDelete = r; break; }
+        }
+        // Reverse wallet balance if this record was logged in wallet
+        if (toDelete != null && toDelete.logInWallet && walletRepo != null
+                && toDelete.walletId != null) {
+            if (MoneyRecord.TYPE_LENT.equals(toDelete.type)) {
+                // Money went out when lent — put it back
+                walletRepo.adjustBalance(toDelete.walletId, toDelete.amount, true);
+            } else {
+                // Money came in when borrowed — take it back
+                walletRepo.adjustBalance(toDelete.walletId, toDelete.amount, false);
+            }
+        }
         all.removeIf(r -> r.id.equals(id));
         saveAll(all);
         // Also delete associated repayments
         ArrayList<Repayment> repayments = loadAllRepayments();
         repayments.removeIf(r -> r.moneyRecordId.equals(id));
         saveAllRepayments(repayments);
+    }
+
+    public void deleteRecord(String id) {
+        deleteRecord(id, null);
     }
 
     public MoneyRecord getById(String id) {

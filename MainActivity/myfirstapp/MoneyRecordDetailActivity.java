@@ -336,7 +336,7 @@ public class MoneyRecordDetailActivity extends AppCompatActivity {
                 .setTitle("Delete Record")
                 .setMessage("Delete this record permanently?")
                 .setPositiveButton("Delete", (d, w) -> {
-                    repo.deleteRecord(record.id);
+                    repo.deleteRecord(record.id, walletRepo);
                     Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show();
                     finish();
                 })

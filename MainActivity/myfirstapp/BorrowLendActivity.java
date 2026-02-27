@@ -569,7 +569,7 @@ public class BorrowLendActivity extends AppCompatActivity {
                 .setTitle("Delete Record")
                 .setMessage("Delete this record for " + record.personName + "? This cannot be undone.")
                 .setPositiveButton("Delete", (d, w) -> {
-                    repo.deleteRecord(record.id);
+                    repo.deleteRecord(record.id, walletRepo);
                     refreshAll();
                     Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show();
                 })
@@ -891,7 +891,7 @@ public class BorrowLendActivity extends AppCompatActivity {
     //  ADD REPAYMENT DIALOG
     // ═══════════════════════════════════════════════════════════
 
-    void showAddRepaymentDialog(MoneyRecord record) {
+    private void showAddRepaymentDialog(MoneyRecord record) {
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(20), dp(16), dp(20), dp(16));
