@@ -48,6 +48,8 @@ public class HubBatchOperationsActivity extends AppCompatActivity {
             "Add Tags", "Apply Color Label", "Add to Project",
             "Move to Trash", "Rename: Add Prefix", "Rename: Add Suffix"
     };
+    /** Milliseconds after a batch completes during which the Undo button is available. */
+    private static final long UNDO_TIMEOUT_MS = 30_000L;
 
     private HubFileRepository repo;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -247,7 +249,7 @@ public class HubBatchOperationsActivity extends AppCompatActivity {
                 mainHandler.postDelayed(() -> {
                     btnUndo.setVisibility(View.GONE);
                     undoAvailable = false;
-                }, 30_000);
+                }, UNDO_TIMEOUT_MS);
                 refreshPreview();
             });
         });

@@ -33,6 +33,14 @@ public class HubVersionManager {
             "(?i)(_v(\\d+)|_final(\\d*)|_revised(\\d*)|_updated(\\d*)|_new(\\d*)|\\s*\\((\\d+)\\))$");
 
     private static final int VERSION_SCORE_BASE = 100;
+    /** Score offset applied to _updated suffixes (higher = newer in ordering). */
+    private static final int UPDATED_OFFSET = 10;
+    /** Score offset applied to _revised suffixes. */
+    private static final int REVISED_OFFSET = 20;
+    /** Score offset applied to _final suffixes (treated as near-latest). */
+    private static final int FINAL_OFFSET = 50;
+    /** Score offset applied to Windows-style copy parentheses e.g. (2). */
+    private static final int COPY_PAREN_OFFSET = 60;
 
     // ─── Public API ───────────────────────────────────────────────────────────
 
@@ -136,10 +144,10 @@ public class HubVersionManager {
         String full = m.group(0).toLowerCase(Locale.ROOT);
         if (full.contains("_v")) return parseNumber(m.group(2));
         if (full.contains("_new")) return VERSION_SCORE_BASE + parseNumber(m.group(6));
-        if (full.contains("_updated")) return VERSION_SCORE_BASE + 10 + parseNumber(m.group(5));
-        if (full.contains("_revised")) return VERSION_SCORE_BASE + 20 + parseNumber(m.group(4));
-        if (full.contains("_final")) return VERSION_SCORE_BASE + 50 + parseNumber(m.group(3));
-        if (full.contains("(")) return VERSION_SCORE_BASE + 60 + parseNumber(m.group(7));
+        if (full.contains("_updated")) return VERSION_SCORE_BASE + UPDATED_OFFSET + parseNumber(m.group(5));
+        if (full.contains("_revised")) return VERSION_SCORE_BASE + REVISED_OFFSET + parseNumber(m.group(4));
+        if (full.contains("_final")) return VERSION_SCORE_BASE + FINAL_OFFSET + parseNumber(m.group(3));
+        if (full.contains("(")) return VERSION_SCORE_BASE + COPY_PAREN_OFFSET + parseNumber(m.group(7));
         return 0;
     }
 

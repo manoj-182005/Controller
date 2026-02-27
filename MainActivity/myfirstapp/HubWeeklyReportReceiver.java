@@ -166,8 +166,9 @@ public class HubWeeklyReportReceiver extends BroadcastReceiver {
         c.set(Calendar.MINUTE, 0);
         c.set(Calendar.SECOND, 0);
         c.set(Calendar.MILLISECOND, 0);
-        while (c.get(Calendar.DAY_OF_WEEK) != dayOfWeek) c.add(Calendar.DAY_OF_YEAR, 1);
-        if (c.getTimeInMillis() <= System.currentTimeMillis()) c.add(Calendar.WEEK_OF_YEAR, 1);
+        int daysUntil = (dayOfWeek - c.get(Calendar.DAY_OF_WEEK) + 7) % 7;
+        if (daysUntil == 0 && c.getTimeInMillis() <= System.currentTimeMillis()) daysUntil = 7;
+        c.add(Calendar.DAY_OF_YEAR, daysUntil);
         return c;
     }
 }

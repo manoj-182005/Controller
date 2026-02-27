@@ -304,11 +304,15 @@ public class HubAnalyticsActivity extends AppCompatActivity {
         int addedThisMonth = 0;
         long pdfBytesThisMonth = 0;
         int waCount = 0, shotCount = 0;
+        long waBytesThisMonth = 0;
         long staleCount = 0;
         for (HubFile f : all) {
             if (f.importedAt > monthAgo) {
                 addedThisMonth++;
-                if (f.source == HubFile.Source.WHATSAPP) waCount++;
+                if (f.source == HubFile.Source.WHATSAPP) {
+                    waCount++;
+                    waBytesThisMonth += f.fileSize;
+                }
                 if (f.fileType == HubFile.FileType.SCREENSHOT) shotCount++;
                 if (f.fileType == HubFile.FileType.PDF) pdfBytesThisMonth += f.fileSize;
             }
@@ -317,7 +321,7 @@ public class HubAnalyticsActivity extends AppCompatActivity {
 
         if (waCount > 0) insights.add(new String[]{"💬",
                 "WhatsApp sent " + waCount + " files this month",
-                "That's " + formatSize(waCount * 512 * 1024L) + " of WhatsApp content added."});
+                "That's " + formatSize(waBytesThisMonth) + " of WhatsApp content added."});
         if (pdfBytesThisMonth > 0) insights.add(new String[]{"📕",
                 "PDF collection grew by " + formatSize(pdfBytesThisMonth) + " this month",
                 "You added " + addedThisMonth + " files in the last 30 days."});

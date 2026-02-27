@@ -69,6 +69,12 @@ public class HubAnomalyDetector {
     private static final int THRESHOLD_FILES_PER_DAY = 100;
     private static final long HOURS_48 = 48L * 3600 * 1000;
     private static final long HOURS_24 = 24L * 3600 * 1000;
+    /**
+     * Tolerance in milliseconds when comparing on-disk lastModified to the indexed
+     * originalModifiedAt timestamp. 5 seconds avoids false positives from file system
+     * clock rounding or minor metadata updates by the OS.
+     */
+    private static final long MODIFICATION_TOLERANCE_MS = 5_000L;
 
     private static final String CHANNEL_ID = "hub_anomaly";
     private static final int NOTIF_ID = 7800;
@@ -119,7 +125,7 @@ public class HubAnomalyDetector {
             // External modification: on-disk lastModified newer than indexed
             if (f.filePath != null && !f.filePath.isEmpty()) {
                 File diskFile = new File(f.filePath);
-                if (diskFile.exists() && diskFile.lastModified() > f.originalModifiedAt + 5000
+                if (diskFile.exists() && diskFile.lastModified() > f.originalModifiedAt + MODIFICATION_TOLERANCE_MS
                         && f.originalModifiedAt > 0) {
                     f.modifiedExternally = true;
                     externallyModified.add(f);
