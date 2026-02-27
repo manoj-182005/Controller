@@ -80,6 +80,7 @@ public class HubFileRepository {
         loadActivities();
         loadInboxItems();
         if (folders.isEmpty()) seedDefaultSmartFolders();
+        loadQuickSharePins();
         loaded = true;
     }
 
@@ -671,5 +672,101 @@ public class HubFileRepository {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // ─── Quick Share ──────────────────────────────────────────────────────────
+
+    private static final String PREFS_SETTINGS = "hub_settings";
+    private final List<String> quickSharePins = new ArrayList<>();
+    private static final String KEY_QUICK_SHARE = "quick_share_pins";
+
+    private void loadQuickSharePins() {
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE);
+            String json = prefs.getString(KEY_QUICK_SHARE, "[]");
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) quickSharePins.add(arr.getString(i));
+        } catch (Exception e) {}
+    }
+
+    public synchronized List<String> getQuickSharePins() { return new ArrayList<>(quickSharePins); }
+
+    public synchronized void addQuickSharePin(String fileId) {
+        if (!quickSharePins.contains(fileId) && quickSharePins.size() < 10) {
+            quickSharePins.add(fileId);
+            saveQuickSharePins();
+        }
+    }
+
+    public synchronized void removeQuickSharePin(String fileId) {
+        quickSharePins.remove(fileId);
+        saveQuickSharePins();
+    }
+
+    private void saveQuickSharePins() {
+        executor.execute(() -> {
+            try {
+                JSONArray arr = new JSONArray();
+                synchronized (quickSharePins) { for (String id : quickSharePins) arr.put(id); }
+                context.getSharedPreferences(PREFS_SETTINGS, Context.MODE_PRIVATE)
+                        .edit().putString(KEY_QUICK_SHARE, arr.toString()).apply();
+            } catch (Exception e) {}
+        });
+    }
+
+    // ─── Access Tracking ──────────────────────────────────────────────────────
+
+    public synchronized void recordFileAccess(String fileId) {
+        HubFile f = getFileById(fileId);
+        if (f != null) {
+            f.lastAccessedAt = System.currentTimeMillis();
+            f.accessCount = Math.max(0, f.accessCount) + 1;
+            updateFile(f);
+        }
+    }
+
+    // ─── Widget Support API ───────────────────────────────────────────────────
+
+    public synchronized List<HubFile> getRecentlyAccessedFiles(int limit) {
+        List<HubFile> sorted = new ArrayList<>(files);
+        sorted.sort((a, b) -> Long.compare(b.lastAccessedAt, a.lastAccessedAt));
+        return sorted.subList(0, Math.min(limit, sorted.size()));
+    }
+
+    // ─── Storage Health Score ─────────────────────────────────────────────────
+
+    public synchronized int computeStorageHealthScore() {
+        int score = 100;
+        int total = files.size();
+        if (total == 0) return 80;
+        int organized = 0;
+        for (HubFile f : files) if (f.folderId != null || f.projectId != null) organized++;
+        float organizedPct = (float) organized / total;
+        score -= (int) ((1 - organizedPct) * 25);
+        int dupeCount = getTotalDuplicateCount();
+        if (dupeCount > 0) score -= Math.min(20, dupeCount / 2);
+        int inboxCount = getPendingInboxCount();
+        if (inboxCount > 5) score -= Math.min(15, inboxCount / 3);
+        return Math.max(0, Math.min(100, score));
+    }
+
+    // ─── Backup Readiness ─────────────────────────────────────────────────────
+
+    public synchronized List<HubFile> getFilesWithNoBackup() {
+        List<HubFile> result = new ArrayList<>();
+        for (HubFile f : files) {
+            if (f.source == HubFile.Source.MANUAL || f.source == HubFile.Source.INTERNAL) {
+                result.add(f);
+            }
+        }
+        return result;
+    }
+
+    // ─── Largest Files ────────────────────────────────────────────────────────
+
+    public synchronized List<HubFile> getLargestFiles(int limit) {
+        List<HubFile> sorted = new ArrayList<>(files);
+        sorted.sort((a, b) -> Long.compare(b.fileSize, a.fileSize));
+        return sorted.subList(0, Math.min(limit, sorted.size()));
     }
 }
