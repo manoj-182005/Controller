@@ -15,7 +15,6 @@ import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.MeasureSpec;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -1948,7 +1947,7 @@ public class CalendarEventDetailActivity extends AppCompatActivity {
 
         @Override
         protected void onMeasure(int widthSpec, int heightSpec) {
-            int maxW = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+            int maxW = View.MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
             int x = 0, y = 0, lineH = 0;
             for (int i = 0; i < getChildCount(); i++) {
                 View child = getChildAt(i);
@@ -1958,7 +1957,7 @@ public class CalendarEventDetailActivity extends AppCompatActivity {
                 if (x + cw > maxW && x > 0) { x = 0; y += lineH; lineH = 0; }
                 x += cw; lineH = Math.max(lineH, ch);
             }
-            setMeasuredDimension(MeasureSpec.getSize(widthSpec),
+            setMeasuredDimension(View.MeasureSpec.getSize(widthSpec),
                     y + lineH + getPaddingTop() + getPaddingBottom());
         }
 

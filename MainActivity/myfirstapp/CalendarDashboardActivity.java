@@ -1,4 +1,4 @@
-ackage com.prajwal.myfirstapp;
+package com.prajwal.myfirstapp;
 
 import android.content.Intent;
 import android.graphics.Canvas;
@@ -228,7 +228,7 @@ public class CalendarDashboardActivity extends AppCompatActivity {
         // Summary
         TextView summary = new TextView(this);
         if (events.isEmpty()) {
-            summary.setText(" Free day — nothing scheduled");
+            summary.setText(" Free day â€” nothing scheduled");
             summary.setTextColor(ACCENT_GREEN);
         } else {
             summary.setText(" You have " + events.size() + " event" + (events.size() > 1 ? "s" : "") + " today");
@@ -505,7 +505,7 @@ public class CalendarDashboardActivity extends AppCompatActivity {
         stat.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
 
         TextView valTv = new TextView(this);
-        valTv.setText(value.isEmpty() ? "—" : value);
+        valTv.setText(value.isEmpty() ? "â€”" : value);
         valTv.setTextColor(ACCENT_BLUE);
         valTv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         valTv.setTypeface(null, Typeface.BOLD);
@@ -1277,133 +1277,6 @@ public class CalendarDashboardActivity extends AppCompatActivity {
 
         return card;
     }
-    // 
-    //  HELPER METHODS
-    // 
-
-    private TextView sectionTitle(String text) {
-        TextView tv = new TextView(this);
-        tv.setText(text);
-        tv.setTextColor(TEXT_PRIMARY);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        tv.setTypeface(null, Typeface.BOLD);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.topMargin = dp(16);
-        lp.bottomMargin = dp(8);
-        tv.setLayoutParams(lp);
-        return tv;
-    }
-
-    private LinearLayout createCardContainer() {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(16), dp(12), dp(16), dp(12));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setCornerRadius(dp(12));
-        bg.setColor(BG_SURFACE);
-        card.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-        lp.bottomMargin = dp(12);
-        card.setLayoutParams(lp);
-        return card;
-    }
-
-    private int dp(int val) {
-        return (int) TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, val, getResources().getDisplayMetrics());
-    }
-
-    private int safeColor(String hex) {
-        if (hex == null || hex.isEmpty()) return ACCENT_BLUE;
-        try {
-            String clean = hex.startsWith("#") ? hex : "#" + hex;
-            return Color.parseColor(clean);
-        } catch (Exception e) {
-            return ACCENT_BLUE;
-        }
-    }
-
-    private String fmtCalDate(Calendar cal) {
-        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.getTime());
-    }
-
-    private Calendar parseDate(String dateStr) {
-        if (dateStr == null) return null;
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(sdf.parse(dateStr));
-            return cal;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private Calendar parseDateTime(String dateStr, String timeStr) {
-        if (dateStr == null || timeStr == null) return null;
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(sdf.parse(dateStr + " " + timeStr));
-            return cal;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private int parseHour(String timeStr) {
-        if (timeStr == null) return 9;
-        try {
-            String[] parts = timeStr.split(":");
-            return Integer.parseInt(parts[0]);
-        } catch (Exception e) {
-            return 9;
-        }
-    }
-
-    private String fmtTime(String timeStr) {
-        if (timeStr == null) return "";
-        try {
-            String[] parts = timeStr.split(":");
-            int h = Integer.parseInt(parts[0]);
-            int m = Integer.parseInt(parts[1]);
-            String amPm = h < 12 ? "AM" : "PM";
-            int h12 = h % 12;
-            if (h12 == 0) h12 = 12;
-            return String.format(Locale.US, "%d:%02d %s", h12, m, amPm);
-        } catch (Exception e) {
-            return timeStr;
-        }
-    }
-
-    private String fmtReadableDate(String dateStr) {
-        Calendar cal = parseDate(dateStr);
-        if (cal == null) return dateStr != null ? dateStr : "";
-        Calendar today = Calendar.getInstance();
-        if (isSameDay(cal, today)) return "Today";
-        Calendar tomorrow = (Calendar) today.clone();
-        tomorrow.add(Calendar.DAY_OF_YEAR, 1);
-        if (isSameDay(cal, tomorrow)) return "Tomorrow";
-        return new SimpleDateFormat("EEE, MMM d", Locale.US).format(cal.getTime());
-    }
-
-    private boolean isSameDay(Calendar c1, Calendar c2) {
-        return c1.get(Calendar.YEAR) == c2.get(Calendar.YEAR) &&
-               c1.get(Calendar.DAY_OF_YEAR) == c2.get(Calendar.DAY_OF_YEAR);
-    }
-
-    private Calendar firstOfMonth(Calendar cal) {
-        Calendar result = (Calendar) cal.clone();
-        result.set(Calendar.DAY_OF_MONTH, 1);
-        return result;
-    }
-
-    private Calendar lastOfMonth(Calendar cal) {
-        Calendar result = (Calendar) cal.clone();
-        result.set(Calendar.DAY_OF_MONTH, result.getActualMaximum(Calendar.DAY_OF_MONTH));
-        return result;
-    }
-}
     // 
     //  HELPER METHODS
     // 
