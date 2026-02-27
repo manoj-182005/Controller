@@ -265,6 +265,154 @@ public class ExpenseRepository {
         return total;
     }
 
+    // ── Wallet-Aware Queries ─────────────────────────────────
+
+    /**
+     * Load expenses for a specific wallet only.
+     */
+    public ArrayList<Expense> loadForWallet(String walletId) {
+        ArrayList<Expense> result = new ArrayList<>();
+        for (Expense e : loadAll()) {
+            if (walletId.equals(e.walletId)) result.add(e);
+        }
+        return result;
+    }
+
+    public double getTodaySpendForWallet(String walletId) {
+        return getSpendForDayForWallet(System.currentTimeMillis(), walletId);
+    }
+
+    public double getSpendForDayForWallet(long timeInDay, String walletId) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(timeInDay);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        long dayStart = cal.getTimeInMillis();
+        long dayEnd = dayStart + 86400000L;
+
+        double total = 0;
+        for (Expense e : loadAll()) {
+            if (!e.isIncome && walletId.equals(e.walletId)
+                && e.timestamp >= dayStart && e.timestamp < dayEnd) {
+                total += e.amount;
+            }
+        }
+        return total;
+    }
+
+    public double getWeekSpendForWallet(String walletId) {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_YEAR, -7);
+        long cutoff = cal.getTimeInMillis();
+
+        double total = 0;
+        for (Expense e : loadAll()) {
+            if (!e.isIncome && walletId.equals(e.walletId) && e.timestamp >= cutoff) {
+                total += e.amount;
+            }
+        }
+        return total;
+    }
+
+    public double getMonthSpendForWallet(String walletId) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        long monthStart = cal.getTimeInMillis();
+
+        double total = 0;
+        for (Expense e : loadAll()) {
+            if (!e.isIncome && walletId.equals(e.walletId) && e.timestamp >= monthStart) {
+                total += e.amount;
+            }
+        }
+        return total;
+    }
+
+    public double[] getLast7DaysSpendForWallet(String walletId) {
+        double[] days = new double[7];
+        Calendar cal = Calendar.getInstance();
+        for (int i = 6; i >= 0; i--) {
+            Calendar dayCal = (Calendar) cal.clone();
+            dayCal.add(Calendar.DAY_OF_YEAR, -(6 - i));
+            days[i] = getSpendForDayForWallet(dayCal.getTimeInMillis(), walletId);
+        }
+        return days;
+    }
+
+    public Map<String, Double> getCategoryBreakdownForWallet(String walletId) {
+        Map<String, Double> map = new HashMap<>();
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        long monthStart = cal.getTimeInMillis();
+
+        for (Expense e : loadAll()) {
+            if (!e.isIncome && walletId.equals(e.walletId) && e.timestamp >= monthStart) {
+                map.put(e.category, map.getOrDefault(e.category, 0.0) + e.amount);
+            }
+        }
+        return map;
+    }
+
+    public double[] getMonthlySpendHistoryForWallet(String walletId, int months) {
+        double[] history = new double[months];
+        Calendar cal = Calendar.getInstance();
+
+        for (int i = 0; i < months; i++) {
+            Calendar monthCal = (Calendar) cal.clone();
+            monthCal.add(Calendar.MONTH, -i);
+            monthCal.set(Calendar.DAY_OF_MONTH, 1);
+            monthCal.set(Calendar.HOUR_OF_DAY, 0);
+            monthCal.set(Calendar.MINUTE, 0);
+            monthCal.set(Calendar.SECOND, 0);
+            monthCal.set(Calendar.MILLISECOND, 0);
+            long monthStart = monthCal.getTimeInMillis();
+
+            Calendar nextMonth = (Calendar) monthCal.clone();
+            nextMonth.add(Calendar.MONTH, 1);
+            long monthEnd = nextMonth.getTimeInMillis();
+
+            for (Expense e : loadAll()) {
+                if (!e.isIncome && walletId.equals(e.walletId)
+                    && e.timestamp >= monthStart && e.timestamp < monthEnd) {
+                    history[i] += e.amount;
+                }
+            }
+        }
+        return history;
+    }
+
+    /**
+     * Delete expense and reverse the balance on its wallet.
+     */
+    public void deleteExpenseWithBalanceReverse(String id, WalletRepository walletRepo) {
+        ArrayList<Expense> all = loadAll();
+        for (Expense e : all) {
+            if (e.id.equals(id)) {
+                walletRepo.reverseBalanceAdjustment(e.walletId, e.amount, e.isIncome);
+                break;
+            }
+        }
+        all.removeIf(e -> e.id.equals(id));
+        save(all);
+    }
+
+    /**
+     * Add expense and update wallet balance.
+     */
+    public void addExpenseWithBalance(Expense expense, WalletRepository walletRepo) {
+        addExpense(expense);
+        walletRepo.adjustBalance(expense.walletId, expense.amount, expense.isIncome);
+    }
+
     private SharedPreferences getPrefs() {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }

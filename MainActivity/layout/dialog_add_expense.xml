@@ -63,6 +63,29 @@
             android:orientation="horizontal" />
     </LinearLayout>
 
+    <!-- Wallet selector -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wallet"
+        android:textColor="#6B7B8D"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:layout_marginBottom="12dp">
+
+        <LinearLayout
+            android:id="@+id/walletChipContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
     <!-- Note -->
     <EditText
         android:id="@+id/etExpenseNote"

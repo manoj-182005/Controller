@@ -140,6 +140,42 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Calendar Event Detail Activity -->
+        <activity
+            android:name=".CalendarEventDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Calendar Categories Activity -->
+        <activity
+            android:name=".CalendarCategoriesActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Calendar Settings Activity -->
+        <activity
+            android:name=".CalendarSettingsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Calendar Search Activity -->
+        <activity
+            android:name=".CalendarSearchActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Calendar Dashboard Activity -->
+        <activity
+            android:name=".CalendarDashboardActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Calendar Analytics Activity -->
+        <activity
+            android:name=".CalendarAnalyticsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- File Manager Activity -->
         <activity
             android:name=".FileManagerActivity"
@@ -155,6 +191,42 @@
         <!-- Expense Tracker Activity -->
         <activity
             android:name=".ExpenseTrackerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Subscriptions / Recurring Expenses Activity -->
+        <activity
+            android:name=".SubscriptionsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Budget Goals per Category Activity -->
+        <activity
+            android:name=".BudgetGoalsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Wallets Activity -->
+        <activity
+            android:name=".WalletsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Wallet Detail Activity -->
+        <activity
+            android:name=".WalletDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Split Groups Activity -->
+        <activity
+            android:name=".SplitGroupsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Group Detail Activity -->
+        <activity
+            android:name=".GroupDetailActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
@@ -219,6 +291,31 @@
                 <action android:name="com.prajwal.myfirstapp.NOTE_REMINDER" />
                 <action android:name="com.prajwal.myfirstapp.DISMISS_REMINDER" />
                 <action android:name="com.prajwal.myfirstapp.SNOOZE_REMINDER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Expense Notification Receiver (subscriptions, budget alerts, auto-logging) -->
+        <receiver
+            android:name=".ExpenseNotificationHelper"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.ACTION_SUBSCRIPTION_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_EXPENSE_LOGGED" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_BUDGET_THRESHOLD" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_BUDGET_EXCEEDED" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_CHECK_RECURRING" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Calendar Reminder Receiver -->
+        <receiver
+            android:name=".CalendarReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.CALENDAR_EVENT_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.CALENDAR_DAILY_AGENDA" />
+                <action android:name="com.prajwal.myfirstapp.CALENDAR_VIEW_EVENT" />
+                <action android:name="com.prajwal.myfirstapp.CALENDAR_SNOOZE_15" />
             </intent-filter>
         </receiver>
 

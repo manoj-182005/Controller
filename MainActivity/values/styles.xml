@@ -14,6 +14,9 @@
         <item name="android:windowTitleStyle">@style/DarkDialogTitle</item>
     </style>
 
+    <!-- Alias for DarkAlertDialog used by wallet activities -->
+    <style name="DarkDialogTheme" parent="DarkAlertDialog" />
+
     <style name="DarkDialogTitle" parent="@android:style/TextAppearance.DialogWindowTitle">
         <item name="android:textColor">#F1F5F9</item>
         <item name="android:textSize">20sp</item>

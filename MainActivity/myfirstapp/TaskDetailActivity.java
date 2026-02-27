@@ -118,6 +118,7 @@ public class TaskDetailActivity extends AppCompatActivity
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         findViewById(R.id.btnEditTask).setOnClickListener(v -> openEditor());
         findViewById(R.id.btnDeleteTask).setOnClickListener(v -> confirmDelete());
+        findViewById(R.id.btnMoreOptions).setOnClickListener(this::showMoreOptions);
 
         viewPriorityStrip = findViewById(R.id.viewDetailPriorityStrip);
         tvStatus = findViewById(R.id.tvDetailStatus);
@@ -640,6 +641,68 @@ public class TaskDetailActivity extends AppCompatActivity
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    // ─── More Options Menu ───────────────────────────────────────
+
+    private void showMoreOptions(View anchor) {
+        String[] options = {"📅 Add to Calendar", "📋 Copy Title", "📤 Share Task"};
+        new AlertDialog.Builder(this)
+                .setTitle("More Options")
+                .setItems(options, (dialog, which) -> {
+                    switch (which) {
+                        case 0:
+                            addToCalendar();
+                            break;
+                        case 1:
+                            copyTitleToClipboard();
+                            break;
+                        case 2:
+                            shareTask();
+                            break;
+                    }
+                })
+                .show();
+    }
+
+    private void addToCalendar() {
+        Intent intent = new Intent(this, CalendarEventDetailActivity.class);
+        // Pass task data to create a new calendar event
+        intent.putExtra("create_from_task", true);
+        intent.putExtra("task_title", task.title);
+        intent.putExtra("task_description", task.description != null ? task.description : "");
+        intent.putExtra("task_due_date", task.dueDate);
+        intent.putExtra("task_priority", task.priority);
+        startActivity(intent);
+        overridePendingTransition(R.anim.anim_slide_in_right, R.anim.anim_slide_out_left);
+        Toast.makeText(this, "Creating calendar event...", Toast.LENGTH_SHORT).show();
+    }
+
+    private void copyTitleToClipboard() {
+        android.content.ClipboardManager clipboard = (android.content.ClipboardManager) 
+                getSystemService(CLIPBOARD_SERVICE);
+        android.content.ClipData clip = android.content.ClipData.newPlainText("Task Title", task.title);
+        clipboard.setPrimaryClip(clip);
+        Toast.makeText(this, "Title copied", Toast.LENGTH_SHORT).show();
+    }
+
+    private void shareTask() {
+        StringBuilder shareText = new StringBuilder();
+        shareText.append("📋 ").append(task.title);
+        if (task.description != null && !task.description.isEmpty()) {
+            shareText.append("\n\n").append(task.description);
+        }
+        if (task.dueDate != null && !task.dueDate.isEmpty()) {
+            shareText.append("\n\n📅 Due: ").append(task.dueDate);
+        }
+        if (task.priority != null) {
+            shareText.append("\n⚡ Priority: ").append(task.priority);
+        }
+
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, shareText.toString());
+        startActivity(Intent.createChooser(shareIntent, "Share Task"));
     }
 
     // ─── Editor Callback ─────────────────────────────────────────

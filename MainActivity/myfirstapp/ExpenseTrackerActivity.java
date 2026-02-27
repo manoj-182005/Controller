@@ -2,6 +2,7 @@ package com.prajwal.myfirstapp;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -32,9 +33,11 @@ import java.util.Map;
 public class ExpenseTrackerActivity extends AppCompatActivity {
 
     private ExpenseRepository repo;
+    private WalletRepository walletRepo;
     private ArrayList<Expense> displayedExpenses;
     private TransactionAdapter adapter;
     private String currentFilter = "All";
+    private String currentWalletFilter = null; // null = all wallets
 
     // Views
     private TextView tvTodaySpend, tvYesterdayCompare, tvWeekSpend, tvWeekChange;
@@ -48,6 +51,7 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
     private ListView transactionList;
     private TextView tvEmptyTransactions;
     private LinearLayout filterChipContainer;
+    private LinearLayout walletFilterContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +59,24 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_expense_tracker);
 
         repo = new ExpenseRepository(this);
+        walletRepo = new WalletRepository(this);
+
+        // Run data migration (v1 → v2 wallet support)
+        new ExpenseMigrationManager(this).runMigrations();
+
+        // Process any overdue recurring expenses & budget period rollovers
+        ExpenseNotificationHelper.processRecurringExpenses(this);
+
         initViews();
+        setupWalletFilter();
         setupFilterChips();
+        refreshAll();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setupWalletFilter();
         refreshAll();
     }
 
@@ -79,6 +99,7 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         transactionList = findViewById(R.id.transactionList);
         tvEmptyTransactions = findViewById(R.id.tvEmptyTransactions);
         filterChipContainer = findViewById(R.id.filterChipContainer);
+        walletFilterContainer = findViewById(R.id.walletFilterContainer);
 
         displayedExpenses = new ArrayList<>();
         adapter = new TransactionAdapter(this, displayedExpenses);
@@ -92,7 +113,7 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
                     .setTitle("Delete Transaction")
                     .setMessage("Delete " + expense.category + " — ₹" + String.format("%.2f", expense.amount) + "?")
                     .setPositiveButton("Delete", (d, w) -> {
-                        repo.deleteExpense(expense.id);
+                        repo.deleteExpenseWithBalanceReverse(expense.id, walletRepo);
                         refreshAll();
                         Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show();
                     })
@@ -110,6 +131,18 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         // FAB
         findViewById(R.id.fabAddExpense).setOnClickListener(v -> showAddExpenseDialog());
 
+        // Navigation to Subscriptions, Budget Goals & Wallets
+        findViewById(R.id.btnSubscriptions).setOnClickListener(v ->
+            startActivity(new Intent(this, SubscriptionsActivity.class)));
+        findViewById(R.id.btnBudgetGoals).setOnClickListener(v ->
+            startActivity(new Intent(this, BudgetGoalsActivity.class)));
+        findViewById(R.id.btnWallets).setOnClickListener(v ->
+            startActivity(new Intent(this, WalletsActivity.class)));
+        findViewById(R.id.btnSplitBills).setOnClickListener(v ->
+            startActivity(new Intent(this, SplitGroupsActivity.class)));
+        findViewById(R.id.btnExport).setOnClickListener(v ->
+            new ExportService(this).showExportDialog(null));
+
         // Bar chart tap
         barChart.setOnBarSelectedListener((dayIndex, amount) -> {
             if (amount > 0) {
@@ -119,6 +152,58 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void setupWalletFilter() {
+        walletFilterContainer.removeAllViews();
+        ArrayList<Wallet> wallets = walletRepo.getActiveWallets();
+        if (wallets.size() <= 1) return; // Don't show filter if only default wallet
+
+        // "All Wallets" chip
+        TextView allChip = new TextView(this);
+        allChip.setText("💰 All Wallets");
+        allChip.setTextSize(11);
+        allChip.setPadding(28, 12, 28, 12);
+        boolean allSelected = currentWalletFilter == null;
+        allChip.setTextColor(allSelected ? Color.WHITE : 0xFF9CA3AF);
+        allChip.setBackgroundResource(allSelected ?
+            R.drawable.wallet_chip_selected_bg : R.drawable.wallet_chip_bg);
+
+        LinearLayout.LayoutParams allLP = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        allLP.setMarginEnd(8);
+        allChip.setLayoutParams(allLP);
+
+        allChip.setOnClickListener(v -> {
+            currentWalletFilter = null;
+            setupWalletFilter();
+            refreshAll();
+        });
+        walletFilterContainer.addView(allChip);
+
+        // Individual wallet chips
+        for (Wallet w : wallets) {
+            TextView chip = new TextView(this);
+            chip.setText(w.getTypeIcon() + " " + w.name);
+            chip.setTextSize(11);
+            chip.setPadding(28, 12, 28, 12);
+            boolean selected = w.id.equals(currentWalletFilter);
+            chip.setTextColor(selected ? Color.WHITE : 0xFF9CA3AF);
+            chip.setBackgroundResource(selected ?
+                R.drawable.wallet_chip_selected_bg : R.drawable.wallet_chip_bg);
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(8);
+            chip.setLayoutParams(lp);
+
+            chip.setOnClickListener(v -> {
+                currentWalletFilter = w.id;
+                setupWalletFilter();
+                refreshAll();
+            });
+            walletFilterContainer.addView(chip);
+        }
     }
 
     private void setupFilterChips() {
@@ -159,11 +244,21 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
     }
 
     private void refreshSummary() {
-        double today = repo.getTodaySpend();
-        double yesterday = repo.getYesterdaySpend();
-        double week = repo.getWeekSpend();
-        double lastWeek = repo.getLastWeekSpend();
-        double monthSpend = repo.getMonthSpend();
+        double today, yesterday, week, lastWeek, monthSpend;
+        if (currentWalletFilter != null) {
+            today = repo.getTodaySpendForWallet(currentWalletFilter);
+            long yesterdayMs = System.currentTimeMillis() - 86400000L;
+            yesterday = repo.getSpendForDayForWallet(yesterdayMs, currentWalletFilter);
+            week = repo.getWeekSpendForWallet(currentWalletFilter);
+            lastWeek = repo.getLastWeekSpend(); // no wallet variant — use global
+            monthSpend = repo.getMonthSpendForWallet(currentWalletFilter);
+        } else {
+            today = repo.getTodaySpend();
+            yesterday = repo.getYesterdaySpend();
+            week = repo.getWeekSpend();
+            lastWeek = repo.getLastWeekSpend();
+            monthSpend = repo.getMonthSpend();
+        }
         double budget = repo.getMonthlyBudget();
 
         tvTodaySpend.setText("₹" + formatAmount(today));
@@ -225,9 +320,15 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
     }
 
     private void refreshCharts() {
-        barChart.setData(repo.getLast7DaysSpend());
-        donutChart.setData(repo.getCategoryBreakdown());
-        lineChart.setData(repo.getMonthlySpendHistory(6));
+        if (currentWalletFilter != null) {
+            barChart.setData(repo.getLast7DaysSpendForWallet(currentWalletFilter));
+            donutChart.setData(repo.getCategoryBreakdownForWallet(currentWalletFilter));
+            lineChart.setData(repo.getMonthlySpendHistoryForWallet(currentWalletFilter, 6));
+        } else {
+            barChart.setData(repo.getLast7DaysSpend());
+            donutChart.setData(repo.getCategoryBreakdown());
+            lineChart.setData(repo.getMonthlySpendHistory(6));
+        }
     }
 
     private void refreshInsights() {
@@ -274,7 +375,16 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
 
     private void refreshTransactions() {
         displayedExpenses.clear();
-        displayedExpenses.addAll(repo.getFilteredExpenses(currentFilter));
+        ArrayList<Expense> all = repo.getFilteredExpenses(currentFilter);
+        if (currentWalletFilter != null) {
+            for (Expense e : all) {
+                if (currentWalletFilter.equals(e.walletId)) {
+                    displayedExpenses.add(e);
+                }
+            }
+        } else {
+            displayedExpenses.addAll(all);
+        }
         adapter.notifyDataSetChanged();
 
         // Fix ListView height inside ScrollView
@@ -301,8 +411,42 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         CheckBox cbIncome = dialogView.findViewById(R.id.cbIsIncome);
         LinearLayout row1 = dialogView.findViewById(R.id.categoryRow1);
         LinearLayout row2 = dialogView.findViewById(R.id.categoryRow2);
+        LinearLayout walletChipContainer = dialogView.findViewById(R.id.walletChipContainer);
 
         final String[] selectedCategory = {Expense.CATEGORIES[0]};
+
+        // Build wallet selector chips
+        ArrayList<Wallet> activeWallets = walletRepo.getActiveWallets();
+        Wallet defaultWallet = walletRepo.getDefaultWallet();
+        final String[] selectedWalletId = {defaultWallet != null ? defaultWallet.id : Wallet.DEFAULT_WALLET_ID};
+
+        for (int w = 0; w < activeWallets.size(); w++) {
+            Wallet wt = activeWallets.get(w);
+            final int wIdx = w;
+            TextView chip = new TextView(this);
+            chip.setText(wt.getTypeIcon() + " " + wt.name);
+            chip.setTextSize(11);
+            chip.setTextColor(Color.WHITE);
+            chip.setPadding(24, 12, 24, 12);
+            boolean isSelected = wt.id.equals(selectedWalletId[0]);
+            chip.setBackgroundResource(isSelected ?
+                R.drawable.wallet_chip_selected_bg : R.drawable.wallet_chip_bg);
+
+            LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            wlp.setMarginEnd(8);
+            chip.setLayoutParams(wlp);
+
+            chip.setOnClickListener(v -> {
+                selectedWalletId[0] = activeWallets.get(wIdx).id;
+                // Update wallet chips selection
+                for (int c = 0; c < walletChipContainer.getChildCount(); c++) {
+                    walletChipContainer.getChildAt(c).setBackgroundResource(
+                        c == wIdx ? R.drawable.wallet_chip_selected_bg : R.drawable.wallet_chip_bg);
+                }
+            });
+            walletChipContainer.addView(chip);
+        }
 
         // Build category chips
         for (int i = 0; i < Expense.CATEGORIES.length; i++) {
@@ -354,8 +498,20 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
             String note = etNote.getText().toString().trim();
             boolean isIncome = cbIncome.isChecked();
 
-            Expense expense = new Expense(amount, selectedCategory[0], note, isIncome);
-            repo.addExpense(expense);
+            Expense expense = new Expense(amount, selectedCategory[0], note, isIncome, selectedWalletId[0]);
+            repo.addExpenseWithBalance(expense, walletRepo);
+
+            // Check budget alerts for this category
+            if (!isIncome) {
+                CategoryBudgetRepository budgetRepo = new CategoryBudgetRepository(this);
+                ArrayList<CategoryBudget> alerts = budgetRepo.checkBudgetAlerts(repo);
+                for (CategoryBudget alert : alerts) {
+                    String msg = alert.id.endsWith("_exceeded")
+                        ? "⚠️ Budget exceeded for " + alert.categoryId + "!"
+                        : "⚠️ " + alert.categoryId + " budget nearing limit";
+                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                }
+            }
 
             // Hide keyboard
             InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);

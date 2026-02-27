@@ -86,5 +86,22 @@ public class BootReceiver extends BroadcastReceiver {
         } catch (Exception e) {
             Log.e(TAG, "Error rescheduling note reminders: " + e.getMessage());
         }
+
+        // Reschedule subscription reminders & expense periodic checks
+        try {
+            ExpenseNotificationHelper.rescheduleAllSubscriptionReminders(context);
+            ExpenseNotificationHelper.schedulePeriodicCheck(context);
+            Log.i(TAG, "Rescheduled subscription reminders and periodic expense checks");
+        } catch (Exception e) {
+            Log.e(TAG, "Error rescheduling expense notifications: " + e.getMessage());
+        }
+
+        // Reschedule calendar event reminders & daily agenda
+        try {
+            CalendarNotificationHelper.rescheduleAllReminders(context);
+            Log.i(TAG, "Rescheduled calendar event reminders");
+        } catch (Exception e) {
+            Log.e(TAG, "Error rescheduling calendar notifications: " + e.getMessage());
+        }
     }
 }

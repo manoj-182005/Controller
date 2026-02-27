@@ -11,6 +11,7 @@ public class Expense {
     public String note;
     public long timestamp;
     public boolean isIncome;
+    public String walletId;
 
     public static final String[] CATEGORIES = {
         "Food", "Transport", "Shopping", "Bills", "Entertainment",
@@ -34,6 +35,12 @@ public class Expense {
         this.note = note;
         this.timestamp = System.currentTimeMillis();
         this.isIncome = isIncome;
+        this.walletId = Wallet.DEFAULT_WALLET_ID;
+    }
+
+    public Expense(double amount, String category, String note, boolean isIncome, String walletId) {
+        this(amount, category, note, isIncome);
+        this.walletId = walletId != null ? walletId : Wallet.DEFAULT_WALLET_ID;
     }
 
     public static int getCategoryIndex(String category) {
@@ -60,6 +67,7 @@ public class Expense {
             json.put("note", note);
             json.put("timestamp", timestamp);
             json.put("isIncome", isIncome);
+            json.put("walletId", walletId != null ? walletId : Wallet.DEFAULT_WALLET_ID);
         } catch (JSONException e) { e.printStackTrace(); }
         return json;
     }
@@ -74,6 +82,7 @@ public class Expense {
             );
             e.id = json.getString("id");
             e.timestamp = json.getLong("timestamp");
+            e.walletId = json.optString("walletId", Wallet.DEFAULT_WALLET_ID);
             return e;
         } catch (JSONException e) { return null; }
     }
