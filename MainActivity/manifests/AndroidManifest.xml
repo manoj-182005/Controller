@@ -204,6 +204,12 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Borrow / Lend Activity -->
+        <activity
+            android:name=".BorrowLendActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Budget Goals per Category Activity -->
         <activity
             android:name=".BudgetGoalsActivity"

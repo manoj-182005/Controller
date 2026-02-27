@@ -37,8 +37,7 @@ import java.util.concurrent.Executor;
 public class VaultUnlockActivity extends AppCompatActivity {
 
     private static final String TAG = "VaultUnlock";
-    private static final int MIN_PIN_LENGTH = 4;
-    private static final int MAX_PIN_LENGTH = 8;
+    private static final int PIN_LENGTH = 4;
 
     private MediaVaultRepository repo;
     private StringBuilder currentPin = new StringBuilder();
@@ -170,7 +169,7 @@ public class VaultUnlockActivity extends AppCompatActivity {
         currentPin.setLength(0);
         isConfirmStep = false;
         firstPinEntry = null;
-        tvSetupStep.setText("Enter your new vault PIN (4–8 digits)");
+        tvSetupStep.setText("Enter your new vault PIN (4 digits)");
         tvSetupStatus.setVisibility(View.GONE);
         updateSetupDots();
     }
@@ -187,15 +186,15 @@ public class VaultUnlockActivity extends AppCompatActivity {
     // ─── Unlock PIN Pad Logic ─────────────────────────────────────
 
     private void onUnlockPinDigit(String digit) {
-        if (currentPin.length() >= MAX_PIN_LENGTH) return;
+        if (currentPin.length() >= PIN_LENGTH) return;
         currentPin.append(digit);
         updateUnlockDots();
         hapticClick();
 
-        if (currentPin.length() >= MIN_PIN_LENGTH) {
-            // Auto-submit when enough digits entered (try unlock after slight delay)
+        if (currentPin.length() == PIN_LENGTH) {
+            // Auto-submit when 4 digits entered
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                if (currentPin.length() >= MIN_PIN_LENGTH) attemptUnlock();
+                if (currentPin.length() == PIN_LENGTH) attemptUnlock();
             }, 200);
         }
     }
@@ -276,11 +275,11 @@ public class VaultUnlockActivity extends AppCompatActivity {
 
     private void updateUnlockDots() {
         pinDotsContainer.removeAllViews();
-        for (int i = 0; i < MAX_PIN_LENGTH; i++) {
+        for (int i = 0; i < PIN_LENGTH; i++) {
             View dot = new View(this);
-            int size = dpToPx(12);
+            int size = dpToPx(14);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-            lp.setMargins(dpToPx(6), 0, dpToPx(6), 0);
+            lp.setMargins(dpToPx(8), 0, dpToPx(8), 0);
             dot.setLayoutParams(lp);
             if (i < currentPin.length()) {
                 dot.setBackgroundColor(Color.parseColor("#F59E0B"));
@@ -294,14 +293,14 @@ public class VaultUnlockActivity extends AppCompatActivity {
     // ─── Setup PIN Logic ──────────────────────────────────────────
 
     private void onSetupPinDigit(String digit) {
-        if (currentPin.length() >= MAX_PIN_LENGTH) return;
+        if (currentPin.length() >= PIN_LENGTH) return;
         currentPin.append(digit);
         updateSetupDots();
         hapticClick();
 
-        if (currentPin.length() >= MIN_PIN_LENGTH) {
+        if (currentPin.length() == PIN_LENGTH) {
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                if (currentPin.length() >= MIN_PIN_LENGTH) handleSetupSubmit();
+                if (currentPin.length() == PIN_LENGTH) handleSetupSubmit();
             }, 300);
         }
     }
@@ -345,18 +344,18 @@ public class VaultUnlockActivity extends AppCompatActivity {
                 firstPinEntry = null;
                 currentPin.setLength(0);
                 updateSetupDots();
-                tvSetupStep.setText("Enter your new vault PIN (4–8 digits)");
+                tvSetupStep.setText("Enter your new vault PIN (4 digits)");
             }
         }
     }
 
     private void updateSetupDots() {
         setupPinDotsContainer.removeAllViews();
-        for (int i = 0; i < MAX_PIN_LENGTH; i++) {
+        for (int i = 0; i < PIN_LENGTH; i++) {
             View dot = new View(this);
             int size = dpToPx(14);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-            lp.setMargins(dpToPx(7), 0, dpToPx(7), 0);
+            lp.setMargins(dpToPx(8), 0, dpToPx(8), 0);
             dot.setLayoutParams(lp);
             if (i < currentPin.length()) {
                 dot.setBackgroundColor(Color.parseColor("#F59E0B"));
@@ -386,15 +385,20 @@ public class VaultUnlockActivity extends AppCompatActivity {
                 new BiometricPrompt.AuthenticationCallback() {
                     @Override
                     public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                        // Biometric succeeded — we need the PIN to derive the key.
-                        // We show PIN entry but mark as biometric-assisted.
-                        // In a full implementation the PIN would be wrapped in Android Keystore.
-                        // For this implementation, after biometric success we still need PIN.
-                        // Show a simple PIN entry to derive key.
+                        // Biometric succeeded — retrieve stored PIN and unlock
+                        String encoded = getSharedPreferences("media_vault_prefs", MODE_PRIVATE)
+                                .getString("biometric_pin", null);
+                        if (encoded != null) {
+                            try {
+                                String pin = new String(android.util.Base64.decode(
+                                        encoded, android.util.Base64.NO_WRAP));
+                                repo.unlockWithBiometric(pin);
+                                openVaultHome();
+                                return;
+                            } catch (Exception ignored) {}
+                        }
+                        // Fallback to PIN if stored PIN not found
                         showPinPad();
-                        tvPinStatus.setVisibility(View.VISIBLE);
-                        tvPinStatus.setTextColor(Color.parseColor("#10B981"));
-                        tvPinStatus.setText("Biometric verified — enter PIN to complete");
                     }
 
                     @Override
@@ -425,9 +429,14 @@ public class VaultUnlockActivity extends AppCompatActivity {
                 .setTitle("Enable Biometric")
                 .setMessage("Use fingerprint or face unlock to open your vault?")
                 .setPositiveButton("Enable", (d, w) -> {
-                    // Store preference
+                    // Store PIN for biometric unlock (base64 encoded)
+                    String encoded = android.util.Base64.encodeToString(
+                            pin.getBytes(), android.util.Base64.NO_WRAP);
                     getSharedPreferences("media_vault_prefs", MODE_PRIVATE)
-                            .edit().putBoolean("biometric_enabled", true).apply();
+                            .edit()
+                            .putBoolean("biometric_enabled", true)
+                            .putString("biometric_pin", encoded)
+                            .apply();
                     openVaultHomeAfterSetup(pin);
                 })
                 .setNegativeButton("Not Now", (d, w) -> openVaultHomeAfterSetup(pin))

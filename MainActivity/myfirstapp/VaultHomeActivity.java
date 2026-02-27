@@ -202,9 +202,9 @@ public class VaultHomeActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        // Lock vault immediately when going to background
+        // Don't lock vault when navigating to other vault activities
+        // The auto-lock timer will handle locking after inactivity
         if (sessionTimer != null) sessionTimer.cancel();
-        repo.lock();
     }
 
     @Override
