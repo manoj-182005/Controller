@@ -29,6 +29,7 @@ public class Note {
     public long createdAt;
     public long updatedAt;
     public long deletedAt;             // 0 = not deleted
+    public String folderId;            // null = All Notes (root)
 
     // ─── Default Categories ──────────────────────────────────────
 
@@ -82,6 +83,7 @@ public class Note {
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = System.currentTimeMillis();
         this.deletedAt = 0;
+        this.folderId = null;
     }
 
     public Note(String title, String body, String category) {
@@ -164,6 +166,7 @@ public class Note {
             json.put("createdAt", createdAt);
             json.put("updatedAt", updatedAt);
             json.put("deletedAt", deletedAt);
+            json.put("folderId", folderId != null ? folderId : "");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -197,6 +200,8 @@ public class Note {
             note.createdAt = json.optLong("createdAt", System.currentTimeMillis());
             note.updatedAt = json.optLong("updatedAt", System.currentTimeMillis());
             note.deletedAt = json.optLong("deletedAt", 0);
+            note.folderId = json.optString("folderId", "");
+            if (note.folderId.isEmpty()) note.folderId = null;
 
             if (note.plainTextPreview.isEmpty() && !note.body.isEmpty()) {
                 note.updatePlainTextPreview();

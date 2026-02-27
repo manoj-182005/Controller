@@ -287,13 +287,17 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     private void showMoreMenu(View anchor) {
         PopupMenu popup = new PopupMenu(this, anchor);
-        popup.getMenu().add(0, 1, 0, "📦  Archive");
-        popup.getMenu().add(0, 2, 1, "🗑️  Trash");
-        popup.getMenu().add(0, 3, 2, "🏷️  Tags");
-        popup.getMenu().add(0, 4, 3, "⚙️  Settings");
+        popup.getMenu().add(0, 0, 0, "📂  Folders View");
+        popup.getMenu().add(0, 1, 1, "📦  Archive");
+        popup.getMenu().add(0, 2, 2, "🗑️  Trash");
+        popup.getMenu().add(0, 3, 3, "🏷️  Tags");
+        popup.getMenu().add(0, 4, 4, "⚙️  Settings");
 
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
+                case 0:
+                    startActivity(new Intent(this, NoteFoldersHomeActivity.class));
+                    return true;
                 case 1:
                     startActivity(new Intent(this, NotesArchiveActivity.class));
                     return true;
