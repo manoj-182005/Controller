@@ -152,15 +152,16 @@ public class ChecklistAdapter extends RecyclerView.Adapter<ChecklistAdapter.Chec
                     holder.etText.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
             holder.etText.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Create a real item when the placeholder gains focus
-                    int insertPos = Math.max(0, items.size() - 1);
-                    ChecklistItem newItem = new ChecklistItem("", false);
-                    items.add(insertPos, newItem);
-                    notifyItemInserted(insertPos);
-                    // Only notify placeholder if it still exists in the list
-                    if (insertPos + 1 < items.size()) {
-                        notifyItemChanged(insertPos + 1);
-                    }
+                    // Post to avoid calling notify during RecyclerView layout pass
+                    v.post(() -> {
+                        int insertPos = Math.max(0, items.size() - 1);
+                        ChecklistItem newItem = new ChecklistItem("", false);
+                        items.add(insertPos, newItem);
+                        notifyItemInserted(insertPos);
+                        if (insertPos + 1 < items.size()) {
+                            notifyItemChanged(insertPos + 1);
+                        }
+                    });
                 }
             });
         } else {

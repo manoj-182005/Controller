@@ -438,6 +438,18 @@
             android:excludeFromRecents="true"
             android:taskAffinity="" />
 
+        <!-- Todo List Detail Activity -->
+        <activity
+            android:name=".TodoListDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Todo Item Detail Activity -->
+        <activity
+            android:name=".TodoItemDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Notes Settings -->
         <activity
             android:name=".NotesSettingsActivity"

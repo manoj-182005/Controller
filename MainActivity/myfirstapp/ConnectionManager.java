@@ -411,7 +411,7 @@ public class ConnectionManager {
                     return;
                 }
 
-                try (Socket socket = new Socket(laptopIp, PORT_BACKEND_SHARING);
+                try (Socket socket = new Socket(laptopIp, PORT_FILE);
                      OutputStream output = socket.getOutputStream()) {
 
                     socket.setSoTimeout(10000);

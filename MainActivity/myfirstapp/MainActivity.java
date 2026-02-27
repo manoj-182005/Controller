@@ -1357,6 +1357,7 @@ public class MainActivity extends AppCompatActivity {
                 touchpadScreen.startAnimation(slideIn);
             }
         });
+        homeScreen.startAnimation(slideOut);
         if (connectionBar != null) connectionBar.setVisibility(View.VISIBLE);
         btnBackHome.setVisibility(View.VISIBLE);
         btnBackHome.setAlpha(0f);
