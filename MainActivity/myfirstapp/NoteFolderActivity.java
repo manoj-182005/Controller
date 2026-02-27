@@ -353,10 +353,12 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
         List<String> names = new ArrayList<>();
         List<String> ids = new ArrayList<>();
         names.add("Root (All Notes)");
-        ids.add(null);
+        ids.add(""); // empty string = root (null parent)
         for (NoteFolder f : allFolders) {
             if (!f.id.equals(folder.id)) {
-                names.add("  ".repeat(f.depth) + f.getIconEmoji() + " " + f.name);
+                StringBuilder indent = new StringBuilder();
+                for (int d = 0; d < f.depth; d++) indent.append("  ");
+                names.add(indent + f.getIconEmoji() + " " + f.name);
                 ids.add(f.id);
             }
         }
@@ -366,7 +368,9 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
             .setTitle("Move '" + folder.name + "' to...")
             .setItems(nameArr, (d, which) -> {
                 String targetId = ids.get(which);
-                boolean success = folderRepository.moveFolder(folder.id, targetId);
+                // empty string means root
+                String newParent = targetId.isEmpty() ? null : targetId;
+                boolean success = folderRepository.moveFolder(folder.id, newParent);
                 if (!success) {
                     Toast.makeText(this, "Cannot move folder into its own subfolder", Toast.LENGTH_SHORT).show();
                 } else {
@@ -518,9 +522,11 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
         List<String> names = new ArrayList<>();
         List<String> ids = new ArrayList<>();
         names.add("All Notes (root)");
-        ids.add(null);
+        ids.add(""); // empty string = root (null folderId)
         for (NoteFolder f : allFolders) {
-            names.add("  ".repeat(f.depth) + f.getIconEmoji() + " " + f.name);
+            StringBuilder indent = new StringBuilder();
+            for (int d = 0; d < f.depth; d++) indent.append("  ");
+            names.add(indent + f.getIconEmoji() + " " + f.name);
             ids.add(f.id);
         }
 
@@ -529,7 +535,8 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
             .setTitle("Move note to folder")
             .setItems(nameArr, (d, which) -> {
                 String targetId = ids.get(which);
-                folderRepository.moveNoteToFolder(note.id, targetId);
+                // empty string means root (no folder)
+                folderRepository.moveNoteToFolder(note.id, targetId.isEmpty() ? null : targetId);
                 refreshNotes();
                 Toast.makeText(this, "Note moved", Toast.LENGTH_SHORT).show();
             })

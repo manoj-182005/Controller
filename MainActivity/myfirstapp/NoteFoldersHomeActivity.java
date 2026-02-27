@@ -214,7 +214,7 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
         item.setPadding(
             (int) (getResources().getDisplayMetrics().density * (16 + indent * 16)),
             12, 16, 12);
-        item.setBackground(getResources().getDrawable(android.R.drawable.list_selector_background));
+        item.setBackgroundResource(android.R.drawable.list_selector_background);
 
         TextView tvIcon = new TextView(this);
         tvIcon.setText(folder.getIconEmoji());
@@ -405,17 +405,20 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
         List<String> names = new ArrayList<>();
         List<String> ids = new ArrayList<>();
         names.add("Root (Top Level)");
-        ids.add(null);
+        ids.add(""); // empty string = root
         for (NoteFolder f : all) {
             if (!f.id.equals(folder.id)) {
-                names.add("  ".repeat(f.depth) + f.getIconEmoji() + " " + f.name);
+                StringBuilder indent = new StringBuilder();
+                for (int d = 0; d < f.depth; d++) indent.append("  ");
+                names.add(indent + f.getIconEmoji() + " " + f.name);
                 ids.add(f.id);
             }
         }
         new AlertDialog.Builder(this)
             .setTitle("Move '" + folder.name + "' to...")
             .setItems(names.toArray(new String[0]), (d, which) -> {
-                boolean ok = folderRepository.moveFolder(folder.id, ids.get(which));
+                String targetId = ids.get(which);
+                boolean ok = folderRepository.moveFolder(folder.id, targetId.isEmpty() ? null : targetId);
                 if (!ok) Toast.makeText(this, "Cannot move into own subfolder", Toast.LENGTH_SHORT).show();
                 else { loadFolderGrid(); Toast.makeText(this, "Folder moved", Toast.LENGTH_SHORT).show(); }
             })

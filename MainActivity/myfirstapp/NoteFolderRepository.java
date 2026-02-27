@@ -25,6 +25,38 @@ public class NoteFolderRepository {
     private static final String SEEDED_KEY = "folders_seeded_v1";
     private static final String HOME_MODE_KEY = "notes_home_mode"; // "folders" or "all"
 
+    // Smart categorization keywords (static to avoid recreation on every call)
+    private static final String[] STUDY_KEYWORDS = {"lecture", "exam", "assignment", "professor", "study", "class",
+            "homework", "test", "quiz", "course", "textbook", "notes", "semester", "grade",
+            "calculus", "algebra", "chemistry", "biology", "physics", "history"};
+    private static final String[] WORK_KEYWORDS = {"meeting", "deadline", "client", "project", "manager", "report",
+            "schedule", "agenda", "presentation", "budget", "revenue", "quarterly", "task",
+            "sprint", "standup", "stakeholder", "deliverable"};
+    private static final String[] PERSONAL_KEYWORDS = {"family", "friend", "weekend", "vacation", "birthday",
+            "diary", "journal", "feelings", "personal", "health", "gym", "workout", "recipe"};
+    private static final String[] IDEAS_KEYWORDS = {"idea", "startup", "invention", "concept", "brainstorm",
+            "inspiration", "creative", "design", "product", "plan", "vision"};
+
+    // Smart tag suggestion keyword arrays (static to avoid recreation on every call)
+    private static final String[][] TAG_KEYWORDS = {
+        {"mathematics", "math", "calculus", "algebra", "equation", "formula"},
+        {"programming", "code", "software", "algorithm", "function"},
+        {"meeting", "agenda", "minutes"},
+        {"personal", "diary", "journal"},
+        {"idea", "ideas", "brainstorm"},
+        {"todo", "task", "tasks", "checklist"},
+        {"recipe", "cooking", "ingredients"},
+        {"travel", "trip", "vacation", "hotel", "flight"},
+        {"finance", "budget", "expense", "money"},
+        {"health", "fitness", "workout", "gym"},
+        {"reading", "book", "chapter"},
+        {"research", "study", "reference"}
+    };
+    private static final String[] TAG_NAMES = {
+        "mathematics", "programming", "meeting", "personal",
+        "ideas", "todo", "recipe", "travel", "finance", "health", "reading", "research"
+    };
+
     private final Context context;
     private final NoteRepository noteRepository;
     private ArrayList<NoteFolder> folders;
@@ -326,25 +358,10 @@ public class NoteFolderRepository {
         String content = ((note.title != null ? note.title : "") + " " +
                           (note.plainTextPreview != null ? note.plainTextPreview : "")).toLowerCase();
 
-        // Study keywords
-        String[] studyKeywords = {"lecture", "exam", "assignment", "professor", "study", "class",
-                "homework", "test", "quiz", "course", "textbook", "notes", "semester", "grade",
-                "calculus", "algebra", "chemistry", "biology", "physics", "history"};
-        // Work keywords
-        String[] workKeywords = {"meeting", "deadline", "client", "project", "manager", "report",
-                "schedule", "agenda", "presentation", "budget", "revenue", "quarterly", "task",
-                "sprint", "standup", "stakeholder", "deliverable"};
-        // Personal keywords
-        String[] personalKeywords = {"family", "friend", "weekend", "vacation", "birthday",
-                "diary", "journal", "feelings", "personal", "health", "gym", "workout", "recipe"};
-        // Ideas keywords
-        String[] ideasKeywords = {"idea", "startup", "invention", "concept", "brainstorm",
-                "inspiration", "creative", "design", "product", "plan", "vision"};
-
-        int studyScore = countKeywordMatches(content, studyKeywords);
-        int workScore = countKeywordMatches(content, workKeywords);
-        int personalScore = countKeywordMatches(content, personalKeywords);
-        int ideasScore = countKeywordMatches(content, ideasKeywords);
+        int studyScore = countKeywordMatches(content, STUDY_KEYWORDS);
+        int workScore = countKeywordMatches(content, WORK_KEYWORDS);
+        int personalScore = countKeywordMatches(content, PERSONAL_KEYWORDS);
+        int ideasScore = countKeywordMatches(content, IDEAS_KEYWORDS);
 
         int maxScore = Math.max(Math.max(studyScore, workScore), Math.max(personalScore, ideasScore));
         if (maxScore == 0) return null;
@@ -374,33 +391,13 @@ public class NoteFolderRepository {
         String content = ((note.title != null ? note.title : "") + " " +
                           (note.plainTextPreview != null ? note.plainTextPreview : "")).toLowerCase();
 
-        String[][] tagKeywords = {
-            {"mathematics", "math", "calculus", "algebra", "equation", "formula"},
-            {"programming", "code", "software", "algorithm", "function", "class"},
-            {"meeting", "meeting notes", "agenda", "minutes"},
-            {"personal", "diary", "journal"},
-            {"idea", "ideas", "brainstorm"},
-            {"todo", "task", "tasks", "checklist"},
-            {"recipe", "cooking", "ingredients"},
-            {"travel", "trip", "vacation", "hotel", "flight"},
-            {"finance", "budget", "expense", "money"},
-            {"health", "fitness", "workout", "gym"},
-            {"reading", "book", "chapter"},
-            {"research", "study", "notes", "reference"}
-        };
-
-        String[] tagNames = {
-            "mathematics", "programming", "meeting", "personal",
-            "ideas", "todo", "recipe", "travel", "finance", "health", "reading", "research"
-        };
-
         Set<String> existingTags = new HashSet<>(note.tags != null ? note.tags : new ArrayList<>());
 
-        for (int i = 0; i < tagKeywords.length; i++) {
-            if (existingTags.contains(tagNames[i])) continue;
-            for (String kw : tagKeywords[i]) {
+        for (int i = 0; i < TAG_KEYWORDS.length; i++) {
+            if (existingTags.contains(TAG_NAMES[i])) continue;
+            for (String kw : TAG_KEYWORDS[i]) {
                 if (content.contains(kw)) {
-                    suggestions.add(tagNames[i]);
+                    suggestions.add(TAG_NAMES[i]);
                     break;
                 }
             }
@@ -505,7 +502,7 @@ public class NoteFolderRepository {
         List<String> viewed = getRecentlyViewedIds();
         viewed.remove(noteId);
         viewed.add(0, noteId);
-        if (viewed.size() > 10) viewed = viewed.subList(0, 10);
+        if (viewed.size() > 10) viewed = new ArrayList<>(viewed.subList(0, 10));
         JSONArray arr = new JSONArray();
         for (String id : viewed) arr.put(id);
         getPrefs().edit().putString(RECENTLY_VIEWED_KEY, arr.toString()).apply();
