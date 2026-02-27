@@ -389,6 +389,11 @@ public class HubFileRepository {
         saveProjects();
     }
 
+    public synchronized void deleteProject(String id) {
+        projects.removeIf(p -> p.id.equals(id));
+        saveProjects();
+    }
+
     // ─── Inbox ────────────────────────────────────────────────────────────────
 
     public synchronized void addInboxItem(InboxItem item) {
