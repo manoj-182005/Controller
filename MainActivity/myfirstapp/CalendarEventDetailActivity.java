@@ -1,4 +1,4 @@
-ackage com.prajwal.myfirstapp;
+package com.prajwal.myfirstapp;
 
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * CalendarEventDetailActivity — Premium event creation, editing, and viewing.
+ * CalendarEventDetailActivity â€” Premium event creation, editing, and viewing.
  * Prompt 2: Full form UI, recurring event management, multiple reminders,
  * attachments, cross-feature Task integration.
  */
