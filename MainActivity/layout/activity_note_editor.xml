@@ -226,6 +226,14 @@
                     android:gravity="top"
                     android:scrollbars="none" />
 
+                <!-- Checklist RecyclerView (shown when in checklist mode) -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/checklistRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:visibility="gone" />
+
             </LinearLayout>
         </ScrollView>
 
@@ -314,7 +322,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_bold"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Bold" />
@@ -325,7 +333,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_italic"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Italic"
@@ -337,7 +345,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_underline"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Underline"
@@ -349,7 +357,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_strikethrough"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Strikethrough"
@@ -368,7 +376,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_highlight"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Highlight" />
@@ -379,7 +387,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_color"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Text Color"
@@ -398,7 +406,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_heading"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Heading" />
@@ -409,7 +417,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_bullet"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Bullet List"
@@ -421,7 +429,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_numbered"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Numbered List"
@@ -433,7 +441,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_checklist"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Checklist"
@@ -452,7 +460,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@android:drawable/ic_menu_sort_by_size"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Alignment" />
@@ -463,7 +471,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_divider"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Insert Divider"
@@ -475,7 +483,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_edit"
+                android:src="@drawable/ic_format_code"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Code Block"
@@ -487,7 +495,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_gallery"
+                android:src="@drawable/ic_insert_image"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Insert Image"
@@ -529,7 +537,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_revert"
+                android:src="@drawable/ic_undo"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Undo" />
@@ -539,7 +547,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@drawable/editor_btn_bg"
-                android:src="@android:drawable/ic_menu_rotate"
+                android:src="@drawable/ic_redo"
                 android:tint="#94A3B8"
                 android:scaleType="centerInside"
                 android:contentDescription="Redo"

@@ -11,12 +11,13 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@drawable/notes_card_bg"
+        android:elevation="3dp"
         android:minHeight="80dp">
 
         <!-- Left accent border -->
         <View
             android:id="@+id/leftAccent"
-            android:layout_width="4dp"
+            android:layout_width="5dp"
             android:layout_height="match_parent"
             android:background="#F59E0B" />
 
@@ -25,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="14dp">
 
             <!-- Top Row: Title + Pin/Lock/Reminder icons -->
             <LinearLayout
@@ -97,6 +98,20 @@
                 android:textColor="#475569"
                 android:textSize="11sp"
                 android:layout_marginTop="6dp" />
+
+            <!-- Category badge -->
+            <TextView
+                android:id="@+id/tvNoteCategory"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Personal"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:background="@drawable/notes_tag_chip_bg"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
@@ -125,11 +140,12 @@
             android:orientation="vertical"
             android:gravity="center">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔒"
-                android:textSize="28sp" />
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@android:drawable/ic_lock_idle_lock"
+                android:tint="#94A3B8"
+                android:scaleType="centerInside" />
 
             <TextView
                 android:layout_width="wrap_content"

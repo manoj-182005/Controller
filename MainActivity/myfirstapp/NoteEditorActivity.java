@@ -3,6 +3,7 @@ package com.prajwal.myfirstapp;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -51,6 +52,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -84,6 +87,9 @@ public class NoteEditorActivity extends AppCompatActivity {
     private static final String EXTRA_NOTE_ID = "note_id";
     private static final String EXTRA_NEW_NOTE = "new_note";
     private static final String EXTRA_CATEGORY = "category";
+    private static final String LABEL_EDITING = "✏️ Editing...";
+    private static final String LABEL_SAVING = "💾 Saving...";
+    private static final String LABEL_SAVED = "✓ Saved";
 
     // ═══ UI Elements ═══
     private LinearLayout topToolbar;
@@ -97,6 +103,11 @@ public class NoteEditorActivity extends AppCompatActivity {
     private ImageButton btnClearReminder;
     private HorizontalScrollView formattingToolbar;
     private TextView tvWordCount, tvCharCount, tvReadTime, tvLastSaved;
+
+    // Checklist mode
+    private RecyclerView checklistRecyclerView;
+    private ChecklistAdapter checklistAdapter;
+    private boolean isChecklistMode = false;
 
     // Formatting buttons
     private ImageButton btnBold, btnItalic, btnUnderline, btnStrikethrough;
@@ -261,6 +272,15 @@ public class NoteEditorActivity extends AppCompatActivity {
         tvReadTime = findViewById(R.id.tvReadTime);
         tvLastSaved = findViewById(R.id.tvLastSaved);
 
+        // Checklist RecyclerView
+        checklistRecyclerView = findViewById(R.id.checklistRecyclerView);
+        checklistAdapter = new ChecklistAdapter();
+        if (checklistRecyclerView != null) {
+            checklistRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+            checklistRecyclerView.setAdapter(checklistAdapter);
+            checklistRecyclerView.setNestedScrollingEnabled(false);
+        }
+
         // Formatting toolbar
         formattingToolbar = findViewById(R.id.formattingToolbar);
         btnBold = findViewById(R.id.btnBold);
@@ -335,8 +355,9 @@ public class NoteEditorActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 hasUnsavedChanges = true;
                 updateStats();
-                tvLastSaved.setText("Editing...");
+                tvLastSaved.setText(LABEL_EDITING);
                 tvLastSaved.setTextColor(Color.parseColor("#F59E0B"));
+                tvLastSaved.animate().alpha(1f).setDuration(150).start();
             }
 
             @Override
@@ -361,8 +382,9 @@ public class NoteEditorActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 hasUnsavedChanges = true;
                 updateStats();
-                tvLastSaved.setText("Editing...");
+                tvLastSaved.setText(LABEL_EDITING);
                 tvLastSaved.setTextColor(Color.parseColor("#F59E0B"));
+                tvLastSaved.animate().alpha(1f).setDuration(150).start();
             }
 
             @Override
@@ -504,7 +526,21 @@ public class NoteEditorActivity extends AppCompatActivity {
         if (currentNote == null) return;
 
         etTitle.setText(currentNote.title);
-        etBody.setText(currentNote.body);
+
+        // Detect if body is a checklist and switch mode accordingly
+        if (currentNote.body != null && isChecklistBody(currentNote.body)) {
+            java.util.List<ChecklistAdapter.ChecklistItem> parsed =
+                    ChecklistAdapter.parseFromText(currentNote.body);
+            if (!parsed.isEmpty()) {
+                checklistAdapter.setItems(parsed);
+                switchToChecklistMode();
+            } else {
+                etBody.setText(currentNote.body);
+            }
+        } else {
+            etBody.setText(currentNote.body);
+        }
+
         lastSavedBodyContent = currentNote.body;
 
         updateCategoryDisplay();
@@ -514,15 +550,41 @@ public class NoteEditorActivity extends AppCompatActivity {
         updateReminderDisplay();
         updateStats();
 
-        tvLastSaved.setText("Saved");
+        tvLastSaved.setText(LABEL_SAVED);
         tvLastSaved.setTextColor(Color.parseColor("#22C55E"));
+    }
+
+    private boolean isChecklistBody(String body) {
+        if (body == null || body.isEmpty()) return false;
+        String[] lines = body.split("\n");
+        int checklistLines = 0;
+        for (String line : lines) {
+            if (line.startsWith("[ ] ") || line.startsWith("[x] ")) {
+                checklistLines++;
+            }
+        }
+        return checklistLines > 0;
+    }
+
+    private void switchToChecklistMode() {
+        isChecklistMode = true;
+        etBody.setVisibility(View.GONE);
+        if (checklistRecyclerView != null) {
+            checklistRecyclerView.setVisibility(View.VISIBLE);
+        }
     }
 
     private void saveNote(boolean finish) {
         if (currentNote == null) return;
 
         String title = etTitle.getText().toString().trim();
-        String body = etBody.getText().toString();
+        String body;
+
+        if (isChecklistMode && checklistAdapter != null) {
+            body = checklistAdapter.getChecklistAsText();
+        } else {
+            body = etBody.getText().toString();
+        }
 
         // Don't save empty notes
         if (title.isEmpty() && body.isEmpty()) {
@@ -550,8 +612,17 @@ public class NoteEditorActivity extends AppCompatActivity {
         }
 
         hasUnsavedChanges = false;
-        tvLastSaved.setText("Saved");
-        tvLastSaved.setTextColor(Color.parseColor("#22C55E"));
+        tvLastSaved.setText(LABEL_SAVING);
+        tvLastSaved.setTextColor(Color.parseColor("#94A3B8"));
+        ValueAnimator pulse = ValueAnimator.ofFloat(1f, 0.4f, 1f);
+        pulse.setDuration(600);
+        pulse.addUpdateListener(anim -> tvLastSaved.setAlpha((float) anim.getAnimatedValue()));
+        pulse.start();
+        tvLastSaved.postDelayed(() -> {
+            tvLastSaved.setText(LABEL_SAVED);
+            tvLastSaved.setTextColor(Color.parseColor("#22C55E"));
+            tvLastSaved.setAlpha(1f);
+        }, 500);
 
         if (finish) {
             setResult(RESULT_OK);
@@ -903,31 +974,27 @@ public class NoteEditorActivity extends AppCompatActivity {
     }
 
     private void insertChecklistItem() {
-        int cursor = etBody.getSelectionStart();
-        Editable editable = etBody.getText();
-
-        // Find start of current line
-        int lineStart = cursor;
-        while (lineStart > 0 && editable.charAt(lineStart - 1) != '\n') {
-            lineStart--;
-        }
-
-        // Check if line already has a checkbox
-        String linePrefix = "";
-        if (lineStart + 4 <= editable.length()) {
-            linePrefix = editable.subSequence(lineStart, lineStart + 4).toString();
-        }
-
-        if (linePrefix.startsWith("[ ] ") || linePrefix.startsWith("[x] ")) {
-            // Toggle the checkbox
-            if (linePrefix.startsWith("[ ] ")) {
-                editable.replace(lineStart, lineStart + 4, "[x] ");
-            } else {
-                editable.replace(lineStart, lineStart + 4, "[ ] ");
+        if (!isChecklistMode) {
+            // Parse any existing body content as checklist items
+            String existingBody = etBody.getText().toString().trim();
+            if (!existingBody.isEmpty() && isChecklistBody(existingBody)) {
+                // Body already has checklist format — parse it
+                java.util.List<ChecklistAdapter.ChecklistItem> items =
+                        ChecklistAdapter.parseFromText(existingBody);
+                checklistAdapter.setItems(items);
+            } else if (!existingBody.isEmpty()) {
+                // Convert plain text lines to checklist items; reuse existing adapter
+                checklistAdapter.setItems(new java.util.ArrayList<>());
+                for (String line : existingBody.split("\n")) {
+                    if (!line.trim().isEmpty()) {
+                        checklistAdapter.addItem(line.trim(), false);
+                    }
+                }
             }
-        } else {
-            editable.insert(lineStart, "[ ] ");
+            switchToChecklistMode();
         }
+        // Add a new blank item
+        checklistAdapter.addItem();
     }
 
     private void insertDivider() {
