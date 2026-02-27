@@ -283,6 +283,64 @@
             android:excludeFromRecents="true"
             android:taskAffinity="" />
 
+        <!-- Vault Image Viewer -->
+        <activity
+            android:name=".VaultImageViewerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault Video Player -->
+        <activity
+            android:name=".VaultVideoPlayerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault Audio Player -->
+        <activity
+            android:name=".VaultAudioPlayerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault Document Viewer -->
+        <activity
+            android:name=".VaultDocumentViewerActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
+        <!-- Vault Import -->
+        <activity
+            android:name=".VaultImportActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Vault Search -->
+        <activity
+            android:name=".VaultSearchActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Vault Settings -->
+        <activity
+            android:name=".VaultSettingsActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:excludeFromRecents="true"
+            android:taskAffinity="" />
+
         <!-- Foreground Service -->
         <service
             android:name=".ConnectionForegroundService"
