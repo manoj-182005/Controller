@@ -968,11 +968,8 @@ public class NoteEditorActivity extends AppCompatActivity {
                         ChecklistAdapter.parseFromText(existingBody);
                 checklistAdapter.setItems(items);
             } else if (!existingBody.isEmpty()) {
-                // Convert plain text lines to checklist items
-                checklistAdapter = new ChecklistAdapter();
-                if (checklistRecyclerView != null) {
-                    checklistRecyclerView.setAdapter(checklistAdapter);
-                }
+                // Convert plain text lines to checklist items; reuse existing adapter
+                checklistAdapter.setItems(new java.util.ArrayList<>());
                 for (String line : existingBody.split("\n")) {
                     if (!line.trim().isEmpty()) {
                         checklistAdapter.addItem(line.trim(), false);

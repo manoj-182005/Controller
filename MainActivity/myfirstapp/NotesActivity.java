@@ -1,6 +1,7 @@
 package com.prajwal.myfirstapp;
 
 import android.animation.Animator;
+import android.util.Log;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
@@ -1261,7 +1262,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                 tvDrawerPinnedCount.setText(String.valueOf(pinned.size()));
             }
         } catch (Exception e) {
-            // Silently ignore if counts can't be loaded
+            Log.e(TAG, "Failed to update drawer counts", e);
         }
     }
 
@@ -1287,7 +1288,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                 drawerFoldersList.addView(tv);
             }
         } catch (Exception e) {
-            // Silently ignore if folders can't be loaded
+            Log.e(TAG, "Failed to populate drawer folders", e);
         }
     }
 
@@ -1361,7 +1362,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                         startActivity(new Intent(this, NoteFoldersHomeActivity.class)));
             }
         } catch (Exception e) {
-            folderStripSection.setVisibility(View.GONE);
+            Log.e(TAG, "Failed to setup folder strip", e);
+            if (folderStripSection != null) folderStripSection.setVisibility(View.GONE);
         }
     }
 

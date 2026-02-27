@@ -157,7 +157,10 @@ public class ChecklistAdapter extends RecyclerView.Adapter<ChecklistAdapter.Chec
                     ChecklistItem newItem = new ChecklistItem("", false);
                     items.add(insertPos, newItem);
                     notifyItemInserted(insertPos);
-                    notifyItemChanged(insertPos + 1); // refresh placeholder
+                    // Only notify placeholder if it still exists in the list
+                    if (insertPos + 1 < items.size()) {
+                        notifyItemChanged(insertPos + 1);
+                    }
                 }
             });
         } else {
