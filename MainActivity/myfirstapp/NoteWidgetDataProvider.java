@@ -121,7 +121,7 @@ public class NoteWidgetDataProvider {
     public static void saveQuickCaptureNote(Context context, String text) {
         if (text == null || text.trim().isEmpty()) return;
         NoteRepository repo = new NoteRepository(context);
-        NoteFolderRepository folderRepo = new NoteFolderRepository(context);
+        NoteFolderRepository folderRepo = new NoteFolderRepository(context, repo);
 
         // Find or use root
         String folderId = null;

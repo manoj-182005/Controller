@@ -427,7 +427,7 @@
                     android:layout_height="wrap_content"
                     android:minHeight="120dp"
                     android:hint="Type meeting notes here..."
-                    android:hintTextColor="#4A4A6A"
+                    android:textColorHint="#4A4A6A"
                     android:textColor="#F1F5F9"
                     android:textSize="14sp"
                     android:inputType="textMultiLine|textCapSentences"

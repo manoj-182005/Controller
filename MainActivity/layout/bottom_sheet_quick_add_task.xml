@@ -21,6 +21,38 @@
             android:layout_marginTop="10dp" />
     </FrameLayout>
 
+    <!-- Smart suggestion banner (hidden by default) -->
+    <LinearLayout
+        android:id="@+id/smartSuggestionBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:background="#252545"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSmartSuggestion"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#CBD5E1"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnSmartAction"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:minWidth="60dp"
+            android:text="Action"
+            android:textSize="12sp"
+            android:textColor="#FFFFFF"
+            android:background="#4A4A8A"
+            android:visibility="gone" />
+    </LinearLayout>
+
     <!-- Large title EditText -->
     <EditText
         android:id="@+id/etQuickTaskTitle"
@@ -28,7 +60,7 @@
         android:layout_height="wrap_content"
         android:minHeight="56dp"
         android:hint="What needs to be done?"
-        android:hintTextColor="#4A4A6A"
+        android:textColorHint="#4A4A6A"
         android:textColor="#F1F5F9"
         android:textSize="18sp"
         android:background="@null"

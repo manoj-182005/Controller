@@ -54,7 +54,6 @@
         android:background="#0D1117"
         app:itemIconTint="#8899AA"
         app:itemTextColor="#8899AA"
-        app:itemActiveIndicatorColor="#1E3A5F"
         app:menu="@menu/bottom_nav_menu"
         app:labelVisibilityMode="labeled"
         app:layout_constraintStart_toStartOf="parent"

@@ -641,10 +641,6 @@ public class SettingsActivity extends AppCompatActivity {
             this.isDefault = false;
         }
     }
-    
-    private static final String[] TOUCHPAD_SENSITIVITY_LEVELS = {
-        "Very Slow", "Slow", "Slow+", "Normal-", "Normal", "Normal+", "Fast-", "Fast", "Fast+", "Very Fast"
-    };
 
     // Adapter for server list
     private class ServerAdapter extends ArrayAdapter<ServerInfo> {

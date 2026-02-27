@@ -5,6 +5,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -229,7 +230,7 @@ public class MeetingAnalyticsActivity extends AppCompatActivity {
 
         View dot = new View(this);
         LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(10), dp(10));
-        dotLp.setMarginEnd(dp(12));
+        dotLp.setMargins(0, 0, dp(12), 0);
         dot.setLayoutParams(dotLp);
         GradientDrawable dotBg = new GradientDrawable();
         dotBg.setShape(GradientDrawable.OVAL);
@@ -271,7 +272,7 @@ public class MeetingAnalyticsActivity extends AppCompatActivity {
 
         View dot = new View(this);
         LinearLayout.LayoutParams dotLp = new LinearLayout.LayoutParams(dp(10), dp(10));
-        dotLp.setMarginEnd(dp(10));
+        dotLp.setMargins(0, 0, dp(10), 0);
         dot.setLayoutParams(dotLp);
         GradientDrawable dotBg = new GradientDrawable();
         dotBg.setShape(GradientDrawable.OVAL);

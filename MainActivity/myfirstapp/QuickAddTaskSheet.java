@@ -395,9 +395,9 @@ public class QuickAddTaskSheet extends BottomSheetDialogFragment {
 
     private void showSimilarTaskBanner(Task similar) {
         String truncated = similar.title.length() > 30
-                ? similar.title.substring(0, 27) + "…"
+                ? similar.title.substring(0, 27) + "..."
                 : similar.title;
-        tvSmartSuggestion.setText("⚠️ Similar task exists: "" + truncated + """);
+        tvSmartSuggestion.setText("Similar task exists: \"" + truncated + "\"");
         btnSmartAction.setText("View");
         btnSmartAction.setVisibility(View.VISIBLE);
 
@@ -446,7 +446,7 @@ public class QuickAddTaskSheet extends BottomSheetDialogFragment {
         Task task = new Task(title, quickPriority);
         task.dueDate = quickDueDate;
 
-        repo.saveTask(task);
+        repo.addTask(task);
 
         TaskNotificationHelper.scheduleTaskReminders(requireContext(), task);
         if (task.isOverdue()) {

@@ -162,22 +162,20 @@ public class TodoListDetailActivity extends AppCompatActivity
         emptyState           = findViewById(R.id.emptyState);
         fabAddTask           = findViewById(R.id.fabAddTask);
 
-        View btnBack = findViewById(R.id.btnBack);
+        View btnBack = findViewById(R.id.btnTodoBack);
         if (btnBack != null) btnBack.setOnClickListener(v -> finish());
 
-        View btnStats = findViewById(R.id.btnStats);
+        View btnStats = findViewById(R.id.btnTodoStats);
         if (btnStats != null) btnStats.setOnClickListener(v -> showStatsSheet());
 
-        View btnShare = findViewById(R.id.btnShare);
+        View btnShare = findViewById(R.id.btnTodoShare);
         if (btnShare != null) btnShare.setOnClickListener(v -> shareList());
 
         // Multi-select bar
         View btnCompleteAll    = findViewById(R.id.btnCompleteAll);
         View btnDeleteSelected = findViewById(R.id.btnDeleteSelected);
-        View btnCancelMultiSel = findViewById(R.id.btnCancelMultiSelect);
         if (btnCompleteAll    != null) btnCompleteAll.setOnClickListener(v -> completeSelected());
         if (btnDeleteSelected != null) btnDeleteSelected.setOnClickListener(v -> deleteSelected());
-        if (btnCancelMultiSel != null) btnCancelMultiSel.setOnClickListener(v -> exitMultiSelect());
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -185,24 +183,11 @@ public class TodoListDetailActivity extends AppCompatActivity
     // ═══════════════════════════════════════════════════════════════
 
     private void setupHeader() {
-        TextView tvListTitle = findViewById(R.id.tvListTitle);
-        TextView tvListIcon  = findViewById(R.id.tvListIcon);
-        View     headerBg    = findViewById(R.id.headerBackground);
+        TextView tvListTitle = findViewById(R.id.tvTodoListTitle);
+        TextView tvListIcon  = findViewById(R.id.tvTodoListIcon);
 
         if (tvListTitle != null) tvListTitle.setText(currentList.title);
         if (tvListIcon  != null) tvListIcon.setText(currentList.iconIdentifier);
-
-        if (headerBg != null && currentList.colorHex != null) {
-            try {
-                int baseColor = Color.parseColor(currentList.colorHex);
-                int darkColor = blendColors(baseColor, 0xFF0F172A, 0.7f);
-                GradientDrawable gradient = new GradientDrawable(
-                        GradientDrawable.Orientation.TOP_BOTTOM,
-                        new int[]{withAlpha(baseColor, 0.3f), darkColor});
-                gradient.setShape(GradientDrawable.RECTANGLE);
-                headerBg.setBackground(gradient);
-            } catch (IllegalArgumentException ignored) {}
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════

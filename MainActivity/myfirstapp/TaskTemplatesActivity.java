@@ -222,12 +222,12 @@ public class TaskTemplatesActivity extends AppCompatActivity
     // ── TaskEditorSheet.TaskEditorListener ───────────────────────
 
     @Override
-    public void onTaskSaved(Task task) {
+    public void onTaskSaved(Task task, boolean isNew) {
         // already saved
     }
 
     @Override
-    public void onTaskDeleted(String taskId) {}
+    public void onTaskEditorDismissed() {}
 
     // ── dp helper ─────────────────────────────────────────────────
 
