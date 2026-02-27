@@ -444,6 +444,17 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Smart File Hub Activities -->
+        <activity
+            android:name=".SmartFileHubActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <activity
+            android:name=".HubInboxActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Foreground Service -->
         <service
             android:name=".ConnectionForegroundService"
