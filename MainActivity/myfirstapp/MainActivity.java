@@ -993,6 +993,12 @@ public class MainActivity extends AppCompatActivity {
             startActivity(vaultIntent);
         });
 
+        // Personal Media Vault Card
+        findViewById(R.id.cardMediaVault).setOnClickListener(v -> {
+            Intent mediaVaultIntent = new Intent(MainActivity.this, VaultUnlockActivity.class);
+            startActivity(mediaVaultIntent);
+        });
+
         // Update card summaries on resume
         updateExpenseCardSummary();
         updateVaultCardSummary();
@@ -1050,6 +1056,24 @@ public class MainActivity extends AppCompatActivity {
                     summary.setText("Set up your secure vault");
                     summary.setTextColor(0xFF8ECAE6);
                 }
+            }
+        } catch (Exception ignored) {}
+
+        try {
+            MediaVaultRepository mediaVault = MediaVaultRepository.getInstance(this);
+            TextView mediaVaultSummary = findViewById(R.id.tvMediaVaultCardSummary);
+            if (mediaVaultSummary != null) {
+                if (mediaVault.isPinSetup()) {
+                    int totalFiles = mediaVault.getAllFiles().size();
+                    if (totalFiles > 0) {
+                        mediaVaultSummary.setText("🔒 " + totalFiles + " encrypted file" + (totalFiles == 1 ? "" : "s"));
+                    } else {
+                        mediaVaultSummary.setText("🔒 Vault ready • Tap to open");
+                    }
+                } else {
+                    mediaVaultSummary.setText("Private encrypted photo & file storage");
+                }
+                mediaVaultSummary.setTextColor(0xFF86EFAC);
             }
         } catch (Exception ignored) {}
     }
