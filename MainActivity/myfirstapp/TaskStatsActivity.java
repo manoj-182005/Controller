@@ -616,10 +616,9 @@ public class TaskStatsActivity extends AppCompatActivity {
                 cellLp.setMarginEnd(dp(2));
                 cell.setLayoutParams(cellLp);
 
-                // Use the 7-day data for the last week, default to 0 for others
+                // Use the 7-day data for the last week, show empty for older weeks
                 int completions = 0;
-                int dayIndex = week * 7 + day;
-                if (week == 3 && day < 7) {
+                if (week == 3) {
                     completions = last7[day];
                 }
 
