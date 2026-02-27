@@ -139,6 +139,17 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra("type", "file");
                 intent.putExtra("content", fullPath);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+            } else if (command.startsWith("CLIPBOARD_PC:")) {
+                // Automatic clipboard sync from PC - set phone clipboard silently
+                String clipText = command.substring(13);
+                if (!clipText.isEmpty()) {
+                    runOnUiThread(() -> {
+                        android.content.ClipboardManager clipboard =
+                            (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        android.content.ClipData clip = android.content.ClipData.newPlainText("PC Clipboard", clipText);
+                        clipboard.setPrimaryClip(clip);
+                    });
+                }
             }
         });
 
@@ -466,6 +477,8 @@ public class MainActivity extends AppCompatActivity {
             }
             // Keep Dynamic Bar in sync
             updateDynamicBar();
+            // Update laptop card connection dot
+            updateLaptopConnectionDot();
         });
     }
 
@@ -905,9 +918,12 @@ public class MainActivity extends AppCompatActivity {
     // ═══ HOME SCREEN NAVIGATION ═══
 
     private void setupHomeCards() {
-        findViewById(R.id.cardTouchpad).setOnClickListener(v -> navigateToTouchpad());
+        // Legacy cards (may be null after home screen redesign — safe null checks)
+        View cardTouchpad = findViewById(R.id.cardTouchpad);
+        if (cardTouchpad != null) cardTouchpad.setOnClickListener(v -> navigateToTouchpad());
 
-        findViewById(R.id.cardKeyboard).setOnClickListener(v -> {
+        View cardKeyboard = findViewById(R.id.cardKeyboard);
+        if (cardKeyboard != null) cardKeyboard.setOnClickListener(v -> {
             navigateToTouchpad();
             new android.os.Handler().postDelayed(() -> {
                 EditText input = findViewById(R.id.hiddenInput);
@@ -917,112 +933,191 @@ public class MainActivity extends AppCompatActivity {
             }, 300);
         });
 
-        findViewById(R.id.cardPresenter).setOnClickListener(v -> togglePresenterMode(true));
-        // File Transfer — tap to send, long-press to view received
-        findViewById(R.id.cardFiles).setOnClickListener(v -> openMediaPicker("*/*", 200));
-        findViewById(R.id.cardFiles).setOnLongClickListener(v -> {
-            File docFolder = getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS);
-            File receivedFolder = new File(docFolder, "Received_Files");
-            if (receivedFolder.exists()) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setDataAndType(Uri.parse(receivedFolder.getPath()), "*/*");
-                try { startActivity(Intent.createChooser(intent, "Open Received Files")); }
-                catch (android.content.ActivityNotFoundException ex) {
-                    Toast.makeText(this, "Install a File Manager", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                Toast.makeText(this, "No files received yet!", Toast.LENGTH_SHORT).show();
-            }
-            return true;
-        });
-        findViewById(R.id.cardAI).setOnClickListener(v -> showAIMenu());
-        findViewById(R.id.cardPCControl).setOnClickListener(v -> showPCControlMenu());
+        View cardPresenter = findViewById(R.id.cardPresenter);
+        if (cardPresenter != null) cardPresenter.setOnClickListener(v -> togglePresenterMode(true));
 
-        findViewById(R.id.cardTasks).setOnClickListener(v -> {
+        View cardFiles = findViewById(R.id.cardFiles);
+        if (cardFiles != null) {
+            cardFiles.setOnClickListener(v -> openMediaPicker("*/*", 200));
+            cardFiles.setOnLongClickListener(v -> {
+                File docFolder = getExternalFilesDir(android.os.Environment.DIRECTORY_DOCUMENTS);
+                File receivedFolder = new File(docFolder, "Received_Files");
+                if (receivedFolder.exists()) {
+                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.setDataAndType(Uri.parse(receivedFolder.getPath()), "*/*");
+                    try { startActivity(Intent.createChooser(intent, "Open Received Files")); }
+                    catch (android.content.ActivityNotFoundException ex) {
+                        Toast.makeText(this, "Install a File Manager", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(this, "No files received yet!", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            });
+        }
+
+        View cardAI = findViewById(R.id.cardAI);
+        if (cardAI != null) cardAI.setOnClickListener(v -> showAIMenu());
+
+        View cardPCControl = findViewById(R.id.cardPCControl);
+        if (cardPCControl != null) cardPCControl.setOnClickListener(v -> showPCControlMenu());
+
+        View cardTasks = findViewById(R.id.cardTasks);
+        if (cardTasks != null) cardTasks.setOnClickListener(v -> {
             Intent taskIntent = new Intent(MainActivity.this, TaskManagerActivity.class);
             taskIntent.putExtra("server_ip", connectionManager.getLaptopIp());
             startActivity(taskIntent);
         });
 
-        findViewById(R.id.cardMedia).setOnClickListener(v -> showMediaMenu());
+        View cardMedia = findViewById(R.id.cardMedia);
+        if (cardMedia != null) cardMedia.setOnClickListener(v -> showMediaMenu());
 
-        // Notes Card
-        findViewById(R.id.cardNotes).setOnClickListener(v -> {
+        View cardNotes = findViewById(R.id.cardNotes);
+        if (cardNotes != null) cardNotes.setOnClickListener(v -> {
             Intent notesIntent = new Intent(MainActivity.this, NotesActivity.class);
             notesIntent.putExtra("server_ip", connectionManager.getLaptopIp());
             startActivity(notesIntent);
         });
 
-        // Dynamic Bar Card
-        findViewById(R.id.cardDynamicBar).setOnClickListener(v -> toggleDynamicBar());
+        View cardDynamicBar = findViewById(R.id.cardDynamicBar);
+        if (cardDynamicBar != null) cardDynamicBar.setOnClickListener(v -> toggleDynamicBar());
 
-        // Calendar Card
-        findViewById(R.id.cardCalendar).setOnClickListener(v -> {
+        View cardCalendar = findViewById(R.id.cardCalendar);
+        if (cardCalendar != null) cardCalendar.setOnClickListener(v -> {
             Intent calendarIntent = new Intent(MainActivity.this, CalendarActivity.class);
             calendarIntent.putExtra("server_ip", connectionManager.getLaptopIp());
             startActivity(calendarIntent);
         });
 
-        // Chat Card
-        findViewById(R.id.cardChat).setOnClickListener(v -> {
+        View cardChat = findViewById(R.id.cardChat);
+        if (cardChat != null) cardChat.setOnClickListener(v -> {
             Intent chatIntent = new Intent(MainActivity.this, ChatActivity.class);
             chatIntent.putExtra("server_ip", connectionManager.getLaptopIp());
             startActivity(chatIntent);
         });
 
-        // Settings Card
-        findViewById(R.id.cardSettings).setOnClickListener(v -> {
+        View cardSettings = findViewById(R.id.cardSettings);
+        if (cardSettings != null) cardSettings.setOnClickListener(v -> {
             Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(settingsIntent);
         });
 
-        // Expense Tracker Card
-        findViewById(R.id.cardExpenses).setOnClickListener(v -> {
+        View cardExpenses = findViewById(R.id.cardExpenses);
+        if (cardExpenses != null) cardExpenses.setOnClickListener(v -> {
             Intent expenseIntent = new Intent(MainActivity.this, ExpenseTrackerActivity.class);
             startActivity(expenseIntent);
         });
 
-        // Password Manager Card
-        findViewById(R.id.cardPasswordManager).setOnClickListener(v -> {
+        View cardPasswordManager = findViewById(R.id.cardPasswordManager);
+        if (cardPasswordManager != null) cardPasswordManager.setOnClickListener(v -> {
             Intent vaultIntent = new Intent(MainActivity.this, PasswordManagerActivity.class);
             startActivity(vaultIntent);
         });
 
-        // Personal Media Vault Card
-        findViewById(R.id.cardMediaVault).setOnClickListener(v -> {
+        View cardMediaVault = findViewById(R.id.cardMediaVault);
+        if (cardMediaVault != null) cardMediaVault.setOnClickListener(v -> {
             Intent mediaVaultIntent = new Intent(MainActivity.this, VaultUnlockActivity.class);
             startActivity(mediaVaultIntent);
         });
 
-        // Smart File Hub Card
-        findViewById(R.id.cardSmartFileHub).setOnClickListener(v -> {
+        View cardSmartFileHub = findViewById(R.id.cardSmartFileHub);
+        if (cardSmartFileHub != null) cardSmartFileHub.setOnClickListener(v -> {
             Intent hubIntent = new Intent(MainActivity.this, SmartFileHubActivity.class);
             startActivity(hubIntent);
         });
 
-        // ─── New Feature Cards ───
-        // System Monitor Card
-        findViewById(R.id.cardSystemMonitor).setOnClickListener(v -> showSystemMonitorMenu());
+        View cardSystemMonitor = findViewById(R.id.cardSystemMonitor);
+        if (cardSystemMonitor != null) cardSystemMonitor.setOnClickListener(v -> showSystemMonitorMenu());
 
-        // Clipboard Sync Card
-        findViewById(R.id.cardClipboardSync).setOnClickListener(v -> showClipboardDialog());
+        View cardClipboardSync = findViewById(R.id.cardClipboardSync);
+        if (cardClipboardSync != null) cardClipboardSync.setOnClickListener(v -> showClipboardDialog());
 
-        // Remote Shutdown/Restart/Sleep Card
-        findViewById(R.id.cardRemoteShutdown).setOnClickListener(v -> showPowerControlMenu());
+        View cardRemoteShutdown = findViewById(R.id.cardRemoteShutdown);
+        if (cardRemoteShutdown != null) cardRemoteShutdown.setOnClickListener(v -> showPowerControlMenu());
 
-        // Custom Shortcuts Card
-        findViewById(R.id.cardCustomShortcuts).setOnClickListener(v -> showCustomShortcutsMenu());
+        View cardCustomShortcuts = findViewById(R.id.cardCustomShortcuts);
+        if (cardCustomShortcuts != null) cardCustomShortcuts.setOnClickListener(v -> showCustomShortcutsMenu());
 
-        // Browser Remote Card
-        findViewById(R.id.cardBrowserRemote).setOnClickListener(v -> showBrowserRemoteMenu());
+        View cardBrowserRemote = findViewById(R.id.cardBrowserRemote);
+        if (cardBrowserRemote != null) cardBrowserRemote.setOnClickListener(v -> showBrowserRemoteMenu());
 
-        // Game Controller Card
-        findViewById(R.id.cardGameController).setOnClickListener(v ->
+        View cardGameController = findViewById(R.id.cardGameController);
+        if (cardGameController != null) cardGameController.setOnClickListener(v ->
             Toast.makeText(this, "Game Controller — coming soon!", Toast.LENGTH_SHORT).show());
 
-        // Whiteboard Card
-        findViewById(R.id.cardWhiteboard).setOnClickListener(v ->
+        View cardWhiteboard = findViewById(R.id.cardWhiteboard);
+        if (cardWhiteboard != null) cardWhiteboard.setOnClickListener(v ->
             Toast.makeText(this, "Whiteboard — coming soon!", Toast.LENGTH_SHORT).show());
+
+        // New home screen cards
+        View cardLaptop = findViewById(R.id.cardLaptop);
+        if (cardLaptop != null) {
+            cardLaptop.setOnClickListener(v -> {
+                Intent laptopHubIntent = new Intent(MainActivity.this, LaptopHubActivity.class);
+                laptopHubIntent.putExtra("server_ip", connectionManager.getLaptopIp());
+                laptopHubIntent.putExtra("is_connected", isServerCurrentlyRunning);
+                startActivity(laptopHubIntent);
+            });
+        }
+
+        View cardTasksHome = findViewById(R.id.cardTasksHome);
+        if (cardTasksHome != null) {
+            cardTasksHome.setOnClickListener(v -> {
+                Intent taskIntent = new Intent(MainActivity.this, TaskManagerActivity.class);
+                taskIntent.putExtra("server_ip", connectionManager.getLaptopIp());
+                startActivity(taskIntent);
+            });
+        }
+
+        View cardNotesHome = findViewById(R.id.cardNotesHome);
+        if (cardNotesHome != null) {
+            cardNotesHome.setOnClickListener(v -> {
+                Intent notesIntent = new Intent(MainActivity.this, NotesActivity.class);
+                notesIntent.putExtra("server_ip", connectionManager.getLaptopIp());
+                startActivity(notesIntent);
+            });
+        }
+
+        View cardCalendarHome = findViewById(R.id.cardCalendarHome);
+        if (cardCalendarHome != null) {
+            cardCalendarHome.setOnClickListener(v -> {
+                Intent calendarIntent = new Intent(MainActivity.this, CalendarActivity.class);
+                calendarIntent.putExtra("server_ip", connectionManager.getLaptopIp());
+                startActivity(calendarIntent);
+            });
+        }
+
+        View cardSettingsHome = findViewById(R.id.cardSettingsHome);
+        if (cardSettingsHome != null) {
+            cardSettingsHome.setOnClickListener(v -> {
+                Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+                startActivity(settingsIntent);
+            });
+        }
+
+        View cardPasswordHome = findViewById(R.id.cardPasswordHome);
+        if (cardPasswordHome != null) {
+            cardPasswordHome.setOnClickListener(v -> {
+                Intent vaultIntent = new Intent(MainActivity.this, PasswordManagerActivity.class);
+                startActivity(vaultIntent);
+            });
+        }
+
+        View cardPersonalVaultHome = findViewById(R.id.cardPersonalVaultHome);
+        if (cardPersonalVaultHome != null) {
+            cardPersonalVaultHome.setOnClickListener(v -> {
+                Intent mediaVaultIntent = new Intent(MainActivity.this, VaultUnlockActivity.class);
+                startActivity(mediaVaultIntent);
+            });
+        }
+
+        View cardSmartFileHubHome = findViewById(R.id.cardSmartFileHubHome);
+        if (cardSmartFileHubHome != null) {
+            cardSmartFileHubHome.setOnClickListener(v -> {
+                Intent hubIntent = new Intent(MainActivity.this, SmartFileHubActivity.class);
+                startActivity(hubIntent);
+            });
+        }
 
         // Update card summaries on resume
         updateExpenseCardSummary();
@@ -1278,6 +1373,9 @@ public class MainActivity extends AppCompatActivity {
         updateExpenseCardSummary();
         updateVaultCardSummary();
         refreshDevicesServerList();
+        updateHomeCardSubtitles();
+        updateHistoryTab();
+        updateLaptopConnectionDot();
     }
 
     private void updateExpenseCardSummary() {
@@ -1615,6 +1713,294 @@ public class MainActivity extends AppCompatActivity {
         if (reverseCommandListener != null) {
             reverseCommandListener.stop();
         }
+    }
+
+    // ═══ HOME CARD SUBTITLES ═══
+
+    private void updateHomeCardSubtitles() {
+        // Tasks subtitle
+        try {
+            TaskRepository taskRepo = new TaskRepository(this);
+            int dueTodayCount = taskRepo.getTotalTodayCount();
+            TextView tvTasks = findViewById(R.id.tvTasksCardSubtitle);
+            if (tvTasks != null) {
+                if (dueTodayCount > 0) {
+                    tvTasks.setText(dueTodayCount + " task" + (dueTodayCount == 1 ? "" : "s") + " due today");
+                } else {
+                    tvTasks.setText("All caught up!");
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Notes subtitle
+        try {
+            NoteRepository noteRepo = new NoteRepository(this);
+            int noteCount = noteRepo.getAllNotes().size();
+            TextView tvNotes = findViewById(R.id.tvNotesCardSubtitle);
+            if (tvNotes != null) {
+                if (noteCount > 0) {
+                    tvNotes.setText(noteCount + " note" + (noteCount == 1 ? "" : "s"));
+                } else {
+                    tvNotes.setText("No notes yet");
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Calendar subtitle
+        try {
+            CalendarRepository calRepo = new CalendarRepository(this);
+            java.util.List<CalendarEvent> todayEvents = calRepo.getWidgetTodayEvents();
+            TextView tvCal = findViewById(R.id.tvCalendarCardSubtitle);
+            if (tvCal != null) {
+                if (!todayEvents.isEmpty()) {
+                    tvCal.setText(todayEvents.get(0).title);
+                } else {
+                    tvCal.setText("No events today");
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Password Vault subtitle
+        try {
+            PasswordRepository vaultRepo = new PasswordRepository(this);
+            TextView tvPwd = findViewById(R.id.tvPasswordCardSubtitle);
+            if (tvPwd != null) {
+                if (vaultRepo.isMasterPasswordSet()) {
+                    int count = vaultRepo.getActiveEntries().size();
+                    if (count > 0) {
+                        tvPwd.setText(count + " password" + (count == 1 ? "" : "s") + " saved");
+                    } else {
+                        tvPwd.setText("Vault locked — tap to open");
+                    }
+                } else {
+                    tvPwd.setText("Set up your vault");
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Personal Vault subtitle
+        try {
+            MediaVaultRepository mediaVault = MediaVaultRepository.getInstance(this);
+            TextView tvVault = findViewById(R.id.tvPersonalVaultSubtitle);
+            if (tvVault != null) {
+                if (mediaVault.isPinSetup()) {
+                    int totalFiles = mediaVault.getAllFiles().size();
+                    if (totalFiles > 0) {
+                        tvVault.setText(totalFiles + " encrypted file" + (totalFiles == 1 ? "" : "s"));
+                    } else {
+                        tvVault.setText("Vault secured");
+                    }
+                } else {
+                    tvVault.setText("Private encrypted storage");
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Smart File Hub subtitle
+        try {
+            HubFileRepository hubRepo = new HubFileRepository(this);
+            int fileCount = hubRepo.getAllFiles().size();
+            TextView tvHub = findViewById(R.id.tvFileHubSubtitle);
+            if (tvHub != null) {
+                if (fileCount > 0) {
+                    tvHub.setText(fileCount + " file" + (fileCount == 1 ? "" : "s") + " organized");
+                } else {
+                    tvHub.setText("Organized");
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void updateLaptopConnectionDot() {
+        View dot = findViewById(R.id.laptopConnectionDot);
+        if (dot != null) {
+            android.graphics.drawable.Drawable d = androidx.core.content.ContextCompat.getDrawable(this,
+                isServerCurrentlyRunning ? R.drawable.connection_dot_green : R.drawable.connection_dot_red);
+            if (d != null) dot.setBackground(d);
+        }
+    }
+
+    // ═══ HISTORY TAB ═══
+
+    private void updateHistoryTab() {
+        try {
+            ActivityLogRepository logRepo = new ActivityLogRepository(this);
+
+            // Update stats
+            int tasksCount = logRepo.countThisWeek(ActivityLogEntry.FEATURE_TASKS);
+            int notesCount = logRepo.countThisWeek(ActivityLogEntry.FEATURE_NOTES);
+            int filesCount = logRepo.countThisWeek(ActivityLogEntry.FEATURE_HUB);
+
+            TextView tvTasks = findViewById(R.id.tvHistoryTasksCount);
+            if (tvTasks != null) tvTasks.setText(String.valueOf(tasksCount));
+            TextView tvNotes = findViewById(R.id.tvHistoryNotesCount);
+            if (tvNotes != null) tvNotes.setText(String.valueOf(notesCount));
+            TextView tvFiles = findViewById(R.id.tvHistoryFilesCount);
+            if (tvFiles != null) tvFiles.setText(String.valueOf(filesCount));
+
+            // Populate activity feed
+            android.widget.LinearLayout feed = findViewById(R.id.historyActivityFeed);
+            View emptyState = findViewById(R.id.historyEmptyState);
+            if (feed == null) return;
+
+            java.util.List<ActivityLogEntry> entries = logRepo.getAllEntries();
+
+            if (entries.isEmpty()) {
+                if (emptyState != null) emptyState.setVisibility(View.VISIBLE);
+                return;
+            }
+            if (emptyState != null) emptyState.setVisibility(View.GONE);
+
+            // Remove dynamically added items (but keep the empty state child)
+            int childCount = feed.getChildCount();
+            for (int i = childCount - 1; i >= 0; i--) {
+                View child = feed.getChildAt(i);
+                if (child != emptyState) feed.removeViewAt(i);
+            }
+
+            long now = System.currentTimeMillis();
+            long todayStart = getTodayStart();
+            long yesterdayStart = todayStart - (24 * 60 * 60 * 1000L);
+            long weekStart = now - (7L * 24 * 60 * 60 * 1000);
+
+            String lastSection = "";
+            for (ActivityLogEntry entry : entries) {
+                String section;
+                if (entry.timestamp >= todayStart) section = "Today";
+                else if (entry.timestamp >= yesterdayStart) section = "Yesterday";
+                else if (entry.timestamp >= weekStart) section = "This Week";
+                else section = "Older";
+
+                if (!section.equals(lastSection)) {
+                    addHistorySectionHeader(feed, section);
+                    lastSection = section;
+                }
+                addHistoryItem(feed, entry);
+            }
+        } catch (Exception ignored) {}
+
+        // History More menu
+        View btnMore = findViewById(R.id.btnHistoryMore);
+        if (btnMore != null) {
+            btnMore.setOnClickListener(v -> {
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("History Options")
+                    .setItems(new String[]{"Clear Today's History", "Clear All History"}, (d, which) -> {
+                        ActivityLogRepository repo = new ActivityLogRepository(this);
+                        if (which == 0) {
+                            repo.clearToday();
+                            Toast.makeText(this, "Today's history cleared", Toast.LENGTH_SHORT).show();
+                        } else {
+                            new androidx.appcompat.app.AlertDialog.Builder(this)
+                                .setTitle("Clear All History")
+                                .setMessage("This will clear all activity records. Your actual data (notes, tasks, etc.) won't be affected.")
+                                .setPositiveButton("Clear All", (d2, w2) -> {
+                                    repo.clearAll();
+                                    Toast.makeText(this, "History cleared", Toast.LENGTH_SHORT).show();
+                                    updateHistoryTab();
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                        }
+                        updateHistoryTab();
+                    })
+                    .show();
+            });
+        }
+    }
+
+    private long getTodayStart() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
+    }
+
+    private void addHistorySectionHeader(android.widget.LinearLayout parent, String title) {
+        TextView header = new TextView(this);
+        header.setText(title);
+        header.setTextColor(0xFF8899AA);
+        header.setTextSize(13);
+        header.setTypeface(null, android.graphics.Typeface.BOLD);
+        android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        lp.topMargin = (int)(12 * getResources().getDisplayMetrics().density);
+        lp.bottomMargin = (int)(6 * getResources().getDisplayMetrics().density);
+        header.setLayoutParams(lp);
+        parent.addView(header);
+    }
+
+    private void addHistoryItem(android.widget.LinearLayout parent, ActivityLogEntry entry) {
+        android.widget.LinearLayout item = new android.widget.LinearLayout(this);
+        item.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        item.setBackgroundResource(R.drawable.history_activity_item_bg);
+        item.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        int dp8 = (int)(8 * getResources().getDisplayMetrics().density);
+        int dp12 = (int)(12 * getResources().getDisplayMetrics().density);
+        item.setPadding(dp12, dp8, dp12, dp8);
+
+        android.widget.LinearLayout.LayoutParams itemLp = new android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        itemLp.bottomMargin = dp8;
+        item.setLayoutParams(itemLp);
+
+        // Icon
+        TextView iconView = new TextView(this);
+        iconView.setText(entry.icon);
+        iconView.setTextSize(20);
+        android.widget.LinearLayout.LayoutParams iconLp = new android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        iconLp.setMarginEnd(dp12);
+        iconView.setLayoutParams(iconLp);
+        item.addView(iconView);
+
+        // Text container
+        android.widget.LinearLayout textContainer = new android.widget.LinearLayout(this);
+        textContainer.setOrientation(android.widget.LinearLayout.VERTICAL);
+        android.widget.LinearLayout.LayoutParams tcLp = new android.widget.LinearLayout.LayoutParams(
+            0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+        );
+        textContainer.setLayoutParams(tcLp);
+
+        TextView desc = new TextView(this);
+        desc.setText(entry.description);
+        desc.setTextColor(0xFFFFFFFF);
+        desc.setTextSize(14);
+        textContainer.addView(desc);
+
+        TextView time = new TextView(this);
+        time.setText(getRelativeTime(entry.timestamp));
+        time.setTextColor(0xFF5B6B7D);
+        time.setTextSize(11);
+        textContainer.addView(time);
+
+        item.addView(textContainer);
+
+        // Feature badge
+        TextView badge = new TextView(this);
+        badge.setText(entry.feature);
+        badge.setTextColor(0xFF8899AA);
+        badge.setTextSize(10);
+        badge.setMaxLines(1);
+        item.addView(badge);
+
+        parent.addView(item);
+    }
+
+    private String getRelativeTime(long timestamp) {
+        long diff = System.currentTimeMillis() - timestamp;
+        if (diff < 60000) return "Just now";
+        if (diff < 3600000) return (diff / 60000) + "m ago";
+        if (diff < 86400000) return (diff / 3600000) + "h ago";
+        return (diff / 86400000) + "d ago";
     }
 
 }

@@ -7,12 +7,13 @@
     android:background="@drawable/home_gradient_bg"
     tools:context=".MainActivity">
 
-    <!-- ═══ STATUS HEADER ═══ -->
+    <!-- ═══ STATUS HEADER (hidden on home tab, shown in touchpad mode) ═══ -->
     <include
         android:id="@+id/statusHeader"
         layout="@layout/layout_status_header"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -51,9 +52,12 @@
         android:id="@+id/bottomNavigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#0D1117"
-        app:itemIconTint="#8899AA"
-        app:itemTextColor="#8899AA"
+        android:background="@drawable/bottom_nav_elevated_bg"
+        android:elevation="8dp"
+        app:itemIconTint="@color/nav_item_color"
+        app:itemTextColor="@color/nav_item_color"
+        app:itemActiveIndicatorColor="#1D4ED8"
+        app:itemRippleColor="#1A3A8F"
         app:menu="@menu/bottom_nav_menu"
         app:labelVisibilityMode="labeled"
         app:layout_constraintStart_toStartOf="parent"
@@ -67,7 +71,7 @@
         android:layout_height="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/statusHeader"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/bottomNavigation">
 
         <!-- ─── HOME DASHBOARD ─── -->
@@ -83,1143 +87,393 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="20dp"
-                android:paddingTop="24dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="20dp"
                 android:paddingBottom="16dp">
 
-                <!-- App Title -->
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Mobile Controller"
-                    android:textSize="30sp"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.02"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Control your PC from anywhere"
-                    android:textSize="14sp"
-                    android:textColor="#6B7B8D"
-                    android:layout_marginBottom="28dp" />
-
-                <!-- ══ ROW 1: Touchpad + Keyboard ══ -->
+                <!-- ══ ROW 1: Laptop + Tasks ══ -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="160dp"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
+                    android:layout_marginBottom="12dp">
 
+                    <!-- Laptop Card -->
                     <LinearLayout
-                        android:id="@+id/cardTouchpad"
+                        android:id="@+id/cardLaptop"
                         android:layout_width="0dp"
-                        android:layout_height="150dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_touchpad_bg"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/card_laptop_bg"
                         android:orientation="vertical"
-                        android:padding="20dp"
+                        android:padding="16dp"
                         android:gravity="bottom"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🖱️"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
+                        <FrameLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1">
+                            <View
+                                android:id="@+id/laptopConnectionDot"
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:background="@drawable/connection_dot_red"
+                                android:layout_gravity="top|end" />
+                        </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Touchpad"
+                            android:text="💻"
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Laptop"
                             android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Mouse &amp; Scroll"
-                            android:textColor="#E8E0FF"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardKeyboard"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_keyboard_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⌨️"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Keyboard"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Type on PC"
-                            android:textColor="#E0FFFF"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 2: Presenter + Files ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:id="@+id/cardPresenter"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_presenter_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🎯"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Presenter"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Slides &amp; Remote"
-                            android:textColor="#FFE0F0"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardFiles"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_files_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📁"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="File Transfer"
-                            android:textColor="#003D00"
-                            android:textSize="19sp"
+                            android:textSize="18sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Send &amp; Receive"
-                            android:textColor="#005500"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
+                            android:text="PC Control Hub"
+                            android:textColor="#B0C4DE"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
 
                     </LinearLayout>
 
-                </LinearLayout>
-
-                <!-- ══ ROW 3: AI + PC Control ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
+                    <!-- Tasks Card -->
                     <LinearLayout
-                        android:id="@+id/cardAI"
+                        android:id="@+id/cardTasksHome"
                         android:layout_width="0dp"
-                        android:layout_height="150dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_ai_bg"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/card_tasks_home_bg"
                         android:orientation="vertical"
-                        android:padding="20dp"
+                        android:padding="16dp"
                         android:gravity="bottom"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🤖"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="AI Assistant"
-                            android:textColor="#2D0050"
-                            android:textSize="19sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Voice &amp; Write AI"
-                            android:textColor="#400070"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardPCControl"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_pc_control_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🎮"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="PC Control"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Volume, Display &amp; More"
-                            android:textColor="#E0F0FF"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 4: Tasks + Media ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:id="@+id/cardTasks"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_tasks_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📋"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
+                            android:text="✅"
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Tasks"
                             android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvTasksCardSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Manage To-Do"
-                            android:textColor="#FFF0E0"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardMedia"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_media_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🎬"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Media &amp; Apps"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Notepad, Webcam &amp; More"
-                            android:textColor="#FFE0F0"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
+                            android:text="All caught up!"
+                            android:textColor="#FFE4B5"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
 
                     </LinearLayout>
 
                 </LinearLayout>
 
-                <!-- ══ ROW 5: Notes + Dynamic Bar ══ -->
+                <!-- ══ ROW 2: Notes + Calendar ══ -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="160dp"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
+                    android:layout_marginBottom="12dp">
 
+                    <!-- Notes Card -->
                     <LinearLayout
-                        android:id="@+id/cardNotes"
+                        android:id="@+id/cardNotesHome"
                         android:layout_width="0dp"
-                        android:layout_height="150dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_notes_bg"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/card_notes_home_bg"
                         android:orientation="vertical"
-                        android:padding="20dp"
+                        android:padding="16dp"
                         android:gravity="bottom"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground">
 
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="📝"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Notes"
                             android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvNotesCardSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Synced Notes"
-                            android:textColor="#FFF8E1"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
+                            android:text="Your notes"
+                            android:textColor="#B0FFEC"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
 
                     </LinearLayout>
 
+                    <!-- Calendar Card -->
                     <LinearLayout
-                        android:id="@+id/cardDynamicBar"
+                        android:id="@+id/cardCalendarHome"
                         android:layout_width="0dp"
-                        android:layout_height="150dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_dynamic_bar_bg"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/card_calendar_home_bg"
                         android:orientation="vertical"
-                        android:padding="20dp"
+                        android:padding="16dp"
                         android:gravity="bottom"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🏝️"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Dynamic Bar"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Floating Controls"
-                            android:textColor="#B0B8CC"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 6: Calendar + Chat ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:id="@+id/cardCalendar"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_calendar_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="📅"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Calendar"
                             android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvCalendarCardSubtitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Synced Events"
-                            android:textColor="#BFDBFE"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardChat"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_dynamic_bar_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="💬"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Chat"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="PC Messaging"
-                            android:textColor="#B0B8CC"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
+                            android:text="No events today"
+                            android:textColor="#B0C8FF"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
 
                     </LinearLayout>
 
                 </LinearLayout>
 
-                <!-- ══ ROW 7: Settings + Expenses ══ -->
+                <!-- ══ ROW 3: Settings + Password Vault ══ -->
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="160dp"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
+                    android:layout_marginBottom="12dp">
 
+                    <!-- Settings Card -->
                     <LinearLayout
-                        android:id="@+id/cardSettings"
+                        android:id="@+id/cardSettingsHome"
                         android:layout_width="0dp"
-                        android:layout_height="150dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_tasks_bg"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/card_settings_home_bg"
                         android:orientation="vertical"
-                        android:padding="20dp"
+                        android:padding="16dp"
                         android:gravity="bottom"
                         android:clickable="true"
                         android:focusable="true"
                         android:foreground="?attr/selectableItemBackground">
 
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="⚙️"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Settings"
                             android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="App Configuration"
-                            android:textColor="#B0B8CC"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardExpenses"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_expense_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="💰"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Expenses"
-                            android:textColor="#FFFFFF"
-                            android:textSize="19sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:id="@+id/tvExpenseCardSummary"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Track &amp; Manage"
-                            android:textColor="#E0D4FF"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 8: Password Manager (full-width premium card) ══ -->
-                <LinearLayout
-                    android:id="@+id/cardPasswordManager"
-                    android:layout_width="match_parent"
-                    android:layout_height="160dp"
-                    android:layout_marginBottom="14dp"
-                    android:background="@drawable/card_password_bg"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:gravity="bottom"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🔐"
-                        android:textSize="36sp"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Password Vault"
-                        android:textColor="#FFFFFF"
-                        android:textSize="21sp"
-                        android:textStyle="bold"
-                        android:shadowColor="#40000000"
-                        android:shadowDx="1"
-                        android:shadowDy="1"
-                        android:shadowRadius="3" />
-
-                    <TextView
-                        android:id="@+id/tvVaultCardSummary"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Secure Password Manager"
-                        android:textColor="#8ECAE6"
-                        android:textSize="13sp"
-                        android:alpha="0.9" />
-
-                </LinearLayout>
-
-                <!-- ══ ROW 9: Personal Media Vault (full-width premium card) ══ -->
-                <LinearLayout
-                    android:id="@+id/cardMediaVault"
-                    android:layout_width="match_parent"
-                    android:layout_height="160dp"
-                    android:layout_marginBottom="14dp"
-                    android:background="@drawable/card_password_bg"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:gravity="bottom"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🔒"
-                        android:textSize="36sp"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Personal Vault"
-                        android:textColor="#FFFFFF"
-                        android:textSize="21sp"
-                        android:textStyle="bold"
-                        android:shadowColor="#40000000"
-                        android:shadowDx="1"
-                        android:shadowDy="1"
-                        android:shadowRadius="3" />
-
-                    <TextView
-                        android:id="@+id/tvMediaVaultCardSummary"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Private encrypted photo &amp; file storage"
-                        android:textColor="#86EFAC"
-                        android:textSize="13sp"
-                        android:alpha="0.9" />
-
-                </LinearLayout>
-
-                <!-- ══ Smart File Hub (full-width premium card) ══ -->
-                <LinearLayout
-                    android:id="@+id/cardSmartFileHub"
-                    android:layout_width="match_parent"
-                    android:layout_height="160dp"
-                    android:layout_marginBottom="14dp"
-                    android:background="@drawable/hub_card_smart_file_hub_bg"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:gravity="bottom"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🗂️"
-                        android:textSize="36sp"
-                        android:layout_marginBottom="10dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Smart File Hub"
-                        android:textColor="#FFFFFF"
-                        android:textSize="21sp"
-                        android:textStyle="bold"
-                        android:shadowColor="#40000000"
-                        android:shadowDx="1"
-                        android:shadowDy="1"
-                        android:shadowRadius="3" />
-
-                    <TextView
-                        android:id="@+id/tvSmartFileHubSummary"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Intelligent file organizer &amp; hub"
-                        android:textColor="#C4B5FD"
-                        android:textSize="13sp"
-                        android:alpha="0.9" />
-
-                </LinearLayout>
-
-                <!-- ══ ROW 10: System Monitor + Clipboard Sync ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:id="@+id/cardSystemMonitor"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_system_monitor_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📊"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="System Monitor"
-                            android:textColor="#FFFFFF"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="CPU, RAM, GPU"
-                            android:textColor="#B0C4D8"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardClipboardSync"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_clipboard_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="📋"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Clipboard Sync"
-                            android:textColor="#003D00"
-                            android:textSize="17sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Phone ↔ PC Clipboard"
-                            android:textColor="#004D00"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 11: Remote Shutdown + Custom Shortcuts ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:id="@+id/cardRemoteShutdown"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_shutdown_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⏻"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Power Control"
-                            android:textColor="#FFFFFF"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Shutdown, Restart, Sleep"
-                            android:textColor="#FFCDD2"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardCustomShortcuts"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_shortcuts_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="⌨"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Shortcuts"
-                            android:textColor="#1A1A00"
-                            android:textSize="17sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Custom Macros"
-                            android:textColor="#2A2A00"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 12: Browser Remote + Game Controller ══ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="14dp">
-
-                    <LinearLayout
-                        android:id="@+id/cardBrowserRemote"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="7dp"
-                        android:background="@drawable/card_browser_remote_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🌐"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Browser Remote"
-                            android:textColor="#FFFFFF"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Control PC Browser"
-                            android:textColor="#B3C5FF"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:id="@+id/cardGameController"
-                        android:layout_width="0dp"
-                        android:layout_height="150dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="7dp"
-                        android:background="@drawable/card_game_controller_bg"
-                        android:orientation="vertical"
-                        android:padding="20dp"
-                        android:gravity="bottom"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="🎮"
-                            android:textSize="36sp"
-                            android:layout_marginBottom="10dp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Game Controller"
-                            android:textColor="#FFFFFF"
-                            android:textSize="17sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Virtual Gamepad"
-                            android:textColor="#A5D6A7"
-                            android:textSize="12sp"
-                            android:alpha="0.85" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- ══ ROW 13: Whiteboard (full-width) ══ -->
-                <LinearLayout
-                    android:id="@+id/cardWhiteboard"
-                    android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginBottom="14dp"
-                    android:background="@drawable/card_whiteboard_bg"
-                    android:orientation="horizontal"
-                    android:padding="20dp"
-                    android:gravity="center_vertical"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="✏️"
-                        android:textSize="40sp"
-                        android:layout_marginEnd="16dp" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Whiteboard"
-                            android:textColor="#FFFFFF"
-                            android:textSize="21sp"
-                            android:textStyle="bold"
-                            android:shadowColor="#40000000"
-                            android:shadowDx="1"
-                            android:shadowDy="1"
-                            android:shadowRadius="3" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Draw on phone, show on PC screen"
-                            android:textColor="#CE93D8"
+                            android:textColor="#FFE4A0"
                             android:textSize="13sp"
-                            android:alpha="0.9" />
+                            android:alpha="0.7" />
+
+                    </LinearLayout>
+
+                    <!-- Password Vault Card -->
+                    <LinearLayout
+                        android:id="@+id/cardPasswordHome"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/card_password_home_bg"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:gravity="bottom"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🔐"
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Password Vault"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvPasswordCardSubtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Vault locked — tap to open"
+                            android:textColor="#DDB8FF"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- ══ ROW 4: Personal Vault + Smart File Hub ══ -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="160dp"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <!-- Personal Vault Card -->
+                    <LinearLayout
+                        android:id="@+id/cardPersonalVaultHome"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/card_vault_home_bg"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:gravity="bottom"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🛡️"
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Personal Vault"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvPersonalVaultSubtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Vault secured"
+                            android:textColor="#9CB8E0"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
+
+                    </LinearLayout>
+
+                    <!-- Smart File Hub Card -->
+                    <LinearLayout
+                        android:id="@+id/cardSmartFileHubHome"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/card_hub_home_bg"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:gravity="bottom"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground">
+
+                        <View android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📂"
+                            android:textSize="32sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Smart File Hub"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvFileHubSubtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Organized"
+                            android:textColor="#D4B3FF"
+                            android:textSize="13sp"
+                            android:alpha="0.7" />
 
                     </LinearLayout>
 
@@ -1576,29 +830,383 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="20dp"
+                android:paddingHorizontal="16dp"
                 android:paddingTop="20dp"
-                android:paddingBottom="16dp">
+                android:paddingBottom="24dp">
 
-                <TextView
+                <!-- Header Row -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Recent Activity"
-                    android:textColor="#FFFFFF"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="20dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
 
-                <TextView
-                    android:id="@+id/tvHistoryEmpty"
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="History"
+                        android:textColor="#FFFFFF"
+                        android:textSize="28sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/btnHistoryMore"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:text="⋮"
+                        android:textSize="22sp"
+                        android:textColor="#8899AA"
+                        android:gravity="center"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+
+                </LinearLayout>
+
+                <!-- Date Range Filter -->
+                <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No recent activity yet.\nConnect to a PC and start using features."
-                    android:textColor="#5B6B7D"
-                    android:textSize="14sp"
-                    android:gravity="center"
-                    android:paddingTop="40dp"
-                    android:lineSpacingExtra="4dp" />
+                    android:scrollbars="none"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/historyFilterToday"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:text="Today"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/filter_chip_active_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:id="@+id/historyFilterWeek"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:text="This Week"
+                            android:textColor="#8899AA"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:id="@+id/historyFilterMonth"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:text="This Month"
+                            android:textColor="#8899AA"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="8dp" />
+
+                        <TextView
+                            android:id="@+id/historyFilterAll"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:text="All Time"
+                            android:textColor="#8899AA"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="16dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                </HorizontalScrollView>
+
+                <!-- Quick Stats Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/history_stat_card_bg"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="✅"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:id="@+id/tvHistoryTasksCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#22C55E"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Tasks"
+                            android:textColor="#8899AA"
+                            android:textSize="11sp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="3dp"
+                        android:background="@drawable/history_stat_card_bg"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📝"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:id="@+id/tvHistoryNotesCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#3B82F6"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Notes"
+                            android:textColor="#8899AA"
+                            android:textSize="11sp" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/history_stat_card_bg"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:gravity="center">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📂"
+                            android:textSize="20sp" />
+
+                        <TextView
+                            android:id="@+id/tvHistoryFilesCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="#A855F7"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Files"
+                            android:textColor="#8899AA"
+                            android:textSize="11sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Feature Filter Chips -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:id="@+id/historyFeatureFilterRow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/filterAll"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="All"
+                            android:textColor="#FFFFFF"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_active_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/filterTasks"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="Tasks"
+                            android:textColor="#8899AA"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/filterNotes"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="Notes"
+                            android:textColor="#8899AA"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/filterCalendar"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="Calendar"
+                            android:textColor="#8899AA"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/filterVault"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="Vault"
+                            android:textColor="#8899AA"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/filterHub"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="Smart File Hub"
+                            android:textColor="#8899AA"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:layout_marginEnd="6dp" />
+
+                        <TextView
+                            android:id="@+id/filterLaptop"
+                            android:layout_width="wrap_content"
+                            android:layout_height="32dp"
+                            android:text="Laptop"
+                            android:textColor="#8899AA"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:paddingHorizontal="14dp"
+                            android:background="@drawable/filter_chip_bg"
+                            android:clickable="true"
+                            android:focusable="true" />
+
+                    </LinearLayout>
+
+                </HorizontalScrollView>
+
+                <!-- Activity Feed Container (populated programmatically) -->
+                <LinearLayout
+                    android:id="@+id/historyActivityFeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- Empty state (shown when no history) -->
+                    <LinearLayout
+                        android:id="@+id/historyEmptyState"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingVertical="40dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🕐"
+                            android:textSize="48sp"
+                            android:gravity="center"
+                            android:layout_marginBottom="16dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No activity yet"
+                            android:textColor="#FFFFFF"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:gravity="center"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Start using the app to see your&#10;activity history here"
+                            android:textColor="#5B6B7D"
+                            android:textSize="14sp"
+                            android:gravity="center"
+                            android:lineSpacingExtra="4dp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
 
             </LinearLayout>
         </ScrollView>
