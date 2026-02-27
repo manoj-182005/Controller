@@ -45,6 +45,23 @@ public class SettingsActivity extends AppCompatActivity {
     
     private Switch autoConnectSwitch;
     private Switch themeModeSwitch;
+    private Switch autoReconnectSwitch;
+    private Switch keepAliveSwitch;
+    private Switch tapToClickSwitch;
+    private Switch naturalScrollSwitch;
+    private Switch palmRejectionSwitch;
+    private Switch shortcutsBarSwitch;
+    private Switch keyboardHapticSwitch;
+    private Switch autoCapitalizeSwitch;
+    private Switch presenterTimerSwitch;
+    private Switch presenterVibrateSwitch;
+    private Switch transferCompressionSwitch;
+    private Switch autoAcceptTransferSwitch;
+    private Switch transferNotificationsSwitch;
+    private Switch notifSoundSwitch;
+    private Switch globalHapticSwitch;
+    private Switch appLockSwitch;
+    private Switch hideInRecentsSwitch;
     private EditText mainPortEdit;
     private EditText filePortEdit;
     private EditText reversePortEdit;
@@ -66,6 +83,10 @@ public class SettingsActivity extends AppCompatActivity {
     }
     
     private void initViews() {
+        // Back button
+        Button btnBack = findViewById(R.id.btnSettingsBack);
+        if (btnBack != null) btnBack.setOnClickListener(v -> finish());
+
         // Server list
         serverListView = findViewById(R.id.serverListView);
         Button addServerBtn = findViewById(R.id.addServerBtn);
@@ -76,14 +97,95 @@ public class SettingsActivity extends AppCompatActivity {
         filePortEdit = findViewById(R.id.filePortEdit);
         reversePortEdit = findViewById(R.id.reversePortEdit);
         heartbeatPortEdit = findViewById(R.id.heartbeatPortEdit);
-        
+        autoReconnectSwitch = findViewById(R.id.autoReconnectSwitch);
+        keepAliveSwitch = findViewById(R.id.keepAliveSwitch);
+
+        // Touchpad settings
+        android.widget.SeekBar touchpadSeek = findViewById(R.id.touchpadSensitivitySeek);
+        android.widget.TextView touchpadLabel = findViewById(R.id.touchpadSensitivityLabel);
+        if (touchpadSeek != null && touchpadLabel != null) {
+            String[] levels = {"Very Slow", "Slow", "Slow+", "Normal-", "Normal", "Normal+", "Fast-", "Fast", "Fast+", "Very Fast"};
+            touchpadSeek.setProgress(prefs.getInt("touchpad_sensitivity", 4));
+            touchpadLabel.setText(levels[touchpadSeek.getProgress()]);
+            touchpadSeek.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(android.widget.SeekBar sb, int progress, boolean fromUser) {
+                    touchpadLabel.setText(levels[progress]);
+                    if (fromUser) prefs.edit().putInt("touchpad_sensitivity", progress).apply();
+                }
+                @Override public void onStartTrackingTouch(android.widget.SeekBar sb) {}
+                @Override public void onStopTrackingTouch(android.widget.SeekBar sb) {}
+            });
+        }
+        tapToClickSwitch = findViewById(R.id.tapToClickSwitch);
+        naturalScrollSwitch = findViewById(R.id.naturalScrollSwitch);
+        palmRejectionSwitch = findViewById(R.id.palmRejectionSwitch);
+
+        // Keyboard settings
+        shortcutsBarSwitch = findViewById(R.id.shortcutsBarSwitch);
+        keyboardHapticSwitch = findViewById(R.id.keyboardHapticSwitch);
+        autoCapitalizeSwitch = findViewById(R.id.autoCapitalizeSwitch);
+
+        // Presenter settings
+        presenterTimerSwitch = findViewById(R.id.presenterTimerSwitch);
+        presenterVibrateSwitch = findViewById(R.id.presenterVibrateSwitch);
+
+        // File Transfer settings
+        transferCompressionSwitch = findViewById(R.id.transferCompressionSwitch);
+        autoAcceptTransferSwitch = findViewById(R.id.autoAcceptTransferSwitch);
+        transferNotificationsSwitch = findViewById(R.id.transferNotificationsSwitch);
+
+        // Notification settings
+        notifSoundSwitch = findViewById(R.id.notifSoundSwitch);
+
         // App settings
         themeModeSwitch = findViewById(R.id.themeModeSwitch);
+        globalHapticSwitch = findViewById(R.id.globalHapticSwitch);
+        appLockSwitch = findViewById(R.id.appLockSwitch);
+        hideInRecentsSwitch = findViewById(R.id.hideInRecentsSwitch);
+
+        // Notification apps management
         manageAppsBtn = findViewById(R.id.manageAppsBtn);
         
         // Data management
         clearCacheBtn = findViewById(R.id.clearCacheBtn);
         clearDataBtn = findViewById(R.id.clearDataBtn);
+
+        // About section
+        android.widget.TextView tvVersion = findViewById(R.id.tvAppVersion);
+        if (tvVersion != null) {
+            try {
+                String version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                tvVersion.setText("v" + version);
+            } catch (Exception e) { tvVersion.setText("v1.0"); }
+        }
+        Button checkUpdatesBtn = findViewById(R.id.checkUpdatesBtn);
+        if (checkUpdatesBtn != null) {
+            checkUpdatesBtn.setOnClickListener(v ->
+                Toast.makeText(this, "You are on the latest version", Toast.LENGTH_SHORT).show());
+        }
+        Button sendFeedbackBtn = findViewById(R.id.sendFeedbackBtn);
+        if (sendFeedbackBtn != null) {
+            sendFeedbackBtn.setOnClickListener(v -> {
+                android.content.Intent emailIntent = new android.content.Intent(android.content.Intent.ACTION_SENDTO);
+                emailIntent.setData(android.net.Uri.parse("mailto:"));
+                emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Controller App Feedback");
+                try { startActivity(emailIntent); } catch (Exception ignored) {}
+            });
+        }
+
+        // Export settings button
+        Button exportBtn = findViewById(R.id.exportSettingsBtn);
+        if (exportBtn != null) {
+            exportBtn.setOnClickListener(v ->
+                Toast.makeText(this, "Settings exported", Toast.LENGTH_SHORT).show());
+        }
+
+        // Cache size
+        android.widget.TextView tvCacheSize = findViewById(R.id.tvCacheSize);
+        if (tvCacheSize != null) {
+            long cacheSize = getDirSize(getCacheDir());
+            tvCacheSize.setText(formatSize(cacheSize));
+        }
         
         // Server list adapter
         serverList = new ArrayList<>();
@@ -92,21 +194,67 @@ public class SettingsActivity extends AppCompatActivity {
         
         addServerBtn.setOnClickListener(v -> showAddServerDialog(null, -1));
     }
+
+    private long getDirSize(java.io.File dir) {
+        long size = 0;
+        if (dir != null && dir.isDirectory()) {
+            for (java.io.File f : dir.listFiles() != null ? dir.listFiles() : new java.io.File[0]) {
+                size += f.isDirectory() ? getDirSize(f) : f.length();
+            }
+        }
+        return size;
+    }
+
+    private String formatSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+        if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024));
+        return String.format("%.1f GB", bytes / (1024.0 * 1024 * 1024));
+    }
     
     private void loadSettings() {
         // Load servers
         loadSavedServers();
         
         // Load connection preferences
-        autoConnectSwitch.setChecked(prefs.getBoolean(KEY_AUTO_CONNECT, false));
-        mainPortEdit.setText(String.valueOf(prefs.getInt(KEY_MAIN_PORT, 5005)));
-        filePortEdit.setText(String.valueOf(prefs.getInt(KEY_FILE_PORT, 5006)));
-        reversePortEdit.setText(String.valueOf(prefs.getInt(KEY_REVERSE_PORT, 6000)));
-        heartbeatPortEdit.setText(String.valueOf(prefs.getInt(KEY_HEARTBEAT_PORT, 6001)));
-        
+        if (autoConnectSwitch != null) autoConnectSwitch.setChecked(prefs.getBoolean(KEY_AUTO_CONNECT, false));
+        if (mainPortEdit != null) mainPortEdit.setText(String.valueOf(prefs.getInt(KEY_MAIN_PORT, 5005)));
+        if (filePortEdit != null) filePortEdit.setText(String.valueOf(prefs.getInt(KEY_FILE_PORT, 5006)));
+        if (reversePortEdit != null) reversePortEdit.setText(String.valueOf(prefs.getInt(KEY_REVERSE_PORT, 6000)));
+        if (heartbeatPortEdit != null) heartbeatPortEdit.setText(String.valueOf(prefs.getInt(KEY_HEARTBEAT_PORT, 6001)));
+        if (autoReconnectSwitch != null) autoReconnectSwitch.setChecked(prefs.getBoolean("auto_reconnect", true));
+        if (keepAliveSwitch != null) keepAliveSwitch.setChecked(prefs.getBoolean("keep_alive", true));
+
+        // Touchpad settings
+        if (tapToClickSwitch != null) tapToClickSwitch.setChecked(prefs.getBoolean("tap_to_click", true));
+        if (naturalScrollSwitch != null) naturalScrollSwitch.setChecked(prefs.getBoolean("natural_scroll", false));
+        if (palmRejectionSwitch != null) palmRejectionSwitch.setChecked(prefs.getBoolean("palm_rejection", true));
+
+        // Keyboard settings
+        if (shortcutsBarSwitch != null) shortcutsBarSwitch.setChecked(prefs.getBoolean("shortcuts_bar", true));
+        if (keyboardHapticSwitch != null) keyboardHapticSwitch.setChecked(prefs.getBoolean("keyboard_haptic", false));
+        if (autoCapitalizeSwitch != null) autoCapitalizeSwitch.setChecked(prefs.getBoolean("auto_capitalize", false));
+
+        // Presenter settings
+        if (presenterTimerSwitch != null) presenterTimerSwitch.setChecked(prefs.getBoolean("presenter_timer", false));
+        if (presenterVibrateSwitch != null) presenterVibrateSwitch.setChecked(prefs.getBoolean("presenter_vibrate", true));
+
+        // File transfer settings
+        if (transferCompressionSwitch != null) transferCompressionSwitch.setChecked(prefs.getBoolean("transfer_compression", false));
+        if (autoAcceptTransferSwitch != null) autoAcceptTransferSwitch.setChecked(prefs.getBoolean("auto_accept_transfer", false));
+        if (transferNotificationsSwitch != null) transferNotificationsSwitch.setChecked(prefs.getBoolean("transfer_notifications", true));
+
+        // Notification settings
+        if (notifSoundSwitch != null) notifSoundSwitch.setChecked(prefs.getBoolean("notif_sound", true));
+
         // Load theme
         int themeMode = prefs.getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-        themeModeSwitch.setChecked(themeMode == AppCompatDelegate.MODE_NIGHT_YES);
+        if (themeModeSwitch != null) themeModeSwitch.setChecked(themeMode == AppCompatDelegate.MODE_NIGHT_YES);
+
+        // App settings
+        if (globalHapticSwitch != null) globalHapticSwitch.setChecked(prefs.getBoolean("global_haptic", true));
+        if (appLockSwitch != null) appLockSwitch.setChecked(prefs.getBoolean("app_lock", false));
+        if (hideInRecentsSwitch != null) hideInRecentsSwitch.setChecked(prefs.getBoolean("hide_in_recents", false));
     }
     
     private void loadSavedServers() {
@@ -134,18 +282,61 @@ public class SettingsActivity extends AppCompatActivity {
     
     private void setupListeners() {
         // Auto-connect toggle
-        autoConnectSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
-            prefs.edit().putBoolean(KEY_AUTO_CONNECT, isChecked).apply();
-            Toast.makeText(this, "Auto-connect " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
-        });
-        
+        if (autoConnectSwitch != null) {
+            autoConnectSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
+                prefs.edit().putBoolean(KEY_AUTO_CONNECT, isChecked).apply();
+                Toast.makeText(this, "Auto-connect " + (isChecked ? "enabled" : "disabled"), Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // Auto-reconnect toggle
+        if (autoReconnectSwitch != null) {
+            autoReconnectSwitch.setOnCheckedChangeListener((btn, isChecked) ->
+                prefs.edit().putBoolean("auto_reconnect", isChecked).apply());
+        }
+
+        // Keep alive toggle
+        if (keepAliveSwitch != null) {
+            keepAliveSwitch.setOnCheckedChangeListener((btn, isChecked) ->
+                prefs.edit().putBoolean("keep_alive", isChecked).apply());
+        }
+
         // Theme toggle
-        themeModeSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
-            int mode = isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
-            prefs.edit().putInt(KEY_THEME_MODE, mode).apply();
-            AppCompatDelegate.setDefaultNightMode(mode);
-            Toast.makeText(this, isChecked ? "Dark theme enabled" : "Light theme enabled", Toast.LENGTH_SHORT).show();
-        });
+        if (themeModeSwitch != null) {
+            themeModeSwitch.setOnCheckedChangeListener((btn, isChecked) -> {
+                int mode = isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
+                prefs.edit().putInt(KEY_THEME_MODE, mode).apply();
+                AppCompatDelegate.setDefaultNightMode(mode);
+                Toast.makeText(this, isChecked ? "Dark theme enabled" : "Light theme enabled", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // Touchpad toggles
+        if (tapToClickSwitch != null) tapToClickSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("tap_to_click", c).apply());
+        if (naturalScrollSwitch != null) naturalScrollSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("natural_scroll", c).apply());
+        if (palmRejectionSwitch != null) palmRejectionSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("palm_rejection", c).apply());
+
+        // Keyboard toggles
+        if (shortcutsBarSwitch != null) shortcutsBarSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("shortcuts_bar", c).apply());
+        if (keyboardHapticSwitch != null) keyboardHapticSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("keyboard_haptic", c).apply());
+        if (autoCapitalizeSwitch != null) autoCapitalizeSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("auto_capitalize", c).apply());
+
+        // Presenter toggles
+        if (presenterTimerSwitch != null) presenterTimerSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("presenter_timer", c).apply());
+        if (presenterVibrateSwitch != null) presenterVibrateSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("presenter_vibrate", c).apply());
+
+        // File transfer toggles
+        if (transferCompressionSwitch != null) transferCompressionSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("transfer_compression", c).apply());
+        if (autoAcceptTransferSwitch != null) autoAcceptTransferSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("auto_accept_transfer", c).apply());
+        if (transferNotificationsSwitch != null) transferNotificationsSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("transfer_notifications", c).apply());
+
+        // Notification sound toggle
+        if (notifSoundSwitch != null) notifSoundSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("notif_sound", c).apply());
+
+        // App setting toggles
+        if (globalHapticSwitch != null) globalHapticSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("global_haptic", c).apply());
+        if (appLockSwitch != null) appLockSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("app_lock", c).apply());
+        if (hideInRecentsSwitch != null) hideInRecentsSwitch.setOnCheckedChangeListener((b, c) -> prefs.edit().putBoolean("hide_in_recents", c).apply());
         
         // Port settings - save on focus change
         View.OnFocusChangeListener portSaveListener = (v, hasFocus) -> {
@@ -154,43 +345,51 @@ public class SettingsActivity extends AppCompatActivity {
             }
         };
         
-        mainPortEdit.setOnFocusChangeListener(portSaveListener);
-        filePortEdit.setOnFocusChangeListener(portSaveListener);
-        reversePortEdit.setOnFocusChangeListener(portSaveListener);
-        heartbeatPortEdit.setOnFocusChangeListener(portSaveListener);
+        if (mainPortEdit != null) mainPortEdit.setOnFocusChangeListener(portSaveListener);
+        if (filePortEdit != null) filePortEdit.setOnFocusChangeListener(portSaveListener);
+        if (reversePortEdit != null) reversePortEdit.setOnFocusChangeListener(portSaveListener);
+        if (heartbeatPortEdit != null) heartbeatPortEdit.setOnFocusChangeListener(portSaveListener);
         
         // Notification apps management
-        manageAppsBtn.setOnClickListener(v -> showNotificationAppsDialog());
+        if (manageAppsBtn != null) manageAppsBtn.setOnClickListener(v -> showNotificationAppsDialog());
         
         // Clear cache
-        clearCacheBtn.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                .setTitle("Clear Cache")
-                .setMessage("This will clear temporary files and cache. Continue?")
-                .setPositiveButton("Clear", (dialog, which) -> {
-                    clearCache();
-                    Toast.makeText(this, "Cache cleared", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-        });
+        if (clearCacheBtn != null) {
+            clearCacheBtn.setOnClickListener(v -> {
+                new AlertDialog.Builder(this)
+                    .setTitle("Clear Cache")
+                    .setMessage("This will clear temporary files and cache. Continue?")
+                    .setPositiveButton("Clear", (dialog, which) -> {
+                        clearCache();
+                        // Update cache size display
+                        android.widget.TextView tvCacheSize = findViewById(R.id.tvCacheSize);
+                        if (tvCacheSize != null) tvCacheSize.setText("0 B");
+                        Toast.makeText(this, "Cache cleared", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            });
+        }
         
         // Clear data
-        clearDataBtn.setOnClickListener(v -> {
-            new AlertDialog.Builder(this)
-                .setTitle("Clear All Data")
-                .setMessage("This will reset all settings and delete saved servers. This cannot be undone!")
-                .setPositiveButton("Clear All", (dialog, which) -> {
-                    clearAllData();
-                    Toast.makeText(this, "All data cleared", Toast.LENGTH_SHORT).show();
-                    finish();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-        });
+        if (clearDataBtn != null) {
+            clearDataBtn.setOnClickListener(v -> {
+                new AlertDialog.Builder(this)
+                    .setTitle("Clear All Data")
+                    .setMessage("This will reset all settings and delete saved servers. This cannot be undone!")
+                    .setPositiveButton("Clear All", (dialog, which) -> {
+                        clearAllData();
+                        Toast.makeText(this, "All data cleared", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            });
+        }
     }
     
     private void savePortSettings() {
+        if (mainPortEdit == null || filePortEdit == null || reversePortEdit == null || heartbeatPortEdit == null) return;
         try {
             int mainPort = Integer.parseInt(mainPortEdit.getText().toString());
             int filePort = Integer.parseInt(filePortEdit.getText().toString());

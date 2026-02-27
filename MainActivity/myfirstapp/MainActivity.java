@@ -48,6 +48,7 @@ import java.util.ArrayList;
 
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -60,13 +61,21 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatus;
     private TextView tvBattery;
     private ImageView ivPreview;
-    private Button btnStop;
     private SensorHandler sensorHandler;
 
-    // Home Navigation
+    // Home Navigation (tab-based)
     private View homeScreen;
     private View touchpadScreen;
+    private View devicesScreen;
+    private View historyScreen;
     private Button btnBackHome;
+
+    // Bottom Navigation
+    private com.google.android.material.bottomnavigation.BottomNavigationView bottomNavigation;
+
+    // Header icons
+    private TextView btnHeaderSettings;
+    private TextView btnHeaderConnect;
 
     // QR Pairing & Reverse Commands
     private QRPairingManager qrPairingManager;
@@ -147,14 +156,43 @@ public class MainActivity extends AppCompatActivity {
         tvStatus = findViewById(R.id.tvStatus);
         tvBattery = findViewById(R.id.tvBattery);
         ivPreview = findViewById(R.id.ivPreview);
-        btnStop = findViewById(R.id.btnStop);
 
-        // --- Home Navigation Init ---
+        // --- Home/Tab Navigation Init ---
         homeScreen = findViewById(R.id.homeScreen);
         touchpadScreen = findViewById(R.id.touchpadScreen);
+        devicesScreen = findViewById(R.id.devicesScreen);
+        historyScreen = findViewById(R.id.historyScreen);
         btnBackHome = findViewById(R.id.btnBackHome);
         btnBackHome.setOnClickListener(v -> navigateToHome());
+
+        // --- Bottom Navigation ---
+        bottomNavigation = findViewById(R.id.bottomNavigation);
+        bottomNavigation.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_home) {
+                showTab(homeScreen);
+                return true;
+            } else if (id == R.id.nav_devices) {
+                showTab(devicesScreen);
+                return true;
+            } else if (id == R.id.nav_history) {
+                showTab(historyScreen);
+                return true;
+            }
+            return false;
+        });
+
+        // --- Header Icons ---
+        btnHeaderSettings = findViewById(R.id.btnHeaderSettings);
+        btnHeaderSettings.setOnClickListener(v -> {
+            Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(settingsIntent);
+        });
+        btnHeaderConnect = findViewById(R.id.btnHeaderConnect);
+        btnHeaderConnect.setOnClickListener(v -> showConnectionBottomSheet());
+
         setupHomeCards();
+        setupDevicesTab();
 
         // --- Touchpad Init ---
         touchpadHandler = new TouchpadHandler(this, touchPad, modeSwitch, connectionManager);
@@ -164,43 +202,9 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnLeftClick).setOnClickListener(v -> connectionManager.sendCommand("MOUSE_CLICK"));
         findViewById(R.id.btnRightClick).setOnClickListener(v -> connectionManager.sendCommand("MOUSE_RIGHT_CLICK"));
 
-        // Dynamic Button: Start/Test when disconnected, Stop when connected
-        btnStop.setOnClickListener(v -> {
-            // Check if server is selected first
-            if (!serverSelected) {
-                Toast.makeText(this, "Please select a server first (Menu button)", Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            if (isServerCurrentlyRunning) {
-                // Server is running - Stop it via watchdog
-                new android.app.AlertDialog.Builder(this)
-                        .setTitle("Stop Server")
-                        .setMessage("Stop the Python server on your PC?")
-                        .setPositiveButton("Stop", (d, w) -> {
-                            connectionManager.toggleServerState(true, null);
-                            Toast.makeText(this, "Stopping server...", Toast.LENGTH_SHORT).show();
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            } else {
-                // Server is disconnected - show options
-                new android.app.AlertDialog.Builder(this)
-                        .setTitle("Server Options")
-                        .setMessage("What would you like to do?")
-                        .setPositiveButton("Start Server", (d, w) -> {
-                            connectionManager.toggleServerState(false, null);
-                            Toast.makeText(this, "Starting server...", Toast.LENGTH_SHORT).show();
-                        })
-                        .setNeutralButton("Test Connection", (d, w) -> testConnection())
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            }
-        });
-
+        // Connection management moved to header connect icon and Devices tab
+        // QR scan accessible from Connection bottom sheet or Devices tab
         findViewById(R.id.btnOpenNotepad).setOnClickListener(v -> connectionManager.sendCommand("OPEN_NOTEPAD"));
-        findViewById(R.id.btnMenu).setOnClickListener(v -> showServerSelectionDialog());
-        findViewById(R.id.btnScanQR).setOnClickListener(v -> startQRScan());
         findViewById(R.id.btnVoice).setOnClickListener(v -> startVoiceRecognition(300));
         findViewById(R.id.btnWriteAI).setOnClickListener(v -> showWriteAIDialog());
         findViewById(R.id.btnEnterPresenter).setOnClickListener(v -> togglePresenterMode(true));
@@ -324,8 +328,8 @@ public class MainActivity extends AppCompatActivity {
         // startConnectionMonitor();
 
         // Show initial status
-        tvStatus.setText("● No server selected");
-        tvStatus.setTextColor(Color.parseColor("#FFB74D")); // Warm orange
+        tvStatus.setText("Not Connected");
+        tvStatus.setTextColor(Color.parseColor("#EF5350")); // Red for not connected
         // file reciver
         // connectionManager.startFileReceiver(this);
 
@@ -454,15 +458,11 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             isServerCurrentlyRunning = isConnected;
             if (isConnected) {
-                tvStatus.setText("● Connected: " + connectionManager.getLaptopIp());
-                tvStatus.setTextColor(Color.parseColor("#66BB6A"));
-                btnStop.setText("Stop Server");
-                btnStop.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#C62828"))); // Deep Red
+                tvStatus.setText("Connected");
+                tvStatus.setTextColor(android.graphics.Color.parseColor("#66BB6A"));
             } else {
-                tvStatus.setText("● Disconnected");
-                tvStatus.setTextColor(Color.parseColor("#EF5350"));
-                btnStop.setText("Start Server");
-                btnStop.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#1565C0"))); // Blue
+                tvStatus.setText("Not Connected");
+                tvStatus.setTextColor(android.graphics.Color.parseColor("#EF5350"));
             }
             // Keep Dynamic Bar in sync
             updateDynamicBar();
@@ -470,16 +470,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void testConnection() {
-        btnStop.setEnabled(false);
-        btnStop.setText("Testing...");
-
         connectionManager.testConnection(new ConnectionManager.PingCallback() {
             @Override
             public void onSuccess(long responseTime) {
                 runOnUiThread(() -> {
                     Toast.makeText(MainActivity.this, "Connected (" + responseTime + "ms)", Toast.LENGTH_SHORT).show();
                     lastServerHeartbeat = System.currentTimeMillis();
-                    btnStop.setEnabled(true);
                 });
             }
 
@@ -488,7 +484,6 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     Toast.makeText(MainActivity.this, "Server not responding", Toast.LENGTH_SHORT).show();
                     lastServerHeartbeat = 0;
-                    btnStop.setEnabled(true);
                 });
             }
         });
@@ -745,8 +740,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Toast.makeText(this, "Server set to: " + ipAddress, Toast.LENGTH_SHORT).show();
-        tvStatus.setText("● Connecting to " + ipAddress + "...");
-        tvStatus.setTextColor(Color.parseColor("#FFB74D")); // Warm orange
+        tvStatus.setText("Connecting...");
+        tvStatus.setTextColor(Color.parseColor("#FFB74D")); // Amber
     }
 
     private void startQRScan() {
@@ -999,9 +994,270 @@ public class MainActivity extends AppCompatActivity {
             startActivity(mediaVaultIntent);
         });
 
+        // ─── New Feature Cards ───
+        // System Monitor Card
+        findViewById(R.id.cardSystemMonitor).setOnClickListener(v -> showSystemMonitorMenu());
+
+        // Clipboard Sync Card
+        findViewById(R.id.cardClipboardSync).setOnClickListener(v -> showClipboardDialog());
+
+        // Remote Shutdown/Restart/Sleep Card
+        findViewById(R.id.cardRemoteShutdown).setOnClickListener(v -> showPowerControlMenu());
+
+        // Custom Shortcuts Card
+        findViewById(R.id.cardCustomShortcuts).setOnClickListener(v -> showCustomShortcutsMenu());
+
+        // Browser Remote Card
+        findViewById(R.id.cardBrowserRemote).setOnClickListener(v -> showBrowserRemoteMenu());
+
+        // Game Controller Card
+        findViewById(R.id.cardGameController).setOnClickListener(v ->
+            Toast.makeText(this, "Game Controller — coming soon!", Toast.LENGTH_SHORT).show());
+
+        // Whiteboard Card
+        findViewById(R.id.cardWhiteboard).setOnClickListener(v ->
+            Toast.makeText(this, "Whiteboard — coming soon!", Toast.LENGTH_SHORT).show());
+
         // Update card summaries on resume
         updateExpenseCardSummary();
         updateVaultCardSummary();
+    }
+
+    // ═══ TAB NAVIGATION ═══
+
+    private void showTab(View targetScreen) {
+        homeScreen.setVisibility(View.GONE);
+        devicesScreen.setVisibility(View.GONE);
+        historyScreen.setVisibility(View.GONE);
+        // touchpadScreen is managed separately
+        targetScreen.setVisibility(View.VISIBLE);
+    }
+
+    // ═══ CONNECTION BOTTOM SHEET ═══
+
+    private void showConnectionBottomSheet() {
+        android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+        android.view.LayoutInflater inflater = android.view.LayoutInflater.from(this);
+        android.view.View sheetView = inflater.inflate(R.layout.bottom_sheet_connection, container, false);
+
+        // Status text
+        android.widget.TextView bsStatus = sheetView.findViewById(R.id.bsConnectionStatusText);
+        if (isServerCurrentlyRunning) {
+            bsStatus.setText("● Connected: " + connectionManager.getLaptopIp());
+            bsStatus.setTextColor(Color.parseColor("#66BB6A"));
+        } else {
+            bsStatus.setText("● Not Connected");
+            bsStatus.setTextColor(Color.parseColor("#EF5350"));
+        }
+
+        // Server list
+        android.widget.ListView bsServerList = sheetView.findViewById(R.id.bsServerListView);
+        android.content.SharedPreferences prefs = getSharedPreferences("MobileControllerPrefs", MODE_PRIVATE);
+        String serversJson = prefs.getString("saved_servers", "[]");
+        java.util.List<String> serverItems = new java.util.ArrayList<>();
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray(serversJson);
+            for (int i = 0; i < arr.length(); i++) {
+                org.json.JSONObject obj = arr.getJSONObject(i);
+                serverItems.add(obj.optString("name", "Server") + " — " + obj.optString("ip", ""));
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        if (serverItems.isEmpty()) serverItems.add("No saved servers");
+        android.widget.ArrayAdapter<String> bsAdapter = new android.widget.ArrayAdapter<>(
+            this, android.R.layout.simple_list_item_1, serverItems);
+        bsServerList.setAdapter(bsAdapter);
+
+        // Buttons
+        sheetView.findViewById(R.id.bsQrPairBtn).setOnClickListener(btn -> startQRScan());
+        sheetView.findViewById(R.id.bsAddServerBtn).setOnClickListener(btn -> showManualIPDialog());
+        sheetView.findViewById(R.id.bsAutoDiscoverBtn).setOnClickListener(btn -> showServerSelectionDialog());
+        sheetView.findViewById(R.id.bsStartServerBtn).setOnClickListener(btn -> {
+            if (isServerCurrentlyRunning) {
+                connectionManager.toggleServerState(true, null);
+                Toast.makeText(this, "Stopping server...", Toast.LENGTH_SHORT).show();
+            } else {
+                if (!serverSelected) {
+                    Toast.makeText(this, "Select a server first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                connectionManager.toggleServerState(false, null);
+                Toast.makeText(this, "Starting server...", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        dialog.setContentView(sheetView);
+        dialog.show();
+    }
+
+    // ═══ DEVICES TAB SETUP ═══
+
+    private void setupDevicesTab() {
+        View devTab = devicesScreen;
+        if (devTab == null) return;
+
+        // QR Pair card in Devices tab
+        View qrCard = devTab.findViewById(R.id.devicesQrPairCard);
+        if (qrCard != null) qrCard.setOnClickListener(v -> startQRScan());
+
+        // Manual IP card
+        View manualCard = devTab.findViewById(R.id.devicesManualIpCard);
+        if (manualCard != null) manualCard.setOnClickListener(v -> showManualIPDialog());
+
+        // Auto Discover card
+        View discoverCard = devTab.findViewById(R.id.devicesAutoDiscoverCard);
+        if (discoverCard != null) discoverCard.setOnClickListener(v -> showServerSelectionDialog());
+
+        // Start Server button in Devices tab
+        Button devStartBtn = devTab.findViewById(R.id.devicesStartServerBtn);
+        if (devStartBtn != null) {
+            devStartBtn.setOnClickListener(v -> {
+                if (isServerCurrentlyRunning) {
+                    connectionManager.toggleServerState(true, null);
+                    Toast.makeText(this, "Stopping server...", Toast.LENGTH_SHORT).show();
+                } else {
+                    if (!serverSelected) {
+                        Toast.makeText(this, "Select a server first", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    connectionManager.toggleServerState(false, null);
+                    Toast.makeText(this, "Starting server...", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        // Disconnect button
+        Button btnDisconnect = devTab.findViewById(R.id.btnDisconnect);
+        if (btnDisconnect != null) {
+            btnDisconnect.setOnClickListener(v -> {
+                serverSelected = false;
+                updateConnectionUI(false);
+                Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // Populate saved servers list
+        refreshDevicesServerList();
+    }
+
+    private void refreshDevicesServerList() {
+        View devTab = devicesScreen;
+        if (devTab == null) return;
+        android.widget.ListView devServerList = devTab.findViewById(R.id.devicesServerListView);
+        if (devServerList == null) return;
+
+        android.content.SharedPreferences prefs = getSharedPreferences("MobileControllerPrefs", MODE_PRIVATE);
+        String serversJson = prefs.getString("saved_servers", "[]");
+        java.util.List<String> serverItems = new java.util.ArrayList<>();
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray(serversJson);
+            for (int i = 0; i < arr.length(); i++) {
+                org.json.JSONObject obj = arr.getJSONObject(i);
+                serverItems.add(obj.optString("name", "Server") + "\n" + obj.optString("ip", ""));
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        if (serverItems.isEmpty()) serverItems.add("No saved servers\nAdd one below");
+        android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+            this, android.R.layout.simple_list_item_1, serverItems);
+        devServerList.setAdapter(adapter);
+        devServerList.setOnItemClickListener((parent, view, pos, id) -> {
+            // Try to connect to this server
+            try {
+                android.content.SharedPreferences p = getSharedPreferences("MobileControllerPrefs", MODE_PRIVATE);
+                org.json.JSONArray arr = new org.json.JSONArray(p.getString("saved_servers", "[]"));
+                if (pos < arr.length()) {
+                    String ip = arr.getJSONObject(pos).optString("ip", "");
+                    if (!ip.isEmpty()) selectServer(ip);
+                }
+            } catch (Exception e) { e.printStackTrace(); }
+        });
+    }
+
+    // ═══ NEW FEATURE MENUS ═══
+
+    private void showSystemMonitorMenu() {
+        String[] options = {"📊  CPU Usage", "💾  RAM Usage", "🖥️  GPU Info", "💿  Disk Usage", "📶  Network Speed"};
+        new AlertDialog.Builder(this)
+            .setTitle("📊 System Monitor")
+            .setItems(options, (dialog, which) -> {
+                switch (which) {
+                    case 0: connectionManager.sendCommand("SYS_CPU"); break;
+                    case 1: connectionManager.sendCommand("SYS_RAM"); break;
+                    case 2: connectionManager.sendCommand("SYS_GPU"); break;
+                    case 3: connectionManager.sendCommand("SYS_DISK"); break;
+                    case 4: connectionManager.sendCommand("SYS_NET"); break;
+                }
+            })
+            .show();
+    }
+
+    private void showPowerControlMenu() {
+        String[] options = {"⏻  Shutdown PC", "🔄  Restart PC", "💤  Sleep PC", "🔒  Lock PC", "🚪  Log Off"};
+        new AlertDialog.Builder(this)
+            .setTitle("⏻ Power Control")
+            .setItems(options, (dialog, which) -> {
+                String[] commands = {"SHUTDOWN_LAPTOP", "RESTART_PC", "SLEEP_PC", "LOCK_PC", "LOGOFF_PC"};
+                String[] labels = {"Shutting down", "Restarting", "Sleeping", "Locking", "Logging off"};
+                new AlertDialog.Builder(this)
+                    .setTitle("Confirm: " + options[which])
+                    .setMessage(labels[which] + " your PC. Are you sure?")
+                    .setPositiveButton("Confirm", (d, w) -> {
+                        connectionManager.sendCommand(commands[which]);
+                        Toast.makeText(this, labels[which] + " PC...", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            })
+            .show();
+    }
+
+    private void showCustomShortcutsMenu() {
+        String[] shortcuts = {
+            "Alt+Tab — Switch Apps",
+            "Win+D — Show Desktop",
+            "Ctrl+Alt+Del — Security Screen",
+            "PrtScr — Screenshot",
+            "Win+L — Lock Screen",
+            "Ctrl+C — Copy",
+            "Ctrl+V — Paste",
+            "Ctrl+Z — Undo",
+            "Ctrl+Shift+Esc — Task Manager"
+        };
+        String[] commands = {
+            "KEY_COMBO:ALT+TAB", "KEY_COMBO:WIN+D", "KEY_COMBO:CTRL+ALT+DEL",
+            "KEY:PRINTSCREEN", "KEY_COMBO:WIN+L",
+            "KEY_COMBO:CTRL+C", "KEY_COMBO:CTRL+V", "KEY_COMBO:CTRL+Z",
+            "KEY_COMBO:CTRL+SHIFT+ESC"
+        };
+        new AlertDialog.Builder(this)
+            .setTitle("⌨ Custom Shortcuts")
+            .setItems(shortcuts, (dialog, which) -> {
+                connectionManager.sendCommand(commands[which]);
+                Toast.makeText(this, "Sent: " + shortcuts[which].split("—")[0].trim(), Toast.LENGTH_SHORT).show();
+            })
+            .show();
+    }
+
+    private void showBrowserRemoteMenu() {
+        String[] options = {
+            "◀  Back", "▶  Forward", "↻  Refresh",
+            "⊕  New Tab", "✕  Close Tab",
+            "⬆  Scroll Up", "⬇  Scroll Down",
+            "🔍  Focus Address Bar"
+        };
+        String[] commands = {
+            "BROWSER:BACK", "BROWSER:FORWARD", "BROWSER:REFRESH",
+            "BROWSER:NEW_TAB", "BROWSER:CLOSE_TAB",
+            "BROWSER:SCROLL_UP", "BROWSER:SCROLL_DOWN",
+            "BROWSER:FOCUS_BAR"
+        };
+        new AlertDialog.Builder(this)
+            .setTitle("🌐 Browser Remote")
+            .setItems(options, (dialog, which) -> {
+                connectionManager.sendCommand(commands[which]);
+            })
+            .show();
     }
 
     @Override
@@ -1009,6 +1265,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         updateExpenseCardSummary();
         updateVaultCardSummary();
+        refreshDevicesServerList();
     }
 
     private void updateExpenseCardSummary() {
@@ -1079,24 +1336,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void navigateToTouchpad() {
+        View connectionBar = findViewById(R.id.connectionBar);
         Animation slideOut = AnimationUtils.loadAnimation(this, R.anim.anim_slide_out_left);
         Animation slideIn = AnimationUtils.loadAnimation(this, R.anim.anim_slide_in_right);
+        // Hide all tab screens
+        homeScreen.setVisibility(View.GONE);
+        devicesScreen.setVisibility(View.GONE);
+        historyScreen.setVisibility(View.GONE);
         slideOut.setAnimationListener(new Animation.AnimationListener() {
             @Override public void onAnimationStart(Animation a) {}
             @Override public void onAnimationRepeat(Animation a) {}
             @Override public void onAnimationEnd(Animation a) {
-                homeScreen.setVisibility(View.GONE);
                 touchpadScreen.setVisibility(View.VISIBLE);
                 touchpadScreen.startAnimation(slideIn);
             }
         });
-        homeScreen.startAnimation(slideOut);
+        if (connectionBar != null) connectionBar.setVisibility(View.VISIBLE);
         btnBackHome.setVisibility(View.VISIBLE);
         btnBackHome.setAlpha(0f);
         btnBackHome.animate().alpha(1f).setDuration(300).start();
+        bottomNavigation.setVisibility(View.GONE);
     }
 
     private void navigateToHome() {
+        View connectionBar = findViewById(R.id.connectionBar);
         Animation slideOut = AnimationUtils.loadAnimation(this, R.anim.anim_slide_out_right);
         Animation slideIn = AnimationUtils.loadAnimation(this, R.anim.anim_slide_in_left);
         slideOut.setAnimationListener(new Animation.AnimationListener() {
@@ -1109,9 +1372,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         touchpadScreen.startAnimation(slideOut);
+        if (connectionBar != null) connectionBar.setVisibility(View.GONE);
         btnBackHome.animate().alpha(0f).setDuration(200).withEndAction(() ->
             btnBackHome.setVisibility(View.GONE)
         ).start();
+        bottomNavigation.setVisibility(View.VISIBLE);
+        bottomNavigation.setSelectedItemId(R.id.nav_home);
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) imm.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
     }
