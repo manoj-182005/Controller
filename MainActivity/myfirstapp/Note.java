@@ -30,6 +30,8 @@ public class Note {
     public long updatedAt;
     public long deletedAt;             // 0 = not deleted
     public String folderId;            // null = All Notes (root)
+    public String linkedCalendarEventId; // null = no linked event
+    public String linkedExpenseId;       // null = no linked expense
 
     // ─── Default Categories ──────────────────────────────────────
 
@@ -167,6 +169,8 @@ public class Note {
             json.put("updatedAt", updatedAt);
             json.put("deletedAt", deletedAt);
             json.put("folderId", folderId != null ? folderId : "");
+            json.put("linkedCalendarEventId", linkedCalendarEventId != null ? linkedCalendarEventId : "");
+            json.put("linkedExpenseId", linkedExpenseId != null ? linkedExpenseId : "");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -202,6 +206,10 @@ public class Note {
             note.deletedAt = json.optLong("deletedAt", 0);
             note.folderId = json.optString("folderId", "");
             if (note.folderId.isEmpty()) note.folderId = null;
+            note.linkedCalendarEventId = json.optString("linkedCalendarEventId", "");
+            if (note.linkedCalendarEventId.isEmpty()) note.linkedCalendarEventId = null;
+            note.linkedExpenseId = json.optString("linkedExpenseId", "");
+            if (note.linkedExpenseId.isEmpty()) note.linkedExpenseId = null;
 
             if (note.plainTextPreview.isEmpty() && !note.body.isEmpty()) {
                 note.updatePlainTextPreview();

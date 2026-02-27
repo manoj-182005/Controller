@@ -544,6 +544,36 @@ public class CalendarEventDetailActivity extends AppCompatActivity {
         actions.addView(makeActionBtn("\uD83D\uDCE4 Share", v -> shareEvent()));
         spacer(actions); spacer(actions);
         actions.addView(makeActionBtn("\uD83D\uDCCC Create Task", v -> createTaskFromEvent()));
+
+        // Linked Note chip
+        if (event != null && event.linkedNoteId != null && !event.linkedNoteId.isEmpty()) {
+            NoteRepository noteRepo = new NoteRepository(this);
+            Note linkedNote = noteRepo.getNoteById(event.linkedNoteId);
+            if (linkedNote != null) {
+                LinearLayout noteChipRow = new LinearLayout(this);
+                noteChipRow.setOrientation(LinearLayout.HORIZONTAL);
+                noteChipRow.setPadding(0, dp(8), 0, dp(4));
+                noteChipRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                TextView noteChip = new TextView(this);
+                noteChip.setText("📝 Linked Note: " + (linkedNote.title.isEmpty() ? "Untitled" : linkedNote.title));
+                noteChip.setTextColor(0xFF60A5FA);
+                noteChip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                noteChip.setPadding(dp(12), dp(8), dp(12), dp(8));
+                GradientDrawable chipBg = new GradientDrawable();
+                chipBg.setColor(0x1A60A5FA);
+                chipBg.setCornerRadius(dp(12));
+                noteChip.setBackground(chipBg);
+                noteChip.setOnClickListener(v2 -> {
+                    Intent noteIntent = new Intent(this, NoteEditorActivity.class);
+                    noteIntent.putExtra("note_id", linkedNote.id);
+                    startActivity(noteIntent);
+                });
+                noteChipRow.addView(noteChip);
+                content.addView(noteChipRow);
+            }
+        }
+
         content.addView(actions);
 
         scroll.addView(content);

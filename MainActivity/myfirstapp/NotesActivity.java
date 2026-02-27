@@ -384,8 +384,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                     startActivity(new Intent(this, TagsManagerActivity.class));
                     return true;
                 case 4:
-                    // Settings - could be implemented later
-                    Toast.makeText(this, "Settings coming soon", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(this, NotesSettingsActivity.class));
                     return true;
             }
             return false;

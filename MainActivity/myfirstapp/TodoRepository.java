@@ -432,6 +432,20 @@ public class TodoRepository {
         Log.i(TAG, "Added timer session to item: " + itemId);
     }
 
+    // ─── Bulk operations ─────────────────────────────────────────
+
+    /** Permanently deletes all completed to-do items across all lists. */
+    public void clearAllCompleted() {
+        List<TodoItem> all = new ArrayList<>(items);
+        for (TodoItem item : all) {
+            if (item.isCompleted || TodoItem.STATUS_COMPLETED.equals(item.status)) {
+                items.remove(item);
+            }
+        }
+        saveItems();
+        Log.i(TAG, "Cleared all completed to-do items");
+    }
+
     // ─── Subtasks ────────────────────────────────────────────────
 
     /** Replaces the subtask list for an item and persists. */

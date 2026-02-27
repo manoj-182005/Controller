@@ -1297,6 +1297,8 @@ public class NoteEditorActivity extends AppCompatActivity {
         popup.getMenu().add(0, 9, 8, "Use Template");
         popup.getMenu().add(0, 10, 9, "Save as Template");
         popup.getMenu().add(0, 11, 10, "Set Writing Goal");
+        popup.getMenu().add(0, 12, 11, "📅  Link to Calendar Event");
+        popup.getMenu().add(0, 13, 12, "💰  Link to Expense");
 
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
@@ -1332,6 +1334,12 @@ public class NoteEditorActivity extends AppCompatActivity {
                     return true;
                 case 11:
                     setWordCountGoal();
+                    return true;
+                case 12:
+                    showLinkCalendarEventSheet();
+                    return true;
+                case 13:
+                    showLinkExpenseSheet();
                     return true;
             }
             return false;
@@ -1791,6 +1799,119 @@ public class NoteEditorActivity extends AppCompatActivity {
         if (progress >= 1.0f && !goalReached) {
             goalReached = true;
             Toast.makeText(this, "🎉 Writing goal reached!", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  CROSS-FEATURE INTEGRATIONS
+    // ═══════════════════════════════════════════════════════════════
+
+    /** Shows upcoming calendar events in a bottom-sheet style dialog for linking. */
+    private void showLinkCalendarEventSheet() {
+        CalendarRepository calendarRepo = new CalendarRepository(this);
+        List<CalendarEvent> events = calendarRepo.getAllEvents();
+
+        if (events.isEmpty()) {
+            Toast.makeText(this, "No calendar events found. Create events in the Calendar feature first.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Build display labels
+        String[] labels = new String[Math.min(events.size(), 20)];
+        final CalendarEvent[] limited = new CalendarEvent[labels.length];
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM d", java.util.Locale.US);
+        for (int i = 0; i < labels.length; i++) {
+            CalendarEvent ev = events.get(i);
+            limited[i] = ev;
+            String date = ev.startDate != null ? ev.startDate : "";
+            String time = ev.startTime != null ? " at " + ev.startTime : "";
+            labels[i] = ev.title + " — " + date + time;
+        }
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Link to Calendar Event")
+                .setItems(labels, (dialog, which) -> {
+                    CalendarEvent selected = limited[which];
+                    if (currentNote != null) {
+                        currentNote.linkedCalendarEventId = selected.id;
+                        hasUnsavedChanges = true;
+                        // Also link back on the event side
+                        selected.linkedNoteId = currentNote.id;
+                        calendarRepo.updateEvent(selected);
+                        saveNote(false);
+                        Toast.makeText(this, "📅 Linked: " + selected.title, Toast.LENGTH_SHORT).show();
+                        refreshLinkedCalendarChip();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** Shows recent expenses in a dialog for linking to this note. */
+    private void showLinkExpenseSheet() {
+        ExpenseRepository expenseRepo = new ExpenseRepository(this);
+        java.util.ArrayList<Expense> expenses = expenseRepo.loadAll();
+
+        if (expenses.isEmpty()) {
+            Toast.makeText(this, "No expenses found. Add expenses in the Expense Tracker first.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        int limit = Math.min(expenses.size(), 20);
+        String[] labels = new String[limit];
+        final Expense[] limited = new Expense[limit];
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MMM d", java.util.Locale.US);
+        for (int i = 0; i < limit; i++) {
+            Expense exp = expenses.get(expenses.size() - 1 - i); // most recent first
+            limited[i] = exp;
+            String dateStr = sdf.format(new java.util.Date(exp.timestamp));
+            labels[i] = exp.category + " ₹" + String.format(java.util.Locale.US, "%.0f", exp.amount)
+                    + " — " + dateStr;
+        }
+
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Link to Expense")
+                .setItems(labels, (dialog, which) -> {
+                    Expense selected = limited[which];
+                    if (currentNote != null) {
+                        currentNote.linkedExpenseId = selected.id;
+                        hasUnsavedChanges = true;
+                        saveNote(false);
+                        String dateStr = sdf.format(new java.util.Date(selected.timestamp));
+                        Toast.makeText(this, "💰 Linked: " + selected.category
+                                + " ₹" + String.format(java.util.Locale.US, "%.0f", selected.amount)
+                                + " — " + dateStr,
+                                Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    /** Refreshes the linked calendar chip below the category tag (if view exists). */
+    private void refreshLinkedCalendarChip() {
+        if (currentNote == null || currentNote.linkedCalendarEventId == null) return;
+        CalendarRepository calRepo = new CalendarRepository(this);
+        CalendarEvent ev = calRepo.getEventById(currentNote.linkedCalendarEventId);
+        if (ev == null) return;
+        // Show as toast chip (full chip UI would be in the layout)
+        Toast.makeText(this, "📅 Linked: " + ev.title, Toast.LENGTH_SHORT).show();
+    }
+
+    /** Refreshes the linked expense chip (if view exists). */
+    private void refreshLinkedExpenseChip() {
+        if (currentNote == null || currentNote.linkedExpenseId == null) return;
+        ExpenseRepository expRepo = new ExpenseRepository(this);
+        for (Expense exp : expRepo.loadAll()) {
+            if (exp.id.equals(currentNote.linkedExpenseId)) {
+                String dateStr = new java.text.SimpleDateFormat("MMM d", java.util.Locale.US)
+                        .format(new java.util.Date(exp.timestamp));
+                Toast.makeText(this, "💰 Linked: " + exp.category
+                        + " ₹" + String.format(java.util.Locale.US, "%.0f", exp.amount)
+                        + " — " + dateStr,
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
     }
 }
