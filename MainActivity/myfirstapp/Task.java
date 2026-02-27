@@ -48,6 +48,9 @@ public class Task {
     public boolean isTrashed;
     public long trashedAt;                // 0 = not trashed
     public String source;                 // "mobile" or "pc"
+    public String dependsOnTaskId;        // ID of a task that must complete first
+    public String linkedNoteId;           // ID of a linked note
+    public String templateId;             // ID of template used to create this task
 
     // ─── Constants ───────────────────────────────────────────────
 
@@ -523,6 +526,9 @@ public class Task {
             json.put("isTrashed", isTrashed);
             json.put("trashedAt", trashedAt);
             json.put("source", source);
+            json.put("dependsOnTaskId", dependsOnTaskId != null ? dependsOnTaskId : "");
+            json.put("linkedNoteId", linkedNoteId != null ? linkedNoteId : "");
+            json.put("templateId", templateId != null ? templateId : "");
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -617,6 +623,12 @@ public class Task {
             task.isTrashed = json.optBoolean("isTrashed", false);
             task.trashedAt = json.optLong("trashedAt", 0);
             task.source = json.optString("source", "mobile");
+            String depId = json.optString("dependsOnTaskId", "");
+            task.dependsOnTaskId = depId.isEmpty() ? null : depId;
+            String noteId = json.optString("linkedNoteId", "");
+            task.linkedNoteId = noteId.isEmpty() ? null : noteId;
+            String tmplId = json.optString("templateId", "");
+            task.templateId = tmplId.isEmpty() ? null : tmplId;
 
             return task;
         } catch (Exception e) {
