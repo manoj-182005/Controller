@@ -33,12 +33,20 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.net.Uri;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+
+import com.prajwal.myfirstapp.Meeting;
+import com.prajwal.myfirstapp.MeetingRepository;
+import com.prajwal.myfirstapp.CreateMeetingActivity;
+import com.prajwal.myfirstapp.MeetingDetailActivity;
+import com.prajwal.myfirstapp.MeetingsListActivity;
 
 /**
  * Task Manager Activity — Complete redesign (Part 1).
@@ -75,6 +83,7 @@ public class TaskManagerActivity extends AppCompatActivity
 
     // ─── Data ────────────────────────────────────────────────────
     private TaskRepository repo;
+    private MeetingRepository meetingRepo;
     private ConnectionManager connectionManager;
     private String serverIp;
 
@@ -112,9 +121,13 @@ public class TaskManagerActivity extends AppCompatActivity
     private LinearLayout bulkActionBar;
     private TextView tvBulkCount;
 
+    // Meetings section
+    private LinearLayout meetingsSectionHeader;
+    private LinearLayout meetingsStripContainer;
+
     // ─── Filter chip names ───────────────────────────────────────
     private static final String[] FILTER_NAMES = {
-        "All", "Today", "Upcoming", "Overdue", "Starred", "Completed", "Priority"
+        "All", "Today", "Upcoming", "Overdue", "Starred", "Completed", "Priority", "Meetings"
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -138,6 +151,20 @@ public class TaskManagerActivity extends AppCompatActivity
         createNotificationChannel();
         initViews();
         buildFilterChips();
+
+        meetingRepo = MeetingRepository.getInstance(this);
+        TextView btnViewAllMeetings = findViewById(R.id.btnViewAllMeetings);
+        TextView btnAddMeeting = findViewById(R.id.btnAddMeeting);
+        if (btnViewAllMeetings != null) {
+            btnViewAllMeetings.setOnClickListener(v ->
+                    startActivity(new Intent(this, MeetingsListActivity.class)));
+        }
+        if (btnAddMeeting != null) {
+            btnAddMeeting.setOnClickListener(v ->
+                    startActivity(new Intent(this, CreateMeetingActivity.class)));
+        }
+        loadMeetingsStrip();
+
         refreshAll();
 
         // Sync on open
@@ -149,6 +176,7 @@ public class TaskManagerActivity extends AppCompatActivity
         super.onResume();
         instance = this;
         repo.reload();
+        if (meetingRepo != null) loadMeetingsStrip();
         refreshAll();
     }
 
@@ -321,6 +349,10 @@ public class TaskManagerActivity extends AppCompatActivity
             sheet.show(getSupportFragmentManager(), "task_editor");
         });
 
+        // Meetings section views
+        meetingsSectionHeader = findViewById(R.id.meetingsSectionHeader);
+        meetingsStripContainer = findViewById(R.id.meetingsStripContainer);
+
         // Bulk action bar
         bulkActionBar = findViewById(R.id.bulkActionBar);
         tvBulkCount = findViewById(R.id.tvBulkCount);
@@ -354,6 +386,10 @@ public class TaskManagerActivity extends AppCompatActivity
     }
 
     private void selectFilter(String filter) {
+        if ("Meetings".equals(filter)) {
+            startActivity(new Intent(this, MeetingsListActivity.class));
+            return;
+        }
         currentFilter = filter;
         updateFilterChipVisuals();
         refreshTaskList();
@@ -407,6 +443,7 @@ public class TaskManagerActivity extends AppCompatActivity
             case "Starred":   return new int[]{Color.parseColor("#D97706"), Color.parseColor("#F59E0B")};
             case "Completed": return new int[]{Color.parseColor("#059669"), Color.parseColor("#10B981")};
             case "Priority":  return new int[]{Color.parseColor("#EA580C"), Color.parseColor("#F97316")};
+            case "Meetings":  return new int[]{Color.parseColor("#5B21B6"), Color.parseColor("#6C63FF")};
             default:          return new int[]{Color.parseColor("#3B82F6"), Color.parseColor("#6366F1")};
         }
     }
@@ -1239,6 +1276,89 @@ public class TaskManagerActivity extends AppCompatActivity
         if (nm != null) {
             nm.notify((int) System.currentTimeMillis(), builder.build());
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MEETINGS STRIP
+    // ═══════════════════════════════════════════════════════════════
+
+    private void loadMeetingsStrip() {
+        if (meetingsStripContainer == null || meetingRepo == null) return;
+        meetingsStripContainer.removeAllViews();
+        List<Meeting> upcomingMeetings = meetingRepo.getUpcomingMeetings();
+        int limit = Math.min(5, upcomingMeetings.size());
+        for (int i = 0; i < limit; i++) {
+            addMeetingStripCard(upcomingMeetings.get(i));
+        }
+        addAddMeetingCard();
+        int visibility = upcomingMeetings.isEmpty() ? View.GONE : View.VISIBLE;
+        if (meetingsSectionHeader != null) meetingsSectionHeader.setVisibility(visibility);
+        View stripScroll = findViewById(R.id.meetingsStripScroll);
+        if (stripScroll != null) stripScroll.setVisibility(visibility);
+    }
+
+    private void addMeetingStripCard(Meeting m) {
+        View card = LayoutInflater.from(this).inflate(
+                R.layout.item_meeting_card_strip, meetingsStripContainer, false);
+
+        TextView tvTitle    = card.findViewById(R.id.tvStripTitle);
+        TextView tvTime     = card.findViewById(R.id.tvStripTime);
+        TextView tvDuration = card.findViewById(R.id.tvStripDuration);
+        TextView tvPlatform = card.findViewById(R.id.tvStripPlatformBadge);
+        TextView tvAttendees = card.findViewById(R.id.tvStripAttendeeCount);
+        TextView btnJoin    = card.findViewById(R.id.btnStripJoin);
+
+        tvTitle.setText(m.title);
+        tvTime.setText(m.getFormattedDateRange());
+
+        String dur = m.getDurationText();
+        tvDuration.setVisibility(dur.isEmpty() ? View.GONE : View.VISIBLE);
+        tvDuration.setText(dur);
+
+        if (m.platform != null && !m.platform.isEmpty()) {
+            tvPlatform.setText(m.platform);
+            tvPlatform.setVisibility(View.VISIBLE);
+        }
+
+        int count = m.getAttendeeCount();
+        tvAttendees.setText(count + " " + (count == 1 ? "person" : "people"));
+
+        if ((m.isHappeningNow() || m.isStartingSoon())
+                && m.meetingLink != null && !m.meetingLink.trim().isEmpty()) {
+            btnJoin.setVisibility(View.VISIBLE);
+            btnJoin.setOnClickListener(v ->
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(m.meetingLink))));
+        }
+
+        card.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MeetingDetailActivity.class);
+            intent.putExtra(MeetingDetailActivity.EXTRA_MEETING_ID, m.id);
+            startActivity(intent);
+        });
+
+        meetingsStripContainer.addView(card);
+    }
+
+    private void addAddMeetingCard() {
+        TextView addCard = new TextView(this);
+        addCard.setText("+");
+        addCard.setTextColor(Color.parseColor("#6C63FF"));
+        addCard.setTextSize(28);
+        addCard.setGravity(Gravity.CENTER);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.RECTANGLE);
+        bg.setCornerRadius(dp(12));
+        bg.setColor(Color.parseColor("#1E1E3A"));
+        addCard.setBackground(bg);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(80), dp(80));
+        lp.setMarginEnd(dp(10));
+        addCard.setLayoutParams(lp);
+
+        addCard.setOnClickListener(v ->
+                startActivity(new Intent(this, CreateMeetingActivity.class)));
+        meetingsStripContainer.addView(addCard);
     }
 
     // ═══════════════════════════════════════════════════════════════
