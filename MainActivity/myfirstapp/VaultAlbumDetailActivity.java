@@ -79,8 +79,7 @@ public class VaultAlbumDetailActivity extends AppCompatActivity {
             adapter.setClickListener(new VaultFileGridAdapter.OnFileClickListener() {
                 @Override
                 public void onFileClick(VaultFileItem file, int position) {
-                    repo.logFileViewed(file);
-                    showFileOptions(file);
+                    openFileViewer(file);
                 }
                 @Override
                 public void onFileLongClick(VaultFileItem file, int position) {
@@ -93,29 +92,63 @@ public class VaultAlbumDetailActivity extends AppCompatActivity {
         }
     }
 
+    private void openFileViewer(VaultFileItem file) {
+        repo.logFileViewed(file);
+        Intent intent;
+        switch (file.fileType) {
+            case IMAGE:
+                intent = new Intent(this, VaultImageViewerActivity.class);
+                intent.putExtra("file_id", file.id);
+                intent.putExtra("file_list_type", album.id);
+                startActivity(intent);
+                break;
+            case VIDEO:
+                intent = new Intent(this, VaultVideoPlayerActivity.class);
+                intent.putExtra("file_id", file.id);
+                intent.putExtra("file_list_type", album.id);
+                startActivity(intent);
+                break;
+            case AUDIO:
+                intent = new Intent(this, VaultAudioPlayerActivity.class);
+                intent.putExtra("file_id", file.id);
+                intent.putExtra("file_list_type", album.id);
+                startActivity(intent);
+                break;
+            case DOCUMENT:
+            default:
+                intent = new Intent(this, VaultDocumentViewerActivity.class);
+                intent.putExtra("file_id", file.id);
+                startActivity(intent);
+                break;
+        }
+    }
+
     private void showFileOptions(VaultFileItem file) {
-        String[] options = {"⭐ " + (file.isFavourited ? "Unfavourite" : "Favourite"),
+        String[] options = {"▶ Open", "⭐ " + (file.isFavourited ? "Unfavourite" : "Favourite"),
                 "📤 Export to Device", "❌ Remove from Album", "🗑️ Delete File"};
         new AlertDialog.Builder(this, R.style.DarkAlertDialog)
                 .setTitle(file.originalFileName)
                 .setItems(options, (d, which) -> {
                     switch (which) {
                         case 0:
+                            openFileViewer(file);
+                            break;
+                        case 1:
                             file.isFavourited = !file.isFavourited;
                             repo.updateFile(file);
                             Toast.makeText(this, file.isFavourited ? "Favourited" : "Unfavourited", Toast.LENGTH_SHORT).show();
                             loadAlbumFiles();
                             break;
-                        case 1:
+                        case 2:
                             exportFile(file);
                             break;
-                        case 2:
+                        case 3:
                             file.albumId = null;
                             repo.updateFile(file);
                             loadAlbumFiles();
                             Toast.makeText(this, "Removed from album", Toast.LENGTH_SHORT).show();
                             break;
-                        case 3:
+                        case 4:
                             confirmDelete(file);
                             break;
                     }

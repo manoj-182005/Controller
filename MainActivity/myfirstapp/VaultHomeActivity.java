@@ -22,6 +22,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -110,12 +111,11 @@ public class VaultHomeActivity extends AppCompatActivity {
         });
         findViewById(R.id.btnVaultSearch).setOnClickListener(v -> {
             resetAutoLock();
-            startActivity(new Intent(this, VaultFileBrowserActivity.class)
-                    .putExtra("mode", "search"));
+            startActivity(new Intent(this, VaultSearchActivity.class));
         });
         findViewById(R.id.btnVaultSettings).setOnClickListener(v -> {
             resetAutoLock();
-            showVaultSettings();
+            startActivity(new Intent(this, VaultSettingsActivity.class));
         });
         tvSessionTimer.setOnClickListener(v -> showSessionOptions());
 
@@ -554,15 +554,17 @@ public class VaultHomeActivity extends AppCompatActivity {
     // ─── Import ───────────────────────────────────────────────────
 
     private void showImportOptions() {
-        String[] options = {"📷 Import from Photos/Gallery", "📁 Import from Files", "🎵 Import Audio"};
+        String[] options = {"📷 Import from Photos/Gallery", "🎬 Import Videos", "🎵 Import Audio", "📄 Import Documents", "📁 Import Any File"};
         new AlertDialog.Builder(this, R.style.DarkAlertDialog)
                 .setTitle("Import to Vault")
                 .setItems(options, (d, which) -> {
                     Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                     switch (which) {
                         case 0: intent.setType("image/*"); break;
-                        case 1: intent.setType("*/*"); break;
+                        case 1: intent.setType("video/*"); break;
                         case 2: intent.setType("audio/*"); break;
+                        case 3: intent.setType("application/*"); break;
+                        default: intent.setType("*/*"); break;
                     }
                     intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -575,47 +577,25 @@ public class VaultHomeActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == IMPORT_FILE_REQUEST && resultCode == RESULT_OK && data != null) {
-            showImportMethodDialog(data);
-        }
-    }
-
-    private void showImportMethodDialog(Intent data) {
-        new AlertDialog.Builder(this, R.style.DarkAlertDialog)
-                .setTitle("Import Method")
-                .setMessage("How would you like to import this file?")
-                .setPositiveButton("Move to Vault (delete original)", (d, w) -> performImport(data, true))
-                .setNegativeButton("Copy to Vault (keep original)", (d, w) -> performImport(data, false))
-                .show();
-    }
-
-    private void performImport(Intent data, boolean move) {
-        new Thread(() -> {
-            int count = 0;
+            // Collect URIs and pass to VaultImportActivity for the full import flow
+            ArrayList<String> uriStrings = new ArrayList<>();
             if (data.getClipData() != null) {
                 for (int i = 0; i < data.getClipData().getItemCount(); i++) {
-                    Uri uri = data.getClipData().getItemAt(i).getUri();
-                    String mime = getContentResolver().getType(uri);
-                    VaultFileItem result = repo.importFile(uri, mime, move);
-                    if (result != null) count++;
+                    uriStrings.add(data.getClipData().getItemAt(i).getUri().toString());
                 }
             } else if (data.getData() != null) {
-                Uri uri = data.getData();
-                String mime = getContentResolver().getType(uri);
-                VaultFileItem result = repo.importFile(uri, mime, move);
-                if (result != null) count++;
+                uriStrings.add(data.getData().toString());
             }
-            final int finalCount = count;
-            runOnUiThread(() -> {
-                if (finalCount > 0) {
-                    Toast.makeText(VaultHomeActivity.this,
-                            finalCount + " file" + (finalCount == 1 ? "" : "s") + " imported successfully",
-                            Toast.LENGTH_SHORT).show();
-                    loadData();
-                } else {
-                    Toast.makeText(VaultHomeActivity.this, "Import failed", Toast.LENGTH_SHORT).show();
+            if (!uriStrings.isEmpty()) {
+                Intent importIntent = new Intent(this, VaultImportActivity.class);
+                importIntent.putStringArrayListExtra(VaultImportActivity.EXTRA_IMPORT_URIS, uriStrings);
+                if (data.getData() != null) {
+                    importIntent.putExtra(VaultImportActivity.EXTRA_IMPORT_MIME,
+                            getContentResolver().getType(data.getData()));
                 }
-            });
-        }).start();
+                startActivity(importIntent);
+            }
+        }
     }
 
     // ─── Navigation ───────────────────────────────────────────────
@@ -629,9 +609,34 @@ public class VaultHomeActivity extends AppCompatActivity {
 
     private void openFileBrowser(VaultFileItem file) {
         repo.logFileViewed(file);
-        Intent intent = new Intent(this, VaultFileBrowserActivity.class);
-        if (file.fileType != null) intent.putExtra("file_type", file.fileType.name());
-        startActivity(intent);
+        // Open the appropriate viewer for the file type
+        Intent intent;
+        switch (file.fileType) {
+            case IMAGE:
+                intent = new Intent(this, VaultImageViewerActivity.class);
+                intent.putExtra("file_id", file.id);
+                intent.putExtra("file_list_type", "recent");
+                startActivity(intent);
+                break;
+            case VIDEO:
+                intent = new Intent(this, VaultVideoPlayerActivity.class);
+                intent.putExtra("file_id", file.id);
+                intent.putExtra("file_list_type", "recent");
+                startActivity(intent);
+                break;
+            case AUDIO:
+                intent = new Intent(this, VaultAudioPlayerActivity.class);
+                intent.putExtra("file_id", file.id);
+                intent.putExtra("file_list_type", "recent");
+                startActivity(intent);
+                break;
+            case DOCUMENT:
+            default:
+                intent = new Intent(this, VaultDocumentViewerActivity.class);
+                intent.putExtra("file_id", file.id);
+                startActivity(intent);
+                break;
+        }
     }
 
     private void showAllAlbums() {
