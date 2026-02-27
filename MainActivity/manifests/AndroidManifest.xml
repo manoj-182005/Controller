@@ -101,6 +101,25 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
 
+        <!-- Meetings List Activity -->
+        <activity
+            android:name=".MeetingsListActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Create / Edit Meeting Activity -->
+        <activity
+            android:name=".CreateMeetingActivity"
+            android:configChanges="orientation|screenSize"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Meeting Detail Activity -->
+        <activity
+            android:name=".MeetingDetailActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <!-- Notes Activity -->
         <activity
             android:name=".NotesActivity"
@@ -465,6 +484,18 @@
                 <action android:name="com.prajwal.myfirstapp.CALENDAR_DAILY_AGENDA" />
                 <action android:name="com.prajwal.myfirstapp.CALENDAR_VIEW_EVENT" />
                 <action android:name="com.prajwal.myfirstapp.CALENDAR_SNOOZE_15" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Meeting Reminder Receiver -->
+        <receiver
+            android:name=".MeetingReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.ACTION_MEETING_REMINDER" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_MEETING_STARTING_NOW" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_MEETING_MISSED" />
+                <action android:name="com.prajwal.myfirstapp.ACTION_JOIN_MEETING" />
             </intent-filter>
         </receiver>
 
