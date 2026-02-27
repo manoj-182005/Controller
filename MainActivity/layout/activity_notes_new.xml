@@ -272,6 +272,65 @@
                 </HorizontalScrollView>
             </LinearLayout>
 
+            <!-- ═══ TO-DO LISTS SECTION ═══ -->
+            <LinearLayout
+                android:id="@+id/todoListsSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="8dp"
+                android:visibility="visible">
+
+                <!-- Header row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/tvTodoHeader"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="To-Do Lists"
+                        android:textColor="#FFFFFF"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvTodoSummary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 active"
+                        android:textColor="#94A3B8"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:id="@+id/btnViewAllTodos"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="View All"
+                        android:textColor="#60A5FA"
+                        android:textSize="13sp"
+                        android:paddingVertical="4dp"
+                        android:paddingHorizontal="8dp" />
+                </LinearLayout>
+
+                <!-- Horizontal scrollable list cards -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/todoListsRecycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:clipToPadding="false"
+                    android:paddingHorizontal="16dp" />
+
+            </LinearLayout>
+
             <!-- ═══ FOLDER STRIP ═══ -->            <LinearLayout
                 android:id="@+id/folderStripSection"
                 android:layout_width="match_parent"
