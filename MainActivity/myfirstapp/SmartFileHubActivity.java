@@ -1,14 +1,19 @@
 package com.prajwal.myfirstapp;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StatFs;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -21,6 +26,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
 import java.io.File;
@@ -44,6 +51,8 @@ import java.util.Map;
 public class SmartFileHubActivity extends AppCompatActivity {
 
     private static final int REQUEST_IMPORT_FILE = 5001;
+    private static final int REQUEST_STORAGE_PERMISSION = 5002;
+    private static final int REQUEST_MANAGE_STORAGE = 5003;
 
     private HubFileRepository repo;
 
@@ -91,8 +100,8 @@ public class SmartFileHubActivity extends AppCompatActivity {
         setupClickListeners();
         loadData();
 
-        // Trigger background scan on app open
-        repo.scanForNewFiles(this::refreshData);
+        // Request storage permissions, then scan
+        requestStoragePermissionAndScan();
 
         // Trigger content indexing on background thread
         HubContentIndexer.getInstance(this).indexAllPending(null);
@@ -105,6 +114,56 @@ public class SmartFileHubActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshData();
+    }
+
+    // ─── Storage Permission Handling ──────────────────────────────────────────
+
+    private void requestStoragePermissionAndScan() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ — need MANAGE_EXTERNAL_STORAGE
+            if (Environment.isExternalStorageManager()) {
+                triggerScan();
+            } else {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivityForResult(intent, REQUEST_MANAGE_STORAGE);
+                } catch (Exception e) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    startActivityForResult(intent, REQUEST_MANAGE_STORAGE);
+                }
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Android 6-10 — request READ/WRITE_EXTERNAL_STORAGE
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        }, REQUEST_STORAGE_PERMISSION);
+            } else {
+                triggerScan();
+            }
+        } else {
+            triggerScan();
+        }
+    }
+
+    private void triggerScan() {
+        repo.scanForNewFiles(this::refreshData);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                triggerScan();
+            } else {
+                Toast.makeText(this, "Storage permission needed to scan files", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void bindViews() {
@@ -1092,6 +1151,14 @@ public class SmartFileHubActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_MANAGE_STORAGE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+                triggerScan();
+            } else {
+                Toast.makeText(this, "All files access needed to scan files", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if (requestCode == REQUEST_IMPORT_FILE && resultCode == RESULT_OK && data != null) {
             // Handle single or multiple files
             if (data.getClipData() != null) {

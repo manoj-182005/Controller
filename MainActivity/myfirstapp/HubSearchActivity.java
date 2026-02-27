@@ -83,7 +83,7 @@ public class HubSearchActivity extends AppCompatActivity {
         searchResultsList = findViewById(R.id.searchResultsList);
         tvResultsCount = findViewById(R.id.tvResultsCount);
 
-        adapter = new SearchResultAdapter(this, results);
+        adapter = new SearchResultAdapter(this, results, contentMatchSet);
         searchResultsList.setAdapter(adapter);
         searchResultsList.setOnItemClickListener((parent, view, position, id) ->
                 openFile(results.get(position)));
@@ -309,10 +309,12 @@ public class HubSearchActivity extends AppCompatActivity {
     static class SearchResultAdapter extends BaseAdapter {
         private final Context context;
         private final List<HubFile> files;
+        private final java.util.Set<String> contentMatchSet;
 
-        SearchResultAdapter(Context context, List<HubFile> files) {
+        SearchResultAdapter(Context context, List<HubFile> files, java.util.Set<String> contentMatchSet) {
             this.context = context;
             this.files = files;
+            this.contentMatchSet = contentMatchSet;
         }
 
         @Override public int getCount() { return files.size(); }

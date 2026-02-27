@@ -49,7 +49,7 @@ public class HubStealthModeActivity extends AppCompatActivity {
         tvDisplay.setText("0");
         tvDisplay.setTextColor(Color.WHITE);
         tvDisplay.setTextSize(56);
-        tvDisplay.setTypeface(null, Typeface.LIGHT);
+        tvDisplay.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
         tvDisplay.setGravity(Gravity.END);
         tvDisplay.setMaxLines(2);
         tvDisplay.setSingleLine(false);

@@ -287,8 +287,10 @@ public class HubFileRepository {
         List<HubFile> result = new ArrayList<>();
         for (HubFile f : files) {
             if (!f.isHidden) result.add(f);
-            if (result.size() >= limit) break;
         }
+        // Sort by importedAt descending so most recent files appear first
+        java.util.Collections.sort(result, (a, b) -> Long.compare(b.importedAt, a.importedAt));
+        if (result.size() > limit) result = result.subList(0, limit);
         return result;
     }
 
@@ -1177,7 +1179,7 @@ public class HubFileRepository {
                     }
                 } catch (Exception e) { Log.e(TAG, "secureDelete", e); }
             }
-            if (file != null) deleteFile(file);
+            if (file != null) deleteFile(file.id);
             if (onComplete != null) {
                 new android.os.Handler(android.os.Looper.getMainLooper()).post(onComplete);
             }
