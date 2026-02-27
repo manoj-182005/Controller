@@ -79,6 +79,25 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
         setupWalletFilter();
         refreshAll();
         updateIouOverdueBanner();
+        updateIncomeTrackerSummary();
+    }
+
+    private void updateIncomeTrackerSummary() {
+        TextView tvSummary = findViewById(R.id.tvIncomeTrackerSummary);
+        if (tvSummary == null) return;
+        IncomeRepository incRepo = new IncomeRepository(this);
+        double monthIncome = incRepo.getTotalThisMonth();
+        if (monthIncome > 0) {
+            if (monthIncome >= 100000) {
+                tvSummary.setText(String.format("₹%.1fL this month", monthIncome / 100000));
+            } else if (monthIncome >= 1000) {
+                tvSummary.setText(String.format("₹%.1fk this month", monthIncome / 1000));
+            } else {
+                tvSummary.setText(String.format("₹%.0f this month", monthIncome));
+            }
+        } else {
+            tvSummary.setText("Track earnings");
+        }
     }
 
     private void updateIouOverdueBanner() {
@@ -163,6 +182,9 @@ public class ExpenseTrackerActivity extends AppCompatActivity {
             new ExportService(this).showExportDialog(null));
         findViewById(R.id.btnBorrowLend).setOnClickListener(v ->
             startActivity(new Intent(this, BorrowLendActivity.class)));
+        // Income Tracker
+        findViewById(R.id.btnIncomeTracker).setOnClickListener(v ->
+            startActivity(new Intent(this, IncomeTrackerActivity.class)));
         // IOU overdue banner
         LinearLayout iouBanner = findViewById(R.id.iouOverdueBanner);
         if (iouBanner != null) {
