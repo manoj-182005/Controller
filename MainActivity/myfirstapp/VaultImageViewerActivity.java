@@ -11,11 +11,13 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -35,6 +37,7 @@ import java.util.Locale;
  */
 public class VaultImageViewerActivity extends Activity {
 
+    private static final String TAG = "VaultImageViewer";
     private static final String EXTRA_FILE_ID = "file_id";
     private static final String EXTRA_LIST_TYPE = "file_list_type";
 
@@ -63,8 +66,6 @@ public class VaultImageViewerActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable hideUiRunnable = this::hideBars;
     private boolean barsVisible = true;
-
-    private File tempFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,24 +145,29 @@ public class VaultImageViewerActivity extends Activity {
         updateFavButton();
         repo.logFileViewed(currentFile);
 
-        // clean up old temp
-        deleteTempFile();
-
         new Thread(() -> {
             try {
-                tempFile = File.createTempFile("vault_img_", ".tmp", getCacheDir());
-                boolean ok = repo.exportFile(currentFile, tempFile);
-                if (!ok) throw new Exception("export failed");
-                final Bitmap bm = BitmapFactory.decodeFile(tempFile.getAbsolutePath());
+                // Decrypt directly into memory — never write unencrypted bytes to disk
+                byte[] imageBytes = repo.decryptFileToMemory(currentFile);
+                if (imageBytes == null || imageBytes.length == 0) {
+                    Log.e(TAG, "Decryption returned null/empty for: " + currentFile.vaultFileName);
+                    runOnUiThread(() -> Toast.makeText(this,
+                            "Cannot decrypt image", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+                final Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                if (bm == null) {
+                    Log.e(TAG, "BitmapFactory failed to decode bytes for: " + currentFile.originalFileName);
+                    runOnUiThread(() -> Toast.makeText(this,
+                            "Cannot decode image", Toast.LENGTH_SHORT).show());
+                    return;
+                }
                 runOnUiThread(() -> {
-                    if (bm != null) {
-                        imageView.setImageBitmap(bm);
-                        resetZoom();
-                    } else {
-                        Toast.makeText(this, "Cannot decode image", Toast.LENGTH_SHORT).show();
-                    }
+                    imageView.setImageBitmap(bm);
+                    resetZoom();
                 });
             } catch (Exception e) {
+                Log.e(TAG, "Image load failed for: " + (currentFile != null ? currentFile.originalFileName : "null"), e);
                 runOnUiThread(() -> Toast.makeText(this,
                         "Failed to load image", Toast.LENGTH_SHORT).show());
             }
@@ -358,7 +364,7 @@ public class VaultImageViewerActivity extends Activity {
         String favLabel = (currentFile != null && currentFile.isFavourited)
                 ? "Remove from Favourites" : "Add to Favourites";
         String[] items = {favLabel, "Add to Album", "Share", "Export to Downloads",
-                "Edit (Rotate/Flip)", "Delete"};
+                "Edit (Rotate/Flip)", "Edit Note", "Delete"};
         new AlertDialog.Builder(this)
                 .setItems(items, (d, which) -> {
                     switch (which) {
@@ -367,9 +373,30 @@ public class VaultImageViewerActivity extends Activity {
                         case 2: shareFile(); break;
                         case 3: exportToDownloads(); break;
                         case 4: showEditDialog(); break;
-                        case 5: confirmDelete(); break;
+                        case 5: showEditNoteDialog(); break;
+                        case 6: confirmDelete(); break;
                     }
                 })
+                .show();
+    }
+
+    private void showEditNoteDialog() {
+        if (currentFile == null) return;
+        EditText editText = new EditText(this);
+        editText.setText(currentFile.notes != null ? currentFile.notes : "");
+        editText.setHint("Add a note about this file…");
+        editText.setMaxLines(5);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        editText.setPadding(pad, pad, pad, pad);
+        new AlertDialog.Builder(this)
+                .setTitle("Edit Note")
+                .setView(editText)
+                .setPositiveButton("Save", (d, w) -> {
+                    currentFile.notes = editText.getText().toString().trim();
+                    repo.updateFile(currentFile);
+                    Toast.makeText(this, "Note saved", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
                 .show();
     }
 
@@ -488,18 +515,10 @@ public class VaultImageViewerActivity extends Activity {
         imageView.setImageBitmap(flipped);
     }
 
-    private void deleteTempFile() {
-        if (tempFile != null && tempFile.exists()) {
-            tempFile.delete();
-            tempFile = null;
-        }
-    }
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
-        deleteTempFile();
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.prajwal.myfirstapp;
 
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
@@ -78,6 +80,7 @@ public class VaultUnlockActivity extends AppCompatActivity {
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
         bindViews();
+        startBackgroundAnimation();
 
         if (!repo.isPinSetup()) {
             showSetupMode();
@@ -93,6 +96,19 @@ public class VaultUnlockActivity extends AppCompatActivity {
                 showPinPad();
             }
         }
+    }
+
+    private void startBackgroundAnimation() {
+        View root = findViewById(R.id.vaultUnlockRoot);
+        if (root == null) return;
+        ValueAnimator animator = ValueAnimator.ofObject(
+                new ArgbEvaluator(),
+                0xFF0A0E1F, 0xFF0D1328);
+        animator.setDuration(8000);
+        animator.setRepeatCount(ValueAnimator.INFINITE);
+        animator.setRepeatMode(ValueAnimator.REVERSE);
+        animator.addUpdateListener(a -> root.setBackgroundColor((int) a.getAnimatedValue()));
+        animator.start();
     }
 
     private void bindViews() {
