@@ -552,9 +552,36 @@ public class HubFileRepository {
             if (file.isDirectory()) {
                 scanDirectory(file, since, source);
             } else if (file.lastModified() > since && file.length() > 0) {
+                // Add to inbox for review (existing behaviour)
                 createInboxItemForFile(file, source);
+                // Also auto-import directly into the hub so files appear immediately
+                addFileIfNotTracked(file, source);
             }
         }
+    }
+
+    /** Directly adds a file to the tracked list if it is not already there. */
+    private synchronized void addFileIfNotTracked(File file, HubFile.Source source) {
+        String path = file.getAbsolutePath();
+        for (HubFile f : files) {
+            if (path.equals(f.filePath)) return; // already tracked
+        }
+        String ext = getExtension(file.getName());
+        String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext.toLowerCase());
+        if (mime == null) mime = "application/octet-stream";
+
+        HubFile hubFile = new HubFile();
+        hubFile.originalFileName = file.getName();
+        hubFile.displayName = file.getName();
+        hubFile.filePath = path;
+        hubFile.fileSize = file.length();
+        hubFile.mimeType = mime;
+        hubFile.fileType = HubFile.fileTypeFromMime(mime, ext);
+        hubFile.source = source;
+        hubFile.fileExtension = ext;
+        hubFile.originalCreatedAt = file.lastModified();
+        hubFile.originalModifiedAt = file.lastModified();
+        addFile(hubFile);
     }
 
     private void createInboxItemForFile(File file, HubFile.Source source) {
@@ -586,16 +613,30 @@ public class HubFileRepository {
     private List<File> getScanDirectories() {
         List<File> dirs = new ArrayList<>();
         File extStorage = Environment.getExternalStorageDirectory();
+        // WhatsApp
         dirs.add(new File(extStorage, "WhatsApp/Media/WhatsApp Images"));
         dirs.add(new File(extStorage, "WhatsApp/Media/WhatsApp Documents"));
         dirs.add(new File(extStorage, "WhatsApp/Media/WhatsApp Video"));
         dirs.add(new File(extStorage, "Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Images"));
+        // Common user directories
         dirs.add(new File(extStorage, "Download"));
         dirs.add(new File(extStorage, "Downloads"));
         dirs.add(new File(extStorage, "Pictures/Screenshots"));
         dirs.add(new File(extStorage, "DCIM/Camera"));
         dirs.add(new File(extStorage, "DCIM"));
         dirs.add(new File(extStorage, "Pictures"));
+        dirs.add(new File(extStorage, "Documents"));
+        dirs.add(new File(extStorage, "Music"));
+        dirs.add(new File(extStorage, "Movies"));
+        dirs.add(new File(extStorage, "Videos"));
+        dirs.add(new File(extStorage, "Ringtones"));
+        // Also check app-specific external files directory for anything saved there
+        java.io.File[] extDirs = context.getExternalFilesDirs(null);
+        if (extDirs != null) {
+            for (java.io.File d : extDirs) {
+                if (d != null) dirs.add(d);
+            }
+        }
         return dirs;
     }
 
