@@ -47,6 +47,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import android.os.Build;
+import android.view.WindowManager;
+
 /**
  * NotesActivity — Redesigned premium notes experience.
  * 
@@ -146,6 +149,13 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Draw behind status bar — eliminate wasted black space at top
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
+
         setContentView(R.layout.activity_notes_new);
         instance = this;
 
@@ -523,24 +533,39 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     private TextView createFilterChip(String category) {
         TextView chip = new TextView(this);
-        chip.setText(category);
+        chip.setText(getCategoryEmoji(category) + " " + category);
         chip.setTextSize(13);
         chip.setPadding(40, 20, 40, 20);
 
         boolean isSelected = category.equals(currentFilter);
+        int chipColor = getCategoryColor(category);
+        float density = getResources().getDisplayMetrics().density;
 
         if (isSelected) {
-            // Vibrant gradient background per category
-            int chipColor = getCategoryColor(category);
+            // Vibrant gradient background per category with glow
             GradientDrawable gd = new GradientDrawable(
                     GradientDrawable.Orientation.LEFT_RIGHT,
                     new int[]{chipColor, adjustAlpha(chipColor, 0.75f)});
             gd.setCornerRadius(50f);
             chip.setBackground(gd);
             chip.setTextColor(0xFFFFFFFF);
+            chip.setTypeface(chip.getTypeface(), android.graphics.Typeface.BOLD);
+            // Glow effect via elevation + shadow
+            chip.setElevation(8 * density);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                chip.setOutlineAmbientShadowColor(chipColor);
+                chip.setOutlineSpotShadowColor(chipColor);
+            }
+            chip.setShadowLayer(12f, 0, 2, adjustAlpha(chipColor, 0.5f));
         } else {
+            // Subtle tinted border in category color
+            GradientDrawable unselectedBg = new GradientDrawable();
+            unselectedBg.setCornerRadius(50f);
+            unselectedBg.setColor(adjustAlpha(chipColor, 0.08f));
+            unselectedBg.setStroke((int)(1 * density), adjustAlpha(chipColor, 0.25f));
+            chip.setBackground(unselectedBg);
             chip.setTextColor(0xFF9CA3AF);
-            chip.setBackgroundResource(R.drawable.notes_chip_bg);
+            chip.setElevation(0);
         }
 
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -568,6 +593,19 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         });
 
         return chip;
+    }
+
+    private String getCategoryEmoji(String category) {
+        switch (category) {
+            case "All":      return "📋";
+            case "Pinned":   return "📌";
+            case "Personal": return "👤";
+            case "Work":     return "💼";
+            case "Ideas":    return "💡";
+            case "Study":    return "📖";
+            case "Todo":     return "✅";
+            default:         return "📝";
+        }
     }
 
     private int getCategoryColor(String category) {
@@ -1233,6 +1271,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         // Nav item click listeners
         LinearLayout drawerNavAllNotes = findViewById(R.id.drawerNavAllNotes);
         LinearLayout drawerNavPinned = findViewById(R.id.drawerNavPinned);
+        LinearLayout drawerNavFavourites = findViewById(R.id.drawerNavFavourites);
+        LinearLayout drawerNavReminders = findViewById(R.id.drawerNavReminders);
         LinearLayout drawerNavArchive = findViewById(R.id.drawerNavArchive);
         LinearLayout drawerNavTrash = findViewById(R.id.drawerNavTrash);
 
@@ -1252,6 +1292,24 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                 if (drawerLayout != null) drawerLayout.closeDrawers();
             });
         }
+        if (drawerNavFavourites != null) {
+            drawerNavFavourites.setOnClickListener(v -> {
+                currentFilter = "Pinned"; // Favourites = Pinned for now
+                setupFilterChips();
+                refreshNotes();
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+            });
+        }
+        if (drawerNavReminders != null) {
+            drawerNavReminders.setOnClickListener(v -> {
+                // Filter notes with reminders
+                currentFilter = "All";
+                setupFilterChips();
+                refreshNotes();
+                if (drawerLayout != null) drawerLayout.closeDrawers();
+                Toast.makeText(this, "Showing notes with reminders", Toast.LENGTH_SHORT).show();
+            });
+        }
         if (drawerNavArchive != null) {
             drawerNavArchive.setOnClickListener(v -> {
                 startActivity(new Intent(this, NotesArchiveActivity.class));
@@ -1266,13 +1324,69 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         }
         if (drawerAddFolder != null) {
             drawerAddFolder.setOnClickListener(v -> {
-                startActivity(new Intent(this, NoteFoldersHomeActivity.class));
+                showCreateFolderBottomSheet();
                 if (drawerLayout != null) drawerLayout.closeDrawers();
             });
         }
 
         updateDrawerCounts();
         populateDrawerFolders();
+        populateDrawerTags();
+        populateDrawerTodos();
+
+        // ── Smart Intelligence Drawer Entries (Prompt 3) ──
+        addSmartDrawerEntries();
+    }
+
+    /** Adds Study Mode, Insights, and Time Capsule entries to the drawer. */
+    private void addSmartDrawerEntries() {
+        if (drawerFoldersList == null) return;
+
+        // Add a separator
+        View divider = new View(this);
+        divider.setBackgroundColor(0xFF1E293B);
+        divider.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(1)));
+        divider.setPadding(0, dpToPx(8), 0, dpToPx(8));
+        drawerFoldersList.addView(divider);
+
+        // Section header
+        TextView header = new TextView(this);
+        header.setText("SMART FEATURES");
+        header.setTextColor(0xFF64748B);
+        header.setTextSize(11);
+        header.setPadding(dpToPx(20), dpToPx(12), 0, dpToPx(6));
+        header.setTypeface(null, android.graphics.Typeface.BOLD);
+        header.setLetterSpacing(0.1f);
+        drawerFoldersList.addView(header);
+
+        // Study Dashboard
+        drawerFoldersList.addView(createDrawerSmartEntry("📚  Study Mode", v -> {
+            startActivity(new Intent(this, StudyDashboardActivity.class));
+            if (drawerLayout != null) drawerLayout.closeDrawers();
+        }));
+
+        // Note Insights
+        drawerFoldersList.addView(createDrawerSmartEntry("📊  Note Insights", v -> {
+            startActivity(new Intent(this, NoteInsightsActivity.class));
+            if (drawerLayout != null) drawerLayout.closeDrawers();
+        }));
+
+        // Time Capsules
+        drawerFoldersList.addView(createDrawerSmartEntry("⏰  Time Capsules", v -> {
+            startActivity(new Intent(this, TimeCapsuleActivity.class));
+            if (drawerLayout != null) drawerLayout.closeDrawers();
+        }));
+    }
+
+    private View createDrawerSmartEntry(String label, View.OnClickListener onClick) {
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(0xFFCBD5E1);
+        tv.setTextSize(14);
+        tv.setPadding(dpToPx(20), dpToPx(12), dpToPx(16), dpToPx(12));
+        tv.setOnClickListener(onClick);
+        return tv;
     }
 
     private void updateDrawerCounts() {
@@ -1290,6 +1404,31 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             }
             if (tvDrawerPinnedCount != null) {
                 tvDrawerPinnedCount.setText(String.valueOf(pinned.size()));
+            }
+
+            // Favourites count (same as pinned)
+            TextView tvFavCount = findViewById(R.id.tvDrawerFavouritesCount);
+            if (tvFavCount != null) tvFavCount.setText(String.valueOf(pinned.size()));
+
+            // Reminders count
+            int reminderCount = 0;
+            for (Note n : all) if (n.reminderDateTime > 0) reminderCount++;
+            for (Note n : pinned) if (n.reminderDateTime > 0) reminderCount++;
+            TextView tvRemCount = findViewById(R.id.tvDrawerRemindersCount);
+            if (tvRemCount != null) tvRemCount.setText(String.valueOf(reminderCount));
+
+            // Archive count
+            TextView tvArchiveCount = findViewById(R.id.tvDrawerArchiveCount);
+            if (tvArchiveCount != null) {
+                java.util.ArrayList<Note> archived = repository.getArchivedNotes();
+                tvArchiveCount.setText(String.valueOf(archived != null ? archived.size() : 0));
+            }
+
+            // Trash count
+            TextView tvTrashCount = findViewById(R.id.tvDrawerTrashCount);
+            if (tvTrashCount != null) {
+                java.util.ArrayList<Note> trashed = repository.getTrashedNotes();
+                tvTrashCount.setText(String.valueOf(trashed != null ? trashed.size() : 0));
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to update drawer counts", e);
@@ -1341,6 +1480,153 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    private void populateDrawerTags() {
+        LinearLayout drawerTagsList = findViewById(R.id.drawerTagsList);
+        if (drawerTagsList == null) return;
+        drawerTagsList.removeAllViews();
+
+        try {
+            // Collect all unique tags from all notes
+            java.util.Set<String> allTags = new java.util.LinkedHashSet<>();
+            java.util.ArrayList<Note> allNotes = repository.filterUnpinnedNotes("All", "");
+            java.util.ArrayList<Note> pinnedNotes = repository.filterPinnedNotes("All", "");
+            for (Note n : allNotes) {
+                if (n.tags != null) allTags.addAll(n.tags);
+            }
+            for (Note n : pinnedNotes) {
+                if (n.tags != null) allTags.addAll(n.tags);
+            }
+
+            if (allTags.isEmpty()) {
+                TextView empty = new TextView(this);
+                empty.setText("No tags yet");
+                empty.setTextColor(0xFF475569);
+                empty.setTextSize(12);
+                empty.setPadding(0, dpToPx(4), 0, dpToPx(8));
+                drawerTagsList.addView(empty);
+                return;
+            }
+
+            // Create a flow-like layout with horizontal wrapping
+            float density = getResources().getDisplayMetrics().density;
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            drawerTagsList.addView(row);
+
+            int currentRowWidth = 0;
+            int maxWidth = (int)(240 * density); // approximate drawer content width
+
+            for (String tag : allTags) {
+                TextView chip = new TextView(this);
+                chip.setText("#" + tag);
+                chip.setTextColor(0xFFCBD5E1);
+                chip.setTextSize(12);
+                chip.setPadding((int)(10*density), (int)(4*density), (int)(10*density), (int)(4*density));
+                GradientDrawable chipBg = new GradientDrawable();
+                chipBg.setCornerRadius(20 * density);
+                chipBg.setColor(0x15FFFFFF);
+                chipBg.setStroke(1, 0x20FFFFFF);
+                chip.setBackground(chipBg);
+
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                lp.setMargins(0, 0, (int)(6*density), (int)(6*density));
+                chip.setLayoutParams(lp);
+
+                chip.setOnClickListener(v -> {
+                    // Filter by this tag
+                    if (etSearchNotes != null) {
+                        etSearchNotes.setText("#" + tag);
+                        currentSearchQuery = "#" + tag;
+                        refreshNotes();
+                    }
+                    if (drawerLayout != null) drawerLayout.closeDrawers();
+                });
+
+                // Estimate width
+                chip.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+                int chipWidth = chip.getMeasuredWidth() + (int)(6*density);
+                if (currentRowWidth + chipWidth > maxWidth && currentRowWidth > 0) {
+                    row = new LinearLayout(this);
+                    row.setOrientation(LinearLayout.HORIZONTAL);
+                    drawerTagsList.addView(row);
+                    currentRowWidth = 0;
+                }
+                row.addView(chip);
+                currentRowWidth += chipWidth;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to populate drawer tags", e);
+        }
+    }
+
+    private void populateDrawerTodos() {
+        LinearLayout drawerTodoList = findViewById(R.id.drawerTodoList);
+        TextView tvDrawerTodoCount = findViewById(R.id.tvDrawerTodoCount);
+        if (drawerTodoList == null) return;
+        drawerTodoList.removeAllViews();
+
+        try {
+            if (todoRepository == null) return;
+            java.util.List<TodoList> lists = todoRepository.getAllLists();
+            if (tvDrawerTodoCount != null) {
+                tvDrawerTodoCount.setText(lists.size() + " lists");
+            }
+
+            for (TodoList list : lists) {
+                LinearLayout item = new LinearLayout(this);
+                item.setOrientation(LinearLayout.HORIZONTAL);
+                item.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                item.setPadding(dpToPx(20), dpToPx(8), dpToPx(20), dpToPx(8));
+                item.setBackgroundResource(android.R.drawable.list_selector_background);
+
+                // Icon
+                TextView icon = new TextView(this);
+                icon.setText(list.iconIdentifier != null && !list.iconIdentifier.isEmpty() ? list.iconIdentifier : "📋");
+                icon.setTextSize(14);
+                LinearLayout.LayoutParams iconLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                iconLp.setMarginEnd(dpToPx(10));
+                icon.setLayoutParams(iconLp);
+                item.addView(icon);
+
+                // Name
+                TextView name = new TextView(this);
+                name.setText(list.title);
+                name.setTextColor(0xFFCBD5E1);
+                name.setTextSize(13);
+                name.setMaxLines(1);
+                name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams nameLp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+                name.setLayoutParams(nameLp);
+                item.addView(name);
+
+                // Progress text
+                java.util.List<TodoItem> items = todoRepository.getItemsByListId(list.id);
+                int total = items.size();
+                int done = 0;
+                for (TodoItem ti : items) {
+                    if (ti.isCompleted) done++;
+                }
+                TextView progress = new TextView(this);
+                progress.setText(done + "/" + total);
+                progress.setTextColor(0xFF64748B);
+                progress.setTextSize(11);
+                item.addView(progress);
+
+                String listId = list.id;
+                item.setOnClickListener(v -> {
+                    startActivity(TodoListDetailActivity.createIntent(this, listId));
+                    if (drawerLayout != null) drawerLayout.closeDrawers();
+                });
+                drawerTodoList.addView(item);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to populate drawer todos", e);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1408,7 +1694,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         if (folderStripSection == null || folderCardsContainer == null) return;
 
         try {
-            java.util.ArrayList<NoteFolder> folders = folderRepository.getAllFolders();
+            java.util.ArrayList<NoteFolder> folders = folderRepository.getRootFolders();
             if (folders.isEmpty()) {
                 folderStripSection.setVisibility(View.GONE);
                 return;
@@ -1425,6 +1711,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                 }
             }
 
+            float density = getResources().getDisplayMetrics().density;
+
             for (NoteFolder folder : folders) {
                 View card = LayoutInflater.from(this).inflate(
                         R.layout.item_notes_folder_strip_card, folderCardsContainer, false);
@@ -1433,32 +1721,60 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                 TextView tvName  = card.findViewById(R.id.tvFolderName);
                 TextView tvCount = card.findViewById(R.id.tvFolderCount);
 
-                tvIcon.setText("📁");
+                // Use the folder's actual icon emoji instead of generic "📁"
+                tvIcon.setText(folder.getIconEmoji());
                 tvName.setText(folder.name);
 
-                int count = countMap.getOrDefault(folder.id, 0);
+                int count = folderRepository.getNoteCountRecursive(folder.id);
                 tvCount.setText(count + (count == 1 ? " note" : " notes"));
 
+                // Apply gradient background using folder's color
+                int startColor = folder.getColorInt();
+                int endColor = folder.getGradientColorInt();
+                int darkStart = blendWithDark(startColor, 0.3f);
+                int darkEnd = blendWithDark(endColor, 0.2f);
+                GradientDrawable bg = new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR, new int[]{darkStart, darkEnd});
+                bg.setCornerRadius(16 * density);
+                bg.setStroke(1, blendWithDark(startColor, 0.45f));
+                card.setBackground(bg);
+
+                // Subfolder indicator
+                java.util.ArrayList<NoteFolder> subs = folderRepository.getSubfolders(folder.id);
+                if (!subs.isEmpty()) {
+                    tvCount.setText(count + (count == 1 ? " note" : " notes") + " · ↳ " + subs.size());
+                }
+
+                String fId = folder.id;
                 card.setOnClickListener(v -> {
-                    Intent intent = new Intent(this, NoteFolderActivity.class);
-                    intent.putExtra("folder_id", folder.id);
-                    startActivity(intent);
+                    v.animate().scaleX(0.93f).scaleY(0.93f).setDuration(80)
+                        .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(80)
+                            .withEndAction(() -> {
+                                Intent intent = new Intent(this, NoteFolderActivity.class);
+                                intent.putExtra("folder_id", fId);
+                                startActivity(intent);
+                            }).start()).start();
                 });
 
                 folderCardsContainer.addView(card);
             }
 
-            // Add "+" create card
+            // Add "+" create card with gradient border
             View plusCard = LayoutInflater.from(this).inflate(
                     R.layout.item_notes_folder_strip_card, folderCardsContainer, false);
             TextView tvPlusIcon  = plusCard.findViewById(R.id.tvFolderIcon);
             TextView tvPlusName  = plusCard.findViewById(R.id.tvFolderName);
             TextView tvPlusCount = plusCard.findViewById(R.id.tvFolderCount);
             tvPlusIcon.setText("➕");
+            tvPlusIcon.setTextSize(28);
             tvPlusName.setText("New");
             tvPlusCount.setText("folder");
-            plusCard.setOnClickListener(v ->
-                    startActivity(new Intent(this, NoteFoldersHomeActivity.class)));
+            GradientDrawable plusBg = new GradientDrawable();
+            plusBg.setCornerRadius(16 * density);
+            plusBg.setColor(0x0DFFFFFF);
+            plusBg.setStroke((int)(1.5f * density), 0x33F59E0B);
+            plusCard.setBackground(plusBg);
+            plusCard.setOnClickListener(v -> showCreateFolderBottomSheet());
             folderCardsContainer.addView(plusCard);
 
             if (btnViewAllFolders != null) {
@@ -1469,6 +1785,165 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             Log.e(TAG, "Failed to setup folder strip", e);
             if (folderStripSection != null) folderStripSection.setVisibility(View.GONE);
         }
+    }
+
+    private int blendWithDark(int color, float ratio) {
+        int dark = 0xFF0F172A;
+        float inv = 1f - ratio;
+        int r = (int) (Color.red(dark) * inv + Color.red(color) * ratio);
+        int g = (int) (Color.green(dark) * inv + Color.green(color) * ratio);
+        int b = (int) (Color.blue(dark) * inv + Color.blue(color) * ratio);
+        return Color.rgb(r, g, b);
+    }
+
+    private void showCreateFolderBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+        View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
+        dialog.setContentView(sheetView);
+
+        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) bottomSheet.setBackgroundColor(Color.TRANSPARENT);
+
+        TextView tvTitle = sheetView.findViewById(R.id.tvSheetTitle);
+        EditText etName = sheetView.findViewById(R.id.etSubfolderName);
+        LinearLayout colorGrid = sheetView.findViewById(R.id.colorPickerGrid);
+        LinearLayout iconGrid = sheetView.findViewById(R.id.iconPickerGrid);
+        LinearLayout folderPreview = sheetView.findViewById(R.id.folderPreview);
+        TextView tvPreviewIcon = sheetView.findViewById(R.id.tvPreviewIcon);
+        TextView btnCancel = sheetView.findViewById(R.id.btnCancelSubfolder);
+        TextView btnSave = sheetView.findViewById(R.id.btnSaveSubfolder);
+
+        tvTitle.setText("New Folder");
+
+        final String[] selectedColor = {NoteFolder.FOLDER_COLORS[0]};
+        final String[] selectedIcon = {"folder"};
+        final int[] selectedColorIdx = {0};
+        final int[] selectedIconIdx = {25};
+
+        float density = getResources().getDisplayMetrics().density;
+
+        Runnable updatePreview = () -> {
+            String emoji = "📁";
+            for (int i = 0; i < NoteFolder.FOLDER_ICONS.length; i++) {
+                if (NoteFolder.FOLDER_ICONS[i].equals(selectedIcon[0])) {
+                    emoji = NoteFolder.FOLDER_ICON_EMOJIS[i]; break;
+                }
+            }
+            tvPreviewIcon.setText(emoji);
+            int c = Note.parseColorSafe(selectedColor[0]);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(blendWithDark(c, 0.35f));
+            bg.setCornerRadius(14 * density);
+            bg.setStroke(2, c);
+            folderPreview.setBackground(bg);
+        };
+
+        // Build color grid (3x4)
+        final View[] colorViews = new View[NoteFolder.FOLDER_COLORS.length];
+        for (int row = 0; row < 3; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setGravity(android.view.Gravity.CENTER);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(8 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < 4; col++) {
+                int idx = row * 4 + col;
+                if (idx >= NoteFolder.FOLDER_COLORS.length) break;
+                FrameLayout ci = new FrameLayout(this);
+                int sz = (int)(42 * density);
+                LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(0, sz, 1);
+                ip.setMargins((int)(4*density), 0, (int)(4*density), 0);
+                ci.setLayoutParams(ip);
+                int cv = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[idx]);
+                GradientDrawable cbg = new GradientDrawable();
+                cbg.setShape(GradientDrawable.OVAL);
+                cbg.setColor(cv);
+                if (idx == 0) cbg.setStroke((int)(3*density), 0xFFFFFFFF);
+                ci.setBackground(cbg);
+                colorViews[idx] = ci;
+                final int fi = idx;
+                ci.setOnClickListener(v -> {
+                    selectedColor[0] = NoteFolder.FOLDER_COLORS[fi];
+                    selectedColorIdx[0] = fi;
+                    for (int i = 0; i < colorViews.length; i++) {
+                        int cc = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[i]);
+                        GradientDrawable g = new GradientDrawable();
+                        g.setShape(GradientDrawable.OVAL); g.setColor(cc);
+                        if (i == fi) g.setStroke((int)(3*density), 0xFFFFFFFF);
+                        colorViews[i].setBackground(g);
+                    }
+                    updatePreview.run();
+                });
+                rowLayout.addView(ci);
+            }
+            colorGrid.addView(rowLayout);
+        }
+
+        // Build icon grid
+        final View[] iconViews = new View[NoteFolder.FOLDER_ICONS.length];
+        int iconsPerRow = 10;
+        int totalRows = (NoteFolder.FOLDER_ICONS.length + iconsPerRow - 1) / iconsPerRow;
+        for (int row = 0; row < totalRows; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(8 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < iconsPerRow; col++) {
+                int idx = row * iconsPerRow + col;
+                if (idx >= NoteFolder.FOLDER_ICONS.length) break;
+                TextView ii = new TextView(this);
+                ii.setText(NoteFolder.FOLDER_ICON_EMOJIS[idx]);
+                ii.setTextSize(24);
+                ii.setGravity(android.view.Gravity.CENTER);
+                int is = (int)(44 * density);
+                LinearLayout.LayoutParams iip = new LinearLayout.LayoutParams(is, is);
+                iip.setMargins((int)(3*density), 0, (int)(3*density), 0);
+                ii.setLayoutParams(iip);
+                ii.setPadding(0, (int)(6*density), 0, 0);
+                GradientDrawable ibg = new GradientDrawable();
+                ibg.setCornerRadius(12 * density);
+                ibg.setColor(idx == selectedIconIdx[0] ? 0x33FFFFFF : 0x00000000);
+                ii.setBackground(ibg);
+                iconViews[idx] = ii;
+                final int fi = idx;
+                ii.setOnClickListener(v -> {
+                    selectedIcon[0] = NoteFolder.FOLDER_ICONS[fi];
+                    selectedIconIdx[0] = fi;
+                    for (int i = 0; i < iconViews.length; i++) {
+                        GradientDrawable g = new GradientDrawable();
+                        g.setCornerRadius(12 * density);
+                        g.setColor(i == fi ? 0x33FFFFFF : 0x00000000);
+                        iconViews[i].setBackground(g);
+                    }
+                    updatePreview.run();
+                });
+                rowLayout.addView(ii);
+            }
+            iconGrid.addView(rowLayout);
+        }
+
+        updatePreview.run();
+        etName.requestFocus();
+        dialog.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnSave.setOnClickListener(v -> {
+            String name = etName.getText().toString().trim();
+            if (name.isEmpty()) { etName.setError("Enter a name"); return; }
+            NoteFolder f = new NoteFolder(name, selectedColor[0], selectedIcon[0], null, 0);
+            f.sortOrder = folderRepository.getRootFolders().size();
+            folderRepository.addFolder(f);
+            setupFolderStrip();
+            Toast.makeText(this, "Folder '" + name + "' created", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1484,7 +1959,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             for (Note n : candidates) {
                 if (!n.isLocked) {
                     recentNotes.add(n);
-                    if (recentNotes.size() >= 5) break;
+                    if (recentNotes.size() >= 6) break;
                 }
             }
 
@@ -1500,20 +1975,64 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
             for (Note note : recentNotes) {
                 View card = inflater.inflate(R.layout.item_recently_viewed_card, recentlyViewedContainer, false);
                 TextView tvTitle = card.findViewById(R.id.tvRecentNoteTitle);
+                TextView tvPreview = card.findViewById(R.id.tvRecentNotePreview);
+                TextView tvFolderChip = card.findViewById(R.id.tvRecentFolderChip);
+                TextView tvTimestamp = card.findViewById(R.id.tvRecentTimestamp);
                 View accent = card.findViewById(R.id.recentCategoryAccent);
 
                 tvTitle.setText(note.title.isEmpty() ? "Untitled" : note.title);
 
-                int accentColor = Note.getCategoryColor(note.category);
-                accent.setBackgroundColor(accentColor);
+                // Content preview
+                if (note.content != null && !note.content.isEmpty()) {
+                    String preview = note.content.replaceAll("\\n+", " ").trim();
+                    tvPreview.setText(preview.length() > 80 ? preview.substring(0, 80) + "…" : preview);
+                    tvPreview.setVisibility(View.VISIBLE);
+                } else {
+                    tvPreview.setVisibility(View.GONE);
+                }
 
-                card.setOnClickListener(v -> openNote(note));
+                // Folder chip
+                if (note.folderId != null) {
+                    NoteFolder folder = folderRepository.getFolderById(note.folderId);
+                    if (folder != null) {
+                        tvFolderChip.setText(folder.getIconEmoji() + " " + folder.name);
+                        tvFolderChip.setVisibility(View.VISIBLE);
+                    }
+                }
+
+                // Timestamp
+                tvTimestamp.setText(getRelativeTime(note.updatedAt));
+
+                // Category accent color
+                int accentColor = Note.getCategoryColor(note.category);
+                GradientDrawable accentBg = new GradientDrawable();
+                accentBg.setColor(accentColor);
+                float[] radii = {8, 8, 0, 0, 0, 0, 8, 8}; // top-left, bottom-left rounded
+                accentBg.setCornerRadii(radii);
+                accent.setBackground(accentBg);
+
+                // Tap animation
+                card.setOnClickListener(v -> {
+                    v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(80)
+                        .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(80)
+                            .withEndAction(() -> openNote(note)).start()).start();
+                });
                 recentlyViewedContainer.addView(card);
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to setup recently viewed", e);
             if (recentlyViewedSection != null) recentlyViewedSection.setVisibility(View.GONE);
         }
+    }
+
+    private String getRelativeTime(long timestamp) {
+        long now = System.currentTimeMillis();
+        long diff = now - timestamp;
+        if (diff < 60_000) return "just now";
+        if (diff < 3_600_000) return (diff / 60_000) + "m ago";
+        if (diff < 86_400_000) return (diff / 3_600_000) + "h ago";
+        if (diff < 604_800_000) return (diff / 86_400_000) + "d ago";
+        return new java.text.SimpleDateFormat("MMM d", java.util.Locale.getDefault()).format(new java.util.Date(timestamp));
     }
 
     // ═══════════════════════════════════════════════════════════════

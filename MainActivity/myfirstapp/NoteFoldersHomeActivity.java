@@ -3,9 +3,12 @@ package com.prajwal.myfirstapp;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -45,6 +48,14 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Draw behind status bar — eliminate wasted black space at top
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
+
         setContentView(R.layout.activity_note_folders_home);
 
         noteRepository = new NoteRepository(this);
@@ -147,7 +158,12 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
         tvName.setText(folder.name);
 
         int count = folderRepository.getNoteCountRecursive(folder.id);
-        tvCount.setText(count + (count == 1 ? " note" : " notes"));
+        List<NoteFolder> subs = folderRepository.getSubfolders(folder.id);
+        String countText = count + (count == 1 ? " note" : " notes");
+        if (!subs.isEmpty()) {
+            countText += " · ↳ " + subs.size();
+        }
+        tvCount.setText(countText);
 
         // Preview note titles
         List<String> previewTitles = folderRepository.getPreviewNoteTitles(folder.id, 2);
@@ -308,29 +324,154 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
     }
 
     private void showCreateFolderDialog() {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setHint("Folder name");
-        input.setPadding(48, 24, 48, 24);
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+        View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
+        dialog.setContentView(sheetView);
 
-        final int[] selectedColor = {0};
+        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) bottomSheet.setBackgroundColor(android.graphics.Color.TRANSPARENT);
 
-        new AlertDialog.Builder(this)
-            .setTitle("New Folder")
-            .setView(input)
-            .setPositiveButton("Create", (d, w) -> {
-                String name = input.getText().toString().trim();
-                if (!name.isEmpty()) {
-                    NoteFolder folder = new NoteFolder(name,
-                        NoteFolder.FOLDER_COLORS[selectedColor[0]],
-                        "folder", null, 0);
-                    folder.sortOrder = folderRepository.getRootFolders().size();
-                    folderRepository.addFolder(folder);
-                    loadFolderGrid();
-                    Toast.makeText(this, "Folder created", Toast.LENGTH_SHORT).show();
+        TextView tvTitle = sheetView.findViewById(R.id.tvSheetTitle);
+        android.widget.EditText etName = sheetView.findViewById(R.id.etSubfolderName);
+        LinearLayout colorGrid = sheetView.findViewById(R.id.colorPickerGrid);
+        LinearLayout iconGrid = sheetView.findViewById(R.id.iconPickerGrid);
+        LinearLayout folderPreview = sheetView.findViewById(R.id.folderPreview);
+        TextView tvPreviewIcon = sheetView.findViewById(R.id.tvPreviewIcon);
+        TextView btnCancel = sheetView.findViewById(R.id.btnCancelSubfolder);
+        TextView btnSave = sheetView.findViewById(R.id.btnSaveSubfolder);
+
+        tvTitle.setText("New Folder");
+
+        final String[] selectedColor = {NoteFolder.FOLDER_COLORS[0]};
+        final String[] selectedIcon = {"folder"};
+        final int[] selectedColorIdx = {0};
+        final int[] selectedIconIdx = {25};
+
+        float density = getResources().getDisplayMetrics().density;
+
+        Runnable updatePreview = () -> {
+            String emoji = "📁";
+            for (int i = 0; i < NoteFolder.FOLDER_ICONS.length; i++) {
+                if (NoteFolder.FOLDER_ICONS[i].equals(selectedIcon[0])) {
+                    emoji = NoteFolder.FOLDER_ICON_EMOJIS[i]; break;
                 }
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
+            }
+            tvPreviewIcon.setText(emoji);
+            int c = Note.parseColorSafe(selectedColor[0]);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(blendWithDark(c, 0.35f));
+            bg.setCornerRadius(14 * density);
+            bg.setStroke(2, c);
+            folderPreview.setBackground(bg);
+        };
+
+        // Build color grid (3x4)
+        final View[] colorViews = new View[NoteFolder.FOLDER_COLORS.length];
+        for (int row = 0; row < 3; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setGravity(android.view.Gravity.CENTER);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(8 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < 4; col++) {
+                int idx = row * 4 + col;
+                if (idx >= NoteFolder.FOLDER_COLORS.length) break;
+                FrameLayout ci = new FrameLayout(this);
+                int sz = (int)(42 * density);
+                LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(0, sz, 1);
+                ip.setMargins((int)(4*density), 0, (int)(4*density), 0);
+                ci.setLayoutParams(ip);
+                int cv = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[idx]);
+                GradientDrawable cbg = new GradientDrawable();
+                cbg.setShape(GradientDrawable.OVAL);
+                cbg.setColor(cv);
+                if (idx == 0) cbg.setStroke((int)(3*density), 0xFFFFFFFF);
+                ci.setBackground(cbg);
+                colorViews[idx] = ci;
+                final int fi = idx;
+                ci.setOnClickListener(v -> {
+                    selectedColor[0] = NoteFolder.FOLDER_COLORS[fi];
+                    selectedColorIdx[0] = fi;
+                    for (int i = 0; i < colorViews.length; i++) {
+                        int cc = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[i]);
+                        GradientDrawable g = new GradientDrawable();
+                        g.setShape(GradientDrawable.OVAL); g.setColor(cc);
+                        if (i == fi) g.setStroke((int)(3*density), 0xFFFFFFFF);
+                        colorViews[i].setBackground(g);
+                    }
+                    updatePreview.run();
+                });
+                rowLayout.addView(ci);
+            }
+            colorGrid.addView(rowLayout);
+        }
+
+        // Build icon grid
+        final View[] iconViews = new View[NoteFolder.FOLDER_ICONS.length];
+        int iconsPerRow = 10;
+        int totalRows = (NoteFolder.FOLDER_ICONS.length + iconsPerRow - 1) / iconsPerRow;
+        for (int row = 0; row < totalRows; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(8 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < iconsPerRow; col++) {
+                int idx = row * iconsPerRow + col;
+                if (idx >= NoteFolder.FOLDER_ICONS.length) break;
+                TextView ii = new TextView(this);
+                ii.setText(NoteFolder.FOLDER_ICON_EMOJIS[idx]);
+                ii.setTextSize(24);
+                ii.setGravity(android.view.Gravity.CENTER);
+                int is = (int)(44 * density);
+                LinearLayout.LayoutParams iip = new LinearLayout.LayoutParams(is, is);
+                iip.setMargins((int)(3*density), 0, (int)(3*density), 0);
+                ii.setLayoutParams(iip);
+                ii.setPadding(0, (int)(6*density), 0, 0);
+                GradientDrawable ibg = new GradientDrawable();
+                ibg.setCornerRadius(12 * density);
+                ibg.setColor(idx == selectedIconIdx[0] ? 0x33FFFFFF : 0x00000000);
+                ii.setBackground(ibg);
+                iconViews[idx] = ii;
+                final int fi = idx;
+                ii.setOnClickListener(v -> {
+                    selectedIcon[0] = NoteFolder.FOLDER_ICONS[fi];
+                    selectedIconIdx[0] = fi;
+                    for (int i = 0; i < iconViews.length; i++) {
+                        GradientDrawable g = new GradientDrawable();
+                        g.setCornerRadius(12 * density);
+                        g.setColor(i == fi ? 0x33FFFFFF : 0x00000000);
+                        iconViews[i].setBackground(g);
+                    }
+                    updatePreview.run();
+                });
+                rowLayout.addView(ii);
+            }
+            iconGrid.addView(rowLayout);
+        }
+
+        updatePreview.run();
+        etName.requestFocus();
+        dialog.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnSave.setOnClickListener(v -> {
+            String name = etName.getText().toString().trim();
+            if (name.isEmpty()) { etName.setError("Enter a name"); return; }
+            NoteFolder folder = new NoteFolder(name, selectedColor[0], selectedIcon[0], null, 0);
+            folder.sortOrder = folderRepository.getRootFolders().size();
+            folderRepository.addFolder(folder);
+            loadFolderGrid();
+            loadDrawerTree();
+            Toast.makeText(this, "Folder '" + name + "' created", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
     }
 
     private void showFolderContextMenu(NoteFolder folder) {
@@ -370,34 +511,204 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
     }
 
     private void showColorPickerForFolder(NoteFolder folder) {
+        float density = getResources().getDisplayMetrics().density;
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding((int)(20*density), (int)(16*density), (int)(20*density), (int)(8*density));
+
+        for (int row = 0; row < 3; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setGravity(android.view.Gravity.CENTER);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(10 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < 4; col++) {
+                int idx = row * 4 + col;
+                if (idx >= NoteFolder.FOLDER_COLORS.length) break;
+                FrameLayout ci = new FrameLayout(this);
+                int sz = (int)(46 * density);
+                LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(0, sz, 1);
+                ip.setMargins((int)(4*density), 0, (int)(4*density), 0);
+                ci.setLayoutParams(ip);
+                int cv = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[idx]);
+                GradientDrawable cbg = new GradientDrawable();
+                cbg.setShape(GradientDrawable.OVAL); cbg.setColor(cv);
+                if (NoteFolder.FOLDER_COLORS[idx].equalsIgnoreCase(folder.colorHex))
+                    cbg.setStroke((int)(3*density), 0xFFFFFFFF);
+                ci.setBackground(cbg);
+                final int fi = idx;
+                ci.setOnClickListener(v -> {
+                    folder.colorHex = NoteFolder.FOLDER_COLORS[fi];
+                    folderRepository.updateFolder(folder);
+                    loadFolderGrid();
+                });
+                rowLayout.addView(ci);
+            }
+            container.addView(rowLayout);
+        }
+
         new AlertDialog.Builder(this)
             .setTitle("Change Color")
-            .setItems(NoteFolder.FOLDER_COLOR_NAMES, (d, which) -> {
-                folder.colorHex = NoteFolder.FOLDER_COLORS[which];
-                folderRepository.updateFolder(folder);
-                loadFolderGrid();
-            })
+            .setView(container)
+            .setNegativeButton("Cancel", null)
             .show();
     }
 
     private void showCreateSubfolderDialog(NoteFolder parent) {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setHint("Subfolder name");
-        input.setPadding(48, 24, 48, 24);
-        new AlertDialog.Builder(this)
-            .setTitle("New subfolder in " + parent.name)
-            .setView(input)
-            .setPositiveButton("Create", (d, w) -> {
-                String name = input.getText().toString().trim();
-                if (!name.isEmpty()) {
-                    NoteFolder sub = new NoteFolder(name, parent.colorHex, "folder", parent.id, parent.depth + 1);
-                    folderRepository.addFolder(sub);
-                    loadFolderGrid();
-                    Toast.makeText(this, "Subfolder created", Toast.LENGTH_SHORT).show();
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+        View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
+        dialog.setContentView(sheetView);
+
+        View bottomSheet = dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if (bottomSheet != null) bottomSheet.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+
+        TextView tvTitle = sheetView.findViewById(R.id.tvSheetTitle);
+        android.widget.EditText etName = sheetView.findViewById(R.id.etSubfolderName);
+        LinearLayout colorGrid = sheetView.findViewById(R.id.colorPickerGrid);
+        LinearLayout iconGrid = sheetView.findViewById(R.id.iconPickerGrid);
+        LinearLayout folderPreview = sheetView.findViewById(R.id.folderPreview);
+        TextView tvPreviewIcon = sheetView.findViewById(R.id.tvPreviewIcon);
+        TextView btnCancel = sheetView.findViewById(R.id.btnCancelSubfolder);
+        TextView btnSave = sheetView.findViewById(R.id.btnSaveSubfolder);
+
+        tvTitle.setText("New Subfolder in " + parent.name);
+
+        final String[] selectedColor = {parent.colorHex};
+        final String[] selectedIcon = {"folder"};
+        final int[] selectedColorIdx = {0};
+        final int[] selectedIconIdx = {25};
+        float density = getResources().getDisplayMetrics().density;
+
+        // Find parent color index
+        for (int i = 0; i < NoteFolder.FOLDER_COLORS.length; i++) {
+            if (NoteFolder.FOLDER_COLORS[i].equalsIgnoreCase(parent.colorHex)) {
+                selectedColorIdx[0] = i; break;
+            }
+        }
+
+        Runnable updatePreview = () -> {
+            String emoji = "\uD83D\uDCC1";
+            for (int i = 0; i < NoteFolder.FOLDER_ICONS.length; i++) {
+                if (NoteFolder.FOLDER_ICONS[i].equals(selectedIcon[0])) {
+                    emoji = NoteFolder.FOLDER_ICON_EMOJIS[i]; break;
                 }
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
+            }
+            tvPreviewIcon.setText(emoji);
+            int c = Note.parseColorSafe(selectedColor[0]);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setColor(blendWithDark(c, 0.35f));
+            bg.setCornerRadius(14 * density);
+            bg.setStroke(2, c);
+            folderPreview.setBackground(bg);
+        };
+
+        // Build color grid (3x4)
+        final View[] colorViews = new View[NoteFolder.FOLDER_COLORS.length];
+        for (int row = 0; row < 3; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            rowLayout.setGravity(android.view.Gravity.CENTER);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(8 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < 4; col++) {
+                int idx = row * 4 + col;
+                if (idx >= NoteFolder.FOLDER_COLORS.length) break;
+                FrameLayout ci = new FrameLayout(this);
+                int sz = (int)(42 * density);
+                LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(0, sz, 1);
+                ip.setMargins((int)(4*density), 0, (int)(4*density), 0);
+                ci.setLayoutParams(ip);
+                int cv = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[idx]);
+                GradientDrawable cbg = new GradientDrawable();
+                cbg.setShape(GradientDrawable.OVAL); cbg.setColor(cv);
+                if (idx == selectedColorIdx[0]) cbg.setStroke((int)(3*density), 0xFFFFFFFF);
+                ci.setBackground(cbg);
+                colorViews[idx] = ci;
+                final int fi = idx;
+                ci.setOnClickListener(v -> {
+                    selectedColor[0] = NoteFolder.FOLDER_COLORS[fi];
+                    selectedColorIdx[0] = fi;
+                    for (int i = 0; i < colorViews.length; i++) {
+                        int cc = Note.parseColorSafe(NoteFolder.FOLDER_COLORS[i]);
+                        GradientDrawable g = new GradientDrawable();
+                        g.setShape(GradientDrawable.OVAL); g.setColor(cc);
+                        if (i == fi) g.setStroke((int)(3*density), 0xFFFFFFFF);
+                        colorViews[i].setBackground(g);
+                    }
+                    updatePreview.run();
+                });
+                rowLayout.addView(ci);
+            }
+            colorGrid.addView(rowLayout);
+        }
+
+        // Build icon grid
+        final View[] iconViews = new View[NoteFolder.FOLDER_ICONS.length];
+        int iconsPerRow = 10;
+        int totalRows = (NoteFolder.FOLDER_ICONS.length + iconsPerRow - 1) / iconsPerRow;
+        for (int row = 0; row < totalRows; row++) {
+            LinearLayout rowLayout = new LinearLayout(this);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = (int)(8 * density);
+            rowLayout.setLayoutParams(rp);
+            for (int col = 0; col < iconsPerRow; col++) {
+                int idx = row * iconsPerRow + col;
+                if (idx >= NoteFolder.FOLDER_ICONS.length) break;
+                TextView ii = new TextView(this);
+                ii.setText(NoteFolder.FOLDER_ICON_EMOJIS[idx]);
+                ii.setTextSize(24);
+                ii.setGravity(android.view.Gravity.CENTER);
+                int is = (int)(44 * density);
+                LinearLayout.LayoutParams iip = new LinearLayout.LayoutParams(is, is);
+                iip.setMargins((int)(3*density), 0, (int)(3*density), 0);
+                ii.setLayoutParams(iip);
+                ii.setPadding(0, (int)(6*density), 0, 0);
+                GradientDrawable ibg = new GradientDrawable();
+                ibg.setCornerRadius(12 * density);
+                ibg.setColor(idx == selectedIconIdx[0] ? 0x33FFFFFF : 0x00000000);
+                ii.setBackground(ibg);
+                iconViews[idx] = ii;
+                final int fi = idx;
+                ii.setOnClickListener(v -> {
+                    selectedIcon[0] = NoteFolder.FOLDER_ICONS[fi];
+                    selectedIconIdx[0] = fi;
+                    for (int i = 0; i < iconViews.length; i++) {
+                        GradientDrawable g = new GradientDrawable();
+                        g.setCornerRadius(12 * density);
+                        g.setColor(i == fi ? 0x33FFFFFF : 0x00000000);
+                        iconViews[i].setBackground(g);
+                    }
+                    updatePreview.run();
+                });
+                rowLayout.addView(ii);
+            }
+            iconGrid.addView(rowLayout);
+        }
+
+        updatePreview.run();
+        etName.requestFocus();
+        dialog.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnSave.setOnClickListener(v -> {
+            String name = etName.getText().toString().trim();
+            if (name.isEmpty()) { etName.setError("Enter a name"); return; }
+            NoteFolder sub = new NoteFolder(name, selectedColor[0], selectedIcon[0], parent.id, parent.depth + 1);
+            folderRepository.addFolder(sub);
+            loadFolderGrid();
+            loadDrawerTree();
+            Toast.makeText(this, "Subfolder '" + name + "' created", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
     }
 
     private void showMoveFolderPicker(NoteFolder folder) {

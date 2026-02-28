@@ -20,8 +20,9 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="12dp">
+            android:paddingTop="28dp"
+            android:paddingBottom="12dp"
+            android:fitsSystemWindows="true">
 
             <ImageButton
                 android:id="@+id/btnBackFolderHome"

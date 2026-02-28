@@ -251,6 +251,69 @@ public class SmartNotesHelper {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
+    //  KEYWORD EXTRACTION
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Extracts the top N keywords from the text by frequency (non-stopword, >3 chars).
+     */
+    public static List<String> extractKeywords(String text, int maxKeywords) {
+        if (text == null || text.isEmpty()) return new ArrayList<>();
+        String[] words = text.toLowerCase().replaceAll("[^a-z0-9\\s]", " ").split("\\s+");
+        Map<String, Integer> freq = new HashMap<>();
+        for (String w : words) {
+            if (w.length() > 3 && !STOP_WORDS.contains(w)) {
+                freq.put(w, freq.getOrDefault(w, 0) + 1);
+            }
+        }
+        List<Map.Entry<String, Integer>> sorted = new ArrayList<>(freq.entrySet());
+        sorted.sort((a, b) -> b.getValue() - a.getValue());
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < Math.min(maxKeywords, sorted.size()); i++) {
+            result.add(sorted.get(i).getKey());
+        }
+        return result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  ENHANCED SIMILARITY — Body-aware
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Find notes similar to the given text (title + body content).
+     * Uses keyword overlap scoring — returns notes scoring above threshold.
+     */
+    public static List<Note> findSimilarNotes(String title, String body, List<Note> allNotes, int maxResults) {
+        if (allNotes == null) return new ArrayList<>();
+        String combined = (title != null ? title : "") + " " + (body != null ? body : "");
+        List<String> sourceKeywords = extractKeywords(combined, 15);
+        if (sourceKeywords.isEmpty()) return new ArrayList<>();
+
+        Set<String> sourceSet = new HashSet<>(sourceKeywords);
+        List<ScoredNote> scored = new ArrayList<>();
+
+        for (Note note : allNotes) {
+            String noteText = (note.title != null ? note.title : "") + " "
+                    + (note.plainTextPreview != null ? note.plainTextPreview : "");
+            List<String> noteKeywords = extractKeywords(noteText, 15);
+            int overlap = 0;
+            for (String kw : noteKeywords) {
+                if (sourceSet.contains(kw)) overlap++;
+            }
+            if (overlap >= 2) { // at least 2 shared keywords
+                scored.add(new ScoredNote(note, overlap));
+            }
+        }
+
+        scored.sort((a, b) -> b.score - a.score);
+        List<Note> result = new ArrayList<>();
+        for (int i = 0; i < Math.min(maxResults, scored.size()); i++) {
+            result.add(scored.get(i).note);
+        }
+        return result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
     //  PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════════════════════
 

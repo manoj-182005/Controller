@@ -996,58 +996,29 @@ public class MainActivity extends AppCompatActivity {
             startActivity(chatIntent);
         });
 
-        View cardSettings = findViewById(R.id.cardSettings);
+        View cardSettings = findViewById(R.id.cardSettingsHome);
         if (cardSettings != null) cardSettings.setOnClickListener(v -> {
             Intent settingsIntent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(settingsIntent);
         });
 
-        View cardExpenses = findViewById(R.id.cardExpenses);
-        if (cardExpenses != null) cardExpenses.setOnClickListener(v -> {
-            Intent expenseIntent = new Intent(MainActivity.this, ExpenseTrackerActivity.class);
-            startActivity(expenseIntent);
-        });
-
-        View cardPasswordManager = findViewById(R.id.cardPasswordManager);
+        View cardPasswordManager = findViewById(R.id.cardPasswordHome);
         if (cardPasswordManager != null) cardPasswordManager.setOnClickListener(v -> {
             Intent vaultIntent = new Intent(MainActivity.this, PasswordManagerActivity.class);
             startActivity(vaultIntent);
         });
 
-        View cardMediaVault = findViewById(R.id.cardMediaVault);
+        View cardMediaVault = findViewById(R.id.cardPersonalVaultHome);
         if (cardMediaVault != null) cardMediaVault.setOnClickListener(v -> {
             Intent mediaVaultIntent = new Intent(MainActivity.this, VaultUnlockActivity.class);
             startActivity(mediaVaultIntent);
         });
 
-        View cardSmartFileHub = findViewById(R.id.cardSmartFileHub);
+        View cardSmartFileHub = findViewById(R.id.cardSmartFileHubHome);
         if (cardSmartFileHub != null) cardSmartFileHub.setOnClickListener(v -> {
             Intent hubIntent = new Intent(MainActivity.this, SmartFileHubActivity.class);
             startActivity(hubIntent);
         });
-
-        View cardSystemMonitor = findViewById(R.id.cardSystemMonitor);
-        if (cardSystemMonitor != null) cardSystemMonitor.setOnClickListener(v -> showSystemMonitorMenu());
-
-        View cardClipboardSync = findViewById(R.id.cardClipboardSync);
-        if (cardClipboardSync != null) cardClipboardSync.setOnClickListener(v -> showClipboardDialog());
-
-        View cardRemoteShutdown = findViewById(R.id.cardRemoteShutdown);
-        if (cardRemoteShutdown != null) cardRemoteShutdown.setOnClickListener(v -> showPowerControlMenu());
-
-        View cardCustomShortcuts = findViewById(R.id.cardCustomShortcuts);
-        if (cardCustomShortcuts != null) cardCustomShortcuts.setOnClickListener(v -> showCustomShortcutsMenu());
-
-        View cardBrowserRemote = findViewById(R.id.cardBrowserRemote);
-        if (cardBrowserRemote != null) cardBrowserRemote.setOnClickListener(v -> showBrowserRemoteMenu());
-
-        View cardGameController = findViewById(R.id.cardGameController);
-        if (cardGameController != null) cardGameController.setOnClickListener(v ->
-            Toast.makeText(this, "Game Controller — coming soon!", Toast.LENGTH_SHORT).show());
-
-        View cardWhiteboard = findViewById(R.id.cardWhiteboard);
-        if (cardWhiteboard != null) cardWhiteboard.setOnClickListener(v ->
-            Toast.makeText(this, "Whiteboard — coming soon!", Toast.LENGTH_SHORT).show());
 
         // New home screen cards
         View cardLaptop = findViewById(R.id.cardLaptop);
@@ -1379,42 +1350,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateExpenseCardSummary() {
-        try {
-            ExpenseRepository expRepo = new ExpenseRepository(this);
-            double todaySpend = expRepo.getTodaySpend();
-            double budget = expRepo.getMonthlyBudget();
-            TextView summary = findViewById(R.id.tvExpenseCardSummary);
-            if (summary != null) {
-                if (todaySpend > 0) {
-                    String text = "₹" + (todaySpend >= 1000 ?
-                            String.format("%.1fk", todaySpend / 1000) :
-                            String.format("%.0f", todaySpend)) + " today";
-                    if (budget > 0) {
-                        double monthSpend = expRepo.getMonthSpend();
-                        double pct = monthSpend / budget * 100;
-                        if (pct >= 100) {
-                            summary.setTextColor(0xFFEF4444);
-                            text += " • Over budget!";
-                        } else if (pct >= 80) {
-                            summary.setTextColor(0xFFF59E0B);
-                            text += " • " + String.format("%.0f%%", pct) + " used";
-                        } else {
-                            summary.setTextColor(0xFFE0D4FF);
-                        }
-                    }
-                    summary.setText(text);
-                } else {
-                    summary.setText("Track & Manage");
-                    summary.setTextColor(0xFFE0D4FF);
-                }
-            }
-        } catch (Exception ignored) {}
+        // Expense card removed from home layout
     }
 
     private void updateVaultCardSummary() {
         try {
             PasswordRepository vaultRepo = new PasswordRepository(this);
-            TextView summary = findViewById(R.id.tvVaultCardSummary);
+            TextView summary = findViewById(R.id.tvPasswordCardSubtitle);
             if (summary != null) {
                 if (vaultRepo.isMasterPasswordSet()) {
                     summary.setText("🔒 Vault locked • Tap to open");
@@ -1428,7 +1370,7 @@ public class MainActivity extends AppCompatActivity {
 
         try {
             MediaVaultRepository mediaVault = MediaVaultRepository.getInstance(this);
-            TextView mediaVaultSummary = findViewById(R.id.tvMediaVaultCardSummary);
+            TextView mediaVaultSummary = findViewById(R.id.tvPersonalVaultSubtitle);
             if (mediaVaultSummary != null) {
                 if (mediaVault.isPinSetup()) {
                     int totalFiles = mediaVault.getAllFiles().size();

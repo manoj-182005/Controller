@@ -43,6 +43,7 @@ public class NoteVersionManager {
         public String noteId;
         public String title;
         public String body;
+        public String blocksJson;   // Block-based content snapshot
         public long timestamp;
         public int wordCount;
 
@@ -52,10 +53,18 @@ public class NoteVersionManager {
             this.noteId = note.id;
             this.title = note.title;
             this.body = note.body;
+            this.blocksJson = note.blocksJson;  // Preserve block structure
             this.timestamp = System.currentTimeMillis();
-            this.wordCount = note.body != null 
-                    ? note.body.trim().split("\\s+").length 
+            // Word count from plainTextPreview or body
+            String content = note.plainTextPreview != null ? note.plainTextPreview : note.body;
+            this.wordCount = content != null && !content.trim().isEmpty()
+                    ? content.trim().split("\\s+").length
                     : 0;
+        }
+
+        /** Whether this version stores block-based content */
+        public boolean hasBlocks() {
+            return blocksJson != null && !blocksJson.isEmpty() && !blocksJson.equals("[]");
         }
 
         public JSONObject toJson() throws JSONException {
@@ -63,6 +72,7 @@ public class NoteVersionManager {
             json.put("noteId", noteId);
             json.put("title", title);
             json.put("body", body);
+            if (blocksJson != null) json.put("blocksJson", blocksJson);
             json.put("timestamp", timestamp);
             json.put("wordCount", wordCount);
             return json;
@@ -73,6 +83,7 @@ public class NoteVersionManager {
             version.noteId = json.getString("noteId");
             version.title = json.optString("title", "");
             version.body = json.optString("body", "");
+            version.blocksJson = json.optString("blocksJson", null);
             version.timestamp = json.getLong("timestamp");
             version.wordCount = json.optInt("wordCount", 0);
             return version;
@@ -95,8 +106,14 @@ public class NoteVersionManager {
         // Check if content has changed since last version
         if (!versions.isEmpty()) {
             NoteVersion lastVersion = versions.get(0);
-            if (lastVersion.title.equals(note.title) && 
-                lastVersion.body.equals(note.body)) {
+            boolean titleSame = lastVersion.title.equals(note.title);
+            boolean contentSame;
+            if (note.blocksJson != null && lastVersion.blocksJson != null) {
+                contentSame = lastVersion.blocksJson.equals(note.blocksJson);
+            } else {
+                contentSame = lastVersion.body != null && lastVersion.body.equals(note.body);
+            }
+            if (titleSame && contentSame) {
                 // No changes, don't save
                 return;
             }
@@ -210,15 +227,19 @@ public class NoteVersionManager {
     public VersionDiff calculateDiff(NoteVersion older, NoteVersion newer) {
         VersionDiff diff = new VersionDiff();
 
-        String[] oldWords = older.body.split("\\s+");
-        String[] newWords = newer.body.split("\\s+");
+        // Use body content for diffing; extract plain text from blocks if available
+        String oldText = older.body != null ? older.body : "";
+        String newText = newer.body != null ? newer.body : "";
+
+        String[] oldWords = oldText.isEmpty() ? new String[0] : oldText.split("\\s+");
+        String[] newWords = newText.isEmpty() ? new String[0] : newText.split("\\s+");
 
         diff.oldWordCount = oldWords.length;
         diff.newWordCount = newWords.length;
         diff.wordDifference = newWords.length - oldWords.length;
-        diff.oldCharCount = older.body.length();
-        diff.newCharCount = newer.body.length();
-        diff.charDifference = newer.body.length() - older.body.length();
+        diff.oldCharCount = oldText.length();
+        diff.newCharCount = newText.length();
+        diff.charDifference = newText.length() - oldText.length();
 
         return diff;
     }

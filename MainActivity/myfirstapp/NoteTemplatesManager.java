@@ -40,14 +40,29 @@ public class NoteTemplatesManager {
     public static class NoteTemplate {
         public String id;
         public String name;
-        public String body; // HTML/rich text content
+        public String body;       // Legacy HTML/rich text content (fallback)
+        public String blocksJson;  // Block-based content (JSON array of ContentBlocks)
         public boolean isCustom;
 
         public NoteTemplate(String id, String name, String body, boolean isCustom) {
             this.id = id;
             this.name = name;
             this.body = body;
+            this.blocksJson = null;
             this.isCustom = isCustom;
+        }
+
+        public NoteTemplate(String id, String name, String body, String blocksJson, boolean isCustom) {
+            this.id = id;
+            this.name = name;
+            this.body = body;
+            this.blocksJson = blocksJson;
+            this.isCustom = isCustom;
+        }
+
+        /** Whether this template stores block-based content */
+        public boolean hasBlocks() {
+            return blocksJson != null && !blocksJson.isEmpty() && !blocksJson.equals("[]");
         }
 
         public JSONObject toJson() {
@@ -56,6 +71,7 @@ public class NoteTemplatesManager {
                 json.put("id", id);
                 json.put("name", name);
                 json.put("body", body);
+                if (blocksJson != null) json.put("blocksJson", blocksJson);
                 json.put("isCustom", isCustom);
             } catch (JSONException e) {
                 Log.e("NoteTemplate", "Error serializing template: " + e.getMessage());
@@ -66,12 +82,14 @@ public class NoteTemplatesManager {
         public static NoteTemplate fromJson(JSONObject json) {
             if (json == null) return null;
             try {
-                return new NoteTemplate(
+                NoteTemplate t = new NoteTemplate(
                         json.optString("id", UUID.randomUUID().toString().substring(0, 12)),
                         json.optString("name", ""),
                         json.optString("body", ""),
+                        json.optString("blocksJson", null),
                         json.optBoolean("isCustom", true)
                 );
+                return t;
             } catch (Exception e) {
                 Log.e("NoteTemplate", "Error deserializing template: " + e.getMessage());
                 return null;
@@ -98,102 +116,177 @@ public class NoteTemplatesManager {
     public static List<NoteTemplate> getBuiltInTemplates() {
         List<NoteTemplate> templates = new ArrayList<>();
 
+        // ── Meeting Notes ──
         templates.add(new NoteTemplate(
                 "builtin_meeting",
                 "Meeting Notes",
-                "<b>Meeting Notes</b><br><br>" +
-                "<b>Date:</b> [date]<br>" +
-                "<b>Attendees:</b><br>" +
-                "• <br><br>" +
-                "<b>Agenda:</b><br>" +
-                "• <br><br>" +
-                "<b>Action Items:</b><br>" +
-                "• <br><br>" +
-                "<b>Decisions:</b><br>" +
-                "• ",
+                "",
+                buildBlocksJson(
+                    block("heading1", "Meeting Notes"),
+                    block("text", "Date: [date]"),
+                    block("heading2", "Attendees"),
+                    block("bullet", ""),
+                    block("heading2", "Agenda"),
+                    block("numbered", ""),
+                    block("heading2", "Discussion"),
+                    block("text", ""),
+                    block("divider", ""),
+                    block("heading2", "Action Items"),
+                    block("checklist", ""),
+                    block("heading2", "Decisions"),
+                    block("bullet", "")
+                ),
                 false
         ));
 
+        // ── Daily Journal ──
         templates.add(new NoteTemplate(
                 "builtin_journal",
                 "Daily Journal",
-                "<b>Daily Journal</b><br><br>" +
-                "<b>Date:</b> [date]<br>" +
-                "<b>Mood:</b> 😊<br><br>" +
-                "<b>Today's thoughts:</b><br>" +
-                "<br><br>" +
-                "<b>Gratitude:</b><br>" +
-                "• <br><br>" +
-                "<b>Tomorrow's goals:</b><br>" +
-                "• ",
+                "",
+                buildBlocksJson(
+                    block("heading1", "Daily Journal"),
+                    block("text", "Date: [date]"),
+                    block("callout", "Mood: \uD83D\uDE0A"),
+                    block("heading2", "Today's thoughts"),
+                    block("text", ""),
+                    block("heading2", "Gratitude"),
+                    block("bullet", ""),
+                    block("bullet", ""),
+                    block("bullet", ""),
+                    block("divider", ""),
+                    block("heading2", "Tomorrow's goals"),
+                    block("checklist", ""),
+                    block("checklist", "")
+                ),
                 false
         ));
 
+        // ── Study Notes ──
         templates.add(new NoteTemplate(
                 "builtin_study",
                 "Study Notes",
-                "<b>Study Notes</b><br><br>" +
-                "<b>Topic:</b> <br><br>" +
-                "<b>Key Concepts:</b><br>" +
-                "• <br><br>" +
-                "<b>Summary:</b><br>" +
-                "<br><br>" +
-                "<b>Questions to follow up:</b><br>" +
-                "• ",
+                "",
+                buildBlocksJson(
+                    block("heading1", "Study Notes"),
+                    block("text", "Subject: "),
+                    block("text", "Date: [date]"),
+                    block("heading2", "Key Concepts"),
+                    block("bullet", ""),
+                    block("heading2", "Summary"),
+                    block("text", ""),
+                    block("heading2", "Important Formulas / Code"),
+                    block("code", ""),
+                    block("divider", ""),
+                    block("heading2", "Questions & Follow-ups"),
+                    block("checklist", ""),
+                    block("heading3", "Resources"),
+                    block("bullet", "")
+                ),
                 false
         ));
 
+        // ── Project Plan ──
         templates.add(new NoteTemplate(
                 "builtin_project",
                 "Project Plan",
-                "<b>Project Plan</b><br><br>" +
-                "<b>Overview:</b><br>" +
-                "<br><br>" +
-                "<b>Goals:</b><br>" +
-                "• <br><br>" +
-                "<b>Tasks:</b><br>" +
-                "• <br><br>" +
-                "<b>Deadline:</b> <br><br>" +
-                "<b>Notes:</b><br>" +
-                "• ",
+                "",
+                buildBlocksJson(
+                    block("heading1", "Project Plan"),
+                    block("heading2", "Overview"),
+                    block("text", ""),
+                    block("heading2", "Goals"),
+                    block("checklist", ""),
+                    block("heading2", "Milestones"),
+                    block("numbered", ""),
+                    block("heading2", "Tasks"),
+                    block("checklist", ""),
+                    block("checklist", ""),
+                    block("divider", ""),
+                    block("callout", "Deadline: "),
+                    block("heading2", "Notes"),
+                    block("text", "")
+                ),
                 false
         ));
 
+        // ── Book Notes ──
         templates.add(new NoteTemplate(
                 "builtin_book",
                 "Book Notes",
-                "<b>Book Notes</b><br><br>" +
-                "<b>Title:</b> <br>" +
-                "<b>Author:</b> <br><br>" +
-                "<b>Key Takeaways:</b><br>" +
-                "• <br><br>" +
-                "<b>Favourite Quotes:</b><br>" +
-                "• <br><br>" +
-                "<b>Rating:</b> ⭐⭐⭐⭐⭐",
+                "",
+                buildBlocksJson(
+                    block("heading1", "Book Notes"),
+                    block("text", "Title: "),
+                    block("text", "Author: "),
+                    block("heading2", "Key Takeaways"),
+                    block("numbered", ""),
+                    block("heading2", "Favourite Quotes"),
+                    block("quote", ""),
+                    block("heading2", "Chapter Notes"),
+                    block("toggle", "Chapter 1"),
+                    block("divider", ""),
+                    block("callout", "Rating: \u2B50\u2B50\u2B50\u2B50\u2B50")
+                ),
                 false
         ));
 
+        // ── Recipe ──
         templates.add(new NoteTemplate(
                 "builtin_recipe",
                 "Recipe",
-                "<b>Recipe</b><br><br>" +
-                "<b>Ingredients:</b><br>" +
-                "• <br><br>" +
-                "<b>Instructions:</b><br>" +
-                "1. <br><br>" +
-                "<b>Tips:</b><br>" +
-                "• ",
+                "",
+                buildBlocksJson(
+                    block("heading1", "Recipe"),
+                    block("text", "Servings: "),
+                    block("text", "Prep time: "),
+                    block("heading2", "Ingredients"),
+                    block("checklist", ""),
+                    block("checklist", ""),
+                    block("heading2", "Instructions"),
+                    block("numbered", ""),
+                    block("numbered", ""),
+                    block("divider", ""),
+                    block("heading3", "Tips"),
+                    block("callout", "")
+                ),
                 false
         ));
 
+        // ── Blank ──
         templates.add(new NoteTemplate(
                 "builtin_blank",
                 "Blank",
                 "",
+                buildBlocksJson(block("text", "")),
                 false
         ));
 
         return templates;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    //  BLOCK TEMPLATE BUILDERS (helper methods for built-in templates)
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    /** Create a minimal JSON entry for one block. */
+    private static JSONObject block(String type, String text) {
+        JSONObject b = new JSONObject();
+        try {
+            b.put("id", UUID.randomUUID().toString().substring(0, 12));
+            b.put("type", type);
+            b.put("text", text);
+        } catch (JSONException e) {
+            Log.e(TAG, "block() error", e);
+        }
+        return b;
+    }
+
+    /** Build a JSON array string from an array of block JSONObjects. */
+    private static String buildBlocksJson(JSONObject... blockObjs) {
+        JSONArray arr = new JSONArray();
+        for (JSONObject b : blockObjs) arr.put(b);
+        return arr.toString();
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -231,8 +324,20 @@ public class NoteTemplatesManager {
      * Creates a new custom template with the given name and body, and persists it.
      */
     public void saveCustomTemplate(String name, String body) {
+        saveCustomTemplate(name, body, null);
+    }
+
+    /**
+     * Creates a new custom template with block-based content.
+     * @param name       Template display name
+     * @param body       Plain text fallback body
+     * @param blocksJson JSON array of ContentBlocks (null for legacy templates)
+     */
+    public void saveCustomTemplate(String name, String body, String blocksJson) {
         String id = "custom_" + UUID.randomUUID().toString().substring(0, 12);
-        NoteTemplate newTemplate = new NoteTemplate(id, name, body != null ? body : "", true);
+        NoteTemplate newTemplate = new NoteTemplate(
+                id, name, body != null ? body : "",
+                blocksJson, true);
 
         List<NoteTemplate> customs = getCustomTemplates();
         customs.add(newTemplate);

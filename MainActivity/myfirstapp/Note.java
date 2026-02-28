@@ -33,6 +33,15 @@ public class Note {
     public String linkedCalendarEventId; // null = no linked event
     public String linkedExpenseId;       // null = no linked expense
 
+    // ─── Block-based content (Prompt 2) ──────────────────────────
+    public String blocksJson;            // JSON array of ContentBlock objects; null = legacy plain body
+    public List<String> relatedNoteIds;  // bidirectional note relations
+    public String propertiesJson;        // custom properties JSON for database mode
+    public boolean isFavourited;         // star/favourite flag
+
+    // ─── Smart Intelligence (Prompt 3) ──────────────────────────
+    public String contextJson;           // NoteContextTracker auto-captured context (time, weather, location)
+
     // ─── Default Categories ──────────────────────────────────────
 
     public static final String[] DEFAULT_CATEGORIES = {
@@ -86,6 +95,10 @@ public class Note {
         this.updatedAt = System.currentTimeMillis();
         this.deletedAt = 0;
         this.folderId = null;
+        this.blocksJson = null;
+        this.relatedNoteIds = new ArrayList<>();
+        this.propertiesJson = null;
+        this.isFavourited = false;
     }
 
     public Note(String title, String body, String category) {
@@ -171,6 +184,15 @@ public class Note {
             json.put("folderId", folderId != null ? folderId : "");
             json.put("linkedCalendarEventId", linkedCalendarEventId != null ? linkedCalendarEventId : "");
             json.put("linkedExpenseId", linkedExpenseId != null ? linkedExpenseId : "");
+            json.put("blocksJson", blocksJson != null ? blocksJson : "");
+            json.put("isFavourited", isFavourited);
+            json.put("propertiesJson", propertiesJson != null ? propertiesJson : "");
+            json.put("contextJson", contextJson != null ? contextJson : "");
+            JSONArray relArr = new JSONArray();
+            if (relatedNoteIds != null) {
+                for (String rid : relatedNoteIds) relArr.put(rid);
+            }
+            json.put("relatedNoteIds", relArr);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -210,6 +232,20 @@ public class Note {
             if (note.linkedCalendarEventId.isEmpty()) note.linkedCalendarEventId = null;
             note.linkedExpenseId = json.optString("linkedExpenseId", "");
             if (note.linkedExpenseId.isEmpty()) note.linkedExpenseId = null;
+            note.blocksJson = json.optString("blocksJson", "");
+            if (note.blocksJson.isEmpty()) note.blocksJson = null;
+            note.isFavourited = json.optBoolean("isFavourited", false);
+            note.propertiesJson = json.optString("propertiesJson", "");
+            if (note.propertiesJson.isEmpty()) note.propertiesJson = null;
+            note.contextJson = json.optString("contextJson", "");
+            if (note.contextJson.isEmpty()) note.contextJson = null;
+            note.relatedNoteIds = new ArrayList<>();
+            JSONArray relArr = json.optJSONArray("relatedNoteIds");
+            if (relArr != null) {
+                for (int ri = 0; ri < relArr.length(); ri++) {
+                    note.relatedNoteIds.add(relArr.getString(ri));
+                }
+            }
 
             if (note.plainTextPreview.isEmpty() && !note.body.isEmpty()) {
                 note.updatePlainTextPreview();

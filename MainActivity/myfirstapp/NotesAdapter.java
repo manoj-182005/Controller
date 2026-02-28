@@ -34,6 +34,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
     private final List<Note> notes;
     private final OnNoteActionListener listener;
     private final boolean isGridView;
+    private NoteFolderRepository folderRepository;
 
     private boolean isMultiSelectMode = false;
     private Set<String> selectedIds = new HashSet<>();
@@ -47,6 +48,11 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         this.notes = notes;
         this.listener = listener;
         this.isGridView = isGridView;
+        try {
+            this.folderRepository = new NoteFolderRepository(context);
+        } catch (Exception e) {
+            this.folderRepository = null;
+        }
     }
 
     // ─── Mode Setters ────────────────────────────────────────────
@@ -89,6 +95,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         View leftAccent;
         TextView tvNoteTitle, tvNotePreview, tvNoteDate, tvNoteCategory;
         TextView tvPinIcon, tvReminderIcon;
+        TextView tvNoteFolderChip;
         LinearLayout tagsContainer;
         CheckBox cbSelect;
         FrameLayout lockOverlay;
@@ -103,6 +110,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
             tvNoteCategory = itemView.findViewById(R.id.tvNoteCategory);
             tvPinIcon = itemView.findViewById(R.id.tvPinIcon);
             tvReminderIcon = itemView.findViewById(R.id.tvReminderIcon);
+            tvNoteFolderChip = itemView.findViewById(R.id.tvNoteFolderChip);
             tagsContainer = itemView.findViewById(R.id.tagsContainer);
             cbSelect = itemView.findViewById(R.id.cbSelect);
             lockOverlay = itemView.findViewById(R.id.lockOverlay);
@@ -154,13 +162,37 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
             holder.tvNoteDate.setTextColor(0xFF475569);
         }
 
-        // Category badge
+        // Category badge with color
         if (holder.tvNoteCategory != null) {
             if (note.category != null && !note.category.isEmpty()) {
                 holder.tvNoteCategory.setText(note.category);
                 holder.tvNoteCategory.setVisibility(View.VISIBLE);
+                // Apply category color as pill background
+                int catColor = Note.getCategoryColor(note.category);
+                float density = context.getResources().getDisplayMetrics().density;
+                GradientDrawable catBg = new GradientDrawable();
+                catBg.setCornerRadius(12 * density);
+                catBg.setColor(blendColors(0xFF0F172A, catColor, 0.3f));
+                catBg.setStroke(1, blendColors(0xFF0F172A, catColor, 0.5f));
+                holder.tvNoteCategory.setBackground(catBg);
+                holder.tvNoteCategory.setTextColor(catColor);
             } else {
                 holder.tvNoteCategory.setVisibility(View.GONE);
+            }
+        }
+
+        // Folder chip
+        if (holder.tvNoteFolderChip != null) {
+            if (note.folderId != null && folderRepository != null) {
+                NoteFolder folder = folderRepository.getFolderById(note.folderId);
+                if (folder != null) {
+                    holder.tvNoteFolderChip.setText(folder.getIconEmoji() + " " + folder.name);
+                    holder.tvNoteFolderChip.setVisibility(View.VISIBLE);
+                } else {
+                    holder.tvNoteFolderChip.setVisibility(View.GONE);
+                }
+            } else {
+                holder.tvNoteFolderChip.setVisibility(View.GONE);
             }
         }
 

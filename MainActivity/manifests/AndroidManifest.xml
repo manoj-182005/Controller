@@ -205,7 +205,20 @@
             android:name=".NoteEditorActivity"
             android:configChanges="orientation|screenSize"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
+            android:theme="@style/Theme.AppCompat.NoActionBar">
+            <!-- Share text directly to a new note -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <!-- Share images directly to a new note -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
 
         <!-- Drawing Note Activity -->
         <activity
@@ -749,6 +762,55 @@
         </provider>
 
         <activity android:name=".LaptopHubActivity" />
+
+        <!-- ═══ Smart Intelligence — Prompt 3 Activities ═══ -->
+        <activity android:name=".FlashcardReviewActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".FlashcardListActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".StudySessionActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".QuizActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".QuizResultsActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".StudyProgressActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".StudyDashboardActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".ConceptMapActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".TimeCapsuleActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".NoteInsightsActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+        <activity android:name=".NoteShareViewerActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- Time Capsule Notification Receiver -->
+        <receiver android:name=".TimeCapsuleNotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.prajwal.myfirstapp.ACTION_CHECK_CAPSULES" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Idea Capture Home Screen Widget -->
+        <receiver android:name=".IdeaCaptureWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_idea_capture_info" />
+        </receiver>
 
     </application>
 

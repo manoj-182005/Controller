@@ -218,13 +218,13 @@ public class TodoListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         cardParams.setMarginEnd(dp8);
         card.setLayoutParams(cardParams);
 
-        // Dashed border background
-        GradientDrawable dashedBg = new GradientDrawable();
-        dashedBg.setShape(GradientDrawable.RECTANGLE);
-        dashedBg.setCornerRadius(16 * density);
-        dashedBg.setColor(0x1AFFFFFF);
-        dashedBg.setStroke((int) (2 * density), 0x66FFFFFF, 12 * density, 8 * density);
-        card.setBackground(dashedBg);
+        // Gradient border background (amber-tinted)
+        GradientDrawable borderBg = new GradientDrawable();
+        borderBg.setShape(GradientDrawable.RECTANGLE);
+        borderBg.setCornerRadius(18 * density);
+        borderBg.setColor(0x0DFFFFFF);
+        borderBg.setStroke((int) (1.5f * density), 0x33F59E0B);
+        card.setBackground(borderBg);
         card.setClickable(true);
         card.setFocusable(true);
 
@@ -256,7 +256,7 @@ public class TodoListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         GradientDrawable bg = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 new int[]{baseColor, darkColor});
-        bg.setCornerRadius(16 * density);
+        bg.setCornerRadius(18 * density);
         h.cardView.setBackground(bg);
 
         // Icon and name

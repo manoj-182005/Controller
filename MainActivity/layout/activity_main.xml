@@ -56,7 +56,6 @@
         android:elevation="8dp"
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"
-        app:itemActiveIndicatorColor="#1D4ED8"
         app:itemRippleColor="#1A3A8F"
         app:menu="@menu/bottom_nav_menu"
         app:labelVisibilityMode="labeled"
