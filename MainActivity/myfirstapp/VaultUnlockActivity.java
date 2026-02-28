@@ -243,6 +243,16 @@ public class VaultUnlockActivity extends AppCompatActivity {
             // Wrong PIN
             hapticError();
             int failed = repo.getFailedAttempts();
+            // Auto-destroy check — after recording failed attempt, before lockout display
+            if (VaultAutoDestroyManager.shouldDestroy(this, failed)) {
+                new AlertDialog.Builder(this, R.style.DarkAlertDialog)
+                        .setTitle("Vault Destroyed")
+                        .setMessage("All vault contents have been destroyed.")
+                        .setCancelable(false)
+                        .setPositiveButton("OK", (d, w) -> finish())
+                        .show();
+                return;
+            }
             tvPinStatus.setVisibility(View.VISIBLE);
             if (failed >= 5) {
                 tvPinStatus.setText("Too many attempts — vault locked");
@@ -299,6 +309,7 @@ public class VaultUnlockActivity extends AppCompatActivity {
             dot.setLayoutParams(lp);
             if (i < currentPin.length()) {
                 dot.setBackgroundColor(Color.parseColor("#F59E0B"));
+                animateDotFill(dot);
             } else {
                 dot.setBackgroundColor(Color.parseColor("#334155"));
             }
@@ -375,6 +386,7 @@ public class VaultUnlockActivity extends AppCompatActivity {
             dot.setLayoutParams(lp);
             if (i < currentPin.length()) {
                 dot.setBackgroundColor(Color.parseColor("#F59E0B"));
+                animateDotFill(dot);
             } else {
                 dot.setBackgroundColor(Color.parseColor("#334155"));
             }
@@ -419,8 +431,8 @@ public class VaultUnlockActivity extends AppCompatActivity {
 
                     @Override
                     public void onAuthenticationError(int errorCode, CharSequence errString) {
-                        if (errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON &&
-                                errorCode != BiometricPrompt.ERROR_USER_CANCELED) {
+                        // Always fall back to PIN pad automatically on any error
+                        if (pinEntrySection.getVisibility() != View.VISIBLE) {
                             showPinPad();
                         }
                     }
@@ -490,6 +502,7 @@ public class VaultUnlockActivity extends AppCompatActivity {
     private void openVaultHome() {
         // Vault should already be unlocked by this point (via unlockWithPin or setup flow)
         if (!repo.isUnlocked()) return;
+        repo.recordUnlockTime();
         Intent intent = new Intent(this, VaultHomeActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(intent);
@@ -534,5 +547,11 @@ public class VaultUnlockActivity extends AppCompatActivity {
 
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+    private void animateDotFill(View dot) {
+        dot.animate().scaleX(1.2f).scaleY(1.2f).setDuration(80)
+                .withEndAction(() -> dot.animate().scaleX(1f).scaleY(1f).setDuration(80).start())
+                .start();
     }
 }
