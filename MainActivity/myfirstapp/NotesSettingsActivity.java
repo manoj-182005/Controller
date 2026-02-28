@@ -516,7 +516,12 @@ public class NotesSettingsActivity extends Activity {
                            itemNoteLockPref.setText("🔒  Note Lock Method: " + capitalize(val)); }));
         itemAutoLockAfter.setOnClickListener(v -> pickOption("Auto-lock After",
                 new String[]{"1 minute", "5 minutes", "10 minutes", "Never"},
-                new String[]{"60000", "300000", "600000", "-1"},
+                new String[]{
+                    String.valueOf(java.util.concurrent.TimeUnit.MINUTES.toMillis(1)),
+                    String.valueOf(java.util.concurrent.TimeUnit.MINUTES.toMillis(5)),
+                    String.valueOf(java.util.concurrent.TimeUnit.MINUTES.toMillis(10)),
+                    "-1"
+                },
                 String.valueOf(settings.getAutoLockAfter()),
                 (val) -> { long ms = Long.parseLong(val); settings.setAutoLockAfter(ms);
                            itemAutoLockAfter.setText("⏱  Auto-lock After: " + formatLockAfter(ms)); }));
@@ -622,8 +627,8 @@ public class NotesSettingsActivity extends Activity {
         });
         itemSendFeedback.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_SENDTO);
-            intent.setData(Uri.parse("mailto:feedback@controllerapp.dev"));
-            intent.putExtra(Intent.EXTRA_SUBJECT, "Notes App Feedback");
+            intent.setData(Uri.parse("mailto:"));
+            intent.putExtra(Intent.EXTRA_SUBJECT, "Notes App Feedback (" + getPackageName() + ")");
             try { startActivity(intent); }
             catch (Exception e) { Toast.makeText(this, "No email app found", Toast.LENGTH_SHORT).show(); }
         });

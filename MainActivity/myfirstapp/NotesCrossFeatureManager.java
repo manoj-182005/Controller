@@ -30,6 +30,13 @@ public class NotesCrossFeatureManager {
 
     private final Context context;
 
+    private static final Pattern ACTION_ITEM_PATTERN = Pattern.compile(
+            "(?i)(?:^|\\n)\\s*(?:[-*]\\s*\\[\\s*\\]|TODO:?|Action:?|Task:?)\\s+(.+)",
+            Pattern.MULTILINE);
+
+    private static final Pattern FIRST_NUMBER_PATTERN = Pattern.compile(
+            "\\b(\\d{1,10}(?:\\.\\d{1,2})?)\\b");
+
     public NotesCrossFeatureManager(Context context) {
         this.context = context.getApplicationContext();
     }
@@ -99,10 +106,7 @@ public class NotesCrossFeatureManager {
 
         // Scan body text for action-item patterns ("TODO", "- [ ]", "Action:", etc.)
         if (results.isEmpty() && note.body != null) {
-            Pattern pattern = Pattern.compile(
-                    "(?i)(?:^|\\n)\\s*(?:[-*]\\s*\\[\\s*\\]|TODO:?|Action:?|Task:?)\\s+(.+)",
-                    Pattern.MULTILINE);
-            Matcher m = pattern.matcher(note.body);
+            Matcher m = ACTION_ITEM_PATTERN.matcher(note.body);
             while (m.find()) {
                 String item = m.group(1);
                 if (item != null && !item.trim().isEmpty()) {
@@ -120,7 +124,7 @@ public class NotesCrossFeatureManager {
             Task task = new Task(title, Task.PRIORITY_NORMAL);
             task.description = "From Note: " + note.title;
             task.linkedNoteId = note.id;
-            task.notes = "Extracted from note: "" + note.title + """;
+            task.notes = "Extracted from note: \"" + note.title + "\"";
             taskRepo.addTask(task);
         }
     }
@@ -224,7 +228,7 @@ public class NotesCrossFeatureManager {
                 text = sb.toString();
             } catch (Exception ignored) {}
         }
-        Matcher m = Pattern.compile("\\b(\\d{1,10}(?:\\.\\d{1,2})?)\\b").matcher(text);
+        Matcher m = FIRST_NUMBER_PATTERN.matcher(text);
         if (m.find()) {
             try { return Double.parseDouble(m.group(1)); } catch (Exception ignored) {}
         }
@@ -246,14 +250,9 @@ public class NotesCrossFeatureManager {
                 .setTitle("🔐 Link Password Entry")
                 .setMessage("Authenticate with your vault to select a password entry to link to this note.")
                 .setPositiveButton("Open Vault", (d, w) -> {
-                    try {
-                        Intent intent = new Intent(activityContext,
-                                Class.forName("com.prajwal.myfirstapp.VaultUnlockActivity"));
-                        intent.putExtra("link_to_note_id", note.id);
-                        activityContext.startActivity(intent);
-                    } catch (ClassNotFoundException e) {
-                        Toast.makeText(activityContext, "Vault not available", Toast.LENGTH_SHORT).show();
-                    }
+                    Intent intent = new Intent(activityContext, VaultUnlockActivity.class);
+                    intent.putExtra("link_to_note_id", note.id);
+                    activityContext.startActivity(intent);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
