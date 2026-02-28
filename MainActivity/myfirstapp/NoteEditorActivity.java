@@ -176,6 +176,7 @@ public class NoteEditorActivity extends AppCompatActivity
     private NoteExportManager exportManager;
     private NoteTemplatesManager templatesManager;
     private NoteRelationsManager relationsManager;
+    private NotesCrossFeatureManager crossFeatureManager;
     private Vibrator vibrator;
 
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -211,6 +212,7 @@ public class NoteEditorActivity extends AppCompatActivity
         exportManager   = new NoteExportManager(this);
         templatesManager = new NoteTemplatesManager(this);
         relationsManager = new NoteRelationsManager(this);
+        crossFeatureManager = new NotesCrossFeatureManager(this);
 
         // Parse intent
         Intent intent = getIntent();
@@ -1404,6 +1406,13 @@ public class NoteEditorActivity extends AppCompatActivity
         popup.getMenu().add(0, 25, 22, "🌐  Export as Web Page");
         popup.getMenu().add(0, 26, 23, "🗺️  Concept Map");
         popup.getMenu().add(0, 27, 24, "🧬  Note DNA");
+        // ── Cross-Feature Integrations (Prompt 4) ──
+        popup.getMenu().add(0, 30, 25, "✅  Extract Tasks to Task Manager");
+        popup.getMenu().add(0, 31, 26, "📅  Create Calendar Event from Note");
+        popup.getMenu().add(0, 32, 27, "📎  Attach from File Hub");
+        popup.getMenu().add(0, 33, 28, "💰  Log Expense from Note");
+        popup.getMenu().add(0, 34, 29, "🔐  Link Password Entry");
+        popup.getMenu().add(0, 35, 30, "🔒  Move Images to Vault");
 
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
@@ -1435,6 +1444,24 @@ public class NoteEditorActivity extends AppCompatActivity
                 case 25: exportAsWebPage();      return true;
                 case 26: openConceptMap();       return true;
                 case 27: showNoteDNA();          return true;
+                // ── Cross-Feature Integration handlers ──
+                case 30: crossFeatureManager.extractTasksFromNote(this, currentNote); return true;
+                case 31: crossFeatureManager.createCalendarEventFromNote(this, currentNote); return true;
+                case 32: crossFeatureManager.openFileHubPicker(this, currentNote); return true;
+                case 33: crossFeatureManager.logExpenseFromNote(this, currentNote); return true;
+                case 34: crossFeatureManager.linkPasswordEntryToNote(this, currentNote); return true;
+                case 35:
+                    crossFeatureManager.moveImagesToVault(this, currentNote, updatedNote -> {
+                        currentNote.blocksJson = updatedNote.blocksJson;
+                        noteRepository.updateNote(currentNote);
+                        blocks.clear();
+                        if (currentNote.blocksJson != null) {
+                            blocks.addAll(ContentBlock.fromJsonArray(currentNote.blocksJson));
+                        }
+                        if (blocks.isEmpty()) blocks.add(new ContentBlock(ContentBlock.TYPE_TEXT));
+                        blockEditorAdapter.notifyDataSetChanged();
+                    });
+                    return true;
             }
             return false;
         });
