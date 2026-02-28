@@ -2,6 +2,7 @@ package com.prajwal.myfirstapp;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,8 +27,10 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -49,7 +52,7 @@ public class VaultImageViewerActivity extends Activity {
     private ImageView imageView;
     private LinearLayout topBar, bottomBar;
     private TextView tvFileName, btnBack, btnInfo, btnMore;
-    private TextView btnFavourite, btnAddAlbum, btnShare, btnExport, btnDelete;
+    private TextView btnFavourite, btnAddAlbum, btnShare, btnExport, btnEdit, btnDelete;
 
     // Zoom/pan state
     private final Matrix matrix = new Matrix();
@@ -91,6 +94,7 @@ public class VaultImageViewerActivity extends Activity {
         btnAddAlbum = findViewById(R.id.btnAddAlbum);
         btnShare = findViewById(R.id.btnShare);
         btnExport = findViewById(R.id.btnExport);
+        btnEdit = findViewById(R.id.btnEdit);
         btnDelete = findViewById(R.id.btnDelete);
 
         String fileId = getIntent().getStringExtra(EXTRA_FILE_ID);
@@ -189,6 +193,7 @@ public class VaultImageViewerActivity extends Activity {
         btnAddAlbum.setOnClickListener(v -> showAddToAlbumDialog());
         btnShare.setOnClickListener(v -> shareFile());
         btnExport.setOnClickListener(v -> exportToDownloads());
+        btnEdit.setOnClickListener(v -> openImageEditor());
         btnDelete.setOnClickListener(v -> confirmDelete());
 
         imageView.setOnTouchListener((v, event) -> handleTouch(event));
@@ -340,18 +345,41 @@ public class VaultImageViewerActivity extends Activity {
 
     private void showInfoDialog() {
         if (currentFile == null) return;
-        String date = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
-                .format(new Date(currentFile.importedAt));
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault());
+        String dateImported = sdf.format(new Date(currentFile.importedAt));
+        String dateTaken = (currentFile.originalCreatedAt > 0)
+                ? sdf.format(new Date(currentFile.originalCreatedAt)) : "Not available";
         String dims = (currentFile.width > 0 && currentFile.height > 0)
-                ? currentFile.width + " × " + currentFile.height + "px" : "Unknown";
+                ? currentFile.width + " × " + currentFile.height + " px" : "Unknown";
         String tags = (currentFile.tags != null && !currentFile.tags.isEmpty())
                 ? String.join(", ", currentFile.tags) : "None";
+        String note = (currentFile.notes != null && !currentFile.notes.isEmpty())
+                ? currentFile.notes : "—";
 
-        String msg = "Name: " + currentFile.originalFileName
-                + "\nSize: " + currentFile.getFormattedSize()
-                + "\nDimensions: " + dims
-                + "\nImported: " + date
-                + "\nTags: " + tags;
+        // Resolve album name
+        String albumName = "None";
+        if (currentFile.albumId != null) {
+            for (VaultAlbum album : repo.getAlbums()) {
+                if (album.id.equals(currentFile.albumId)) {
+                    albumName = album.name;
+                    break;
+                }
+            }
+        }
+
+        String sep = "\n─────────────────\n";
+        String msg = "📄 Name: " + currentFile.originalFileName
+                + sep
+                + "💾 Size: " + currentFile.getFormattedSize()
+                + "\n📐 Dimensions: " + dims
+                + sep
+                + "📅 Imported: " + dateImported
+                + "\n📸 Date Taken: " + dateTaken
+                + sep
+                + "🏷 Tags: " + tags
+                + "\n📂 Album: " + albumName
+                + sep
+                + "📝 Note: " + note;
 
         new AlertDialog.Builder(this)
                 .setTitle("File Info")
@@ -363,18 +391,20 @@ public class VaultImageViewerActivity extends Activity {
     private void showMoreMenu() {
         String favLabel = (currentFile != null && currentFile.isFavourited)
                 ? "Remove from Favourites" : "Add to Favourites";
-        String[] items = {favLabel, "Add to Album", "Share", "Export to Downloads",
-                "Edit (Rotate/Flip)", "Edit Note", "Delete"};
+        String[] items = {favLabel, "Add to Album", "Set as Cover", "Share", "Export to Downloads",
+                "Edit (Rotate/Flip)", "Add Note", "Set Expiry Reminder", "Delete"};
         new AlertDialog.Builder(this)
                 .setItems(items, (d, which) -> {
                     switch (which) {
                         case 0: toggleFavourite(); break;
                         case 1: showAddToAlbumDialog(); break;
-                        case 2: shareFile(); break;
-                        case 3: exportToDownloads(); break;
-                        case 4: showEditDialog(); break;
-                        case 5: showEditNoteDialog(); break;
-                        case 6: confirmDelete(); break;
+                        case 2: setAsAlbumCover(); break;
+                        case 3: shareFile(); break;
+                        case 4: exportToDownloads(); break;
+                        case 5: showEditDialog(); break;
+                        case 6: showEditNoteDialog(); break;
+                        case 7: showSetExpiryDialog(); break;
+                        case 8: confirmDelete(); break;
                     }
                 })
                 .show();
@@ -456,13 +486,39 @@ public class VaultImageViewerActivity extends Activity {
 
     private void exportToDownloads() {
         if (currentFile == null) return;
+        if (VaultWatermarkHelper.isEnabled(this)) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Export with Watermark?")
+                    .setMessage("A watermark will be applied to the exported image. Proceed?")
+                    .setPositiveButton("Yes", (d, w) -> doExport(true))
+                    .setNegativeButton("No", (d, w) -> doExport(false))
+                    .show();
+        } else {
+            doExport(false);
+        }
+    }
+
+    private void doExport(boolean withWatermark) {
         new Thread(() -> {
             try {
                 File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
                 File dest = new File(downloads, currentFile.originalFileName);
-                boolean ok = repo.exportFile(currentFile, dest);
-                runOnUiThread(() -> Toast.makeText(this,
-                        ok ? "Exported to Downloads" : "Export failed", Toast.LENGTH_SHORT).show());
+                if (withWatermark) {
+                    byte[] imageBytes = repo.decryptFileToMemory(currentFile);
+                    if (imageBytes == null) throw new Exception("decrypt failed");
+                    Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                    if (bm == null) throw new Exception("decode failed");
+                    String text = VaultWatermarkHelper.getDefaultWatermarkText(this);
+                    Bitmap watermarked = VaultWatermarkHelper.applyWatermark(bm, text, "bottom_right", 0.5f);
+                    try (FileOutputStream fos = new FileOutputStream(dest)) {
+                        watermarked.compress(Bitmap.CompressFormat.JPEG, 95, fos);
+                    }
+                    runOnUiThread(() -> Toast.makeText(this, "Exported with watermark", Toast.LENGTH_SHORT).show());
+                } else {
+                    boolean ok = repo.exportFile(currentFile, dest);
+                    runOnUiThread(() -> Toast.makeText(this,
+                            ok ? "Exported to Downloads" : "Export failed", Toast.LENGTH_SHORT).show());
+                }
             } catch (Exception e) {
                 runOnUiThread(() -> Toast.makeText(this, "Export failed", Toast.LENGTH_SHORT).show());
             }
@@ -513,6 +569,43 @@ public class VaultImageViewerActivity extends Activity {
         m.postScale(-1f, 1f, current.getWidth() / 2f, current.getHeight() / 2f);
         Bitmap flipped = Bitmap.createBitmap(current, 0, 0, current.getWidth(), current.getHeight(), m, true);
         imageView.setImageBitmap(flipped);
+    }
+
+    private void openImageEditor() {
+        if (currentFile == null) return;
+        Intent intent = new Intent(this, VaultImageEditorActivity.class);
+        intent.putExtra("file_id", currentFile.id);
+        startActivity(intent);
+    }
+
+    private void setAsAlbumCover() {
+        if (currentFile == null || currentFile.albumId == null) {
+            Toast.makeText(this, "Image is not in an album", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        for (VaultAlbum album : repo.getAlbums()) {
+            if (album.id.equals(currentFile.albumId)) {
+                album.coverFileId = currentFile.id;
+                repo.updateAlbum(album);
+                Toast.makeText(this, "Set as cover for \"" + album.name + "\"", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        Toast.makeText(this, "Album not found", Toast.LENGTH_SHORT).show();
+    }
+
+    private void showSetExpiryDialog() {
+        if (currentFile == null) return;
+        Calendar cal = Calendar.getInstance();
+        new DatePickerDialog(this, (view, year, month, day) -> {
+            cal.set(year, month, day, 0, 0, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            long timestamp = cal.getTimeInMillis();
+            repo.setFileExpiry(currentFile.id, timestamp);
+            String formatted = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+                    .format(new Date(timestamp));
+            Toast.makeText(this, "Expiry reminder set for " + formatted, Toast.LENGTH_SHORT).show();
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
     }
 
     @Override

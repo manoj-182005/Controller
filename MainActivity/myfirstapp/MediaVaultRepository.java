@@ -60,6 +60,11 @@ public class MediaVaultRepository {
     private static final String KEY_FILES_JSON    = "vault_files_json";
     private static final String KEY_ALBUMS_JSON   = "vault_albums_json";
     private static final String KEY_ACTIVITY_JSON = "vault_activity_json";
+    private static final String KEY_COLLECTIONS_JSON      = "vault_collections_json";
+    private static final String KEY_FILE_COLLECTIONS_JSON = "vault_file_collections_json";
+    private static final String KEY_FILE_EXPIRY_JSON      = "vault_file_expiry_json";
+    private static final String KEY_LAST_UNLOCK_TIME      = "vault_last_unlock_time";
+    private static final String KEY_LAST_BACKUP_TIME      = "vault_last_backup_time";
 
     // Lockout durations (ms): level 0→30s, 1→1m, 2→5m, 3→15m, 4→1h
     private static final long[] LOCKOUT_DURATIONS_MS = {
@@ -216,6 +221,17 @@ public class MediaVaultRepository {
         return sessionPin != null;
     }
 
+    /**
+     * Returns a copy of the active session PIN for callers that need to perform
+     * their own encryption (e.g. in-memory edited file re-encryption).
+     * Returns null if the vault is locked. Callers must wipe the returned array
+     * when finished (Arrays.fill(pin, '\0')).
+     */
+    public char[] getSessionPin() {
+        if (sessionPin == null) return null;
+        return sessionPin.clone();
+    }
+
     public void lock() {
         if (sessionPin != null) {
             java.util.Arrays.fill(sessionPin, '\0');
@@ -245,6 +261,15 @@ public class MediaVaultRepository {
             .putBoolean(KEY_DECOY_ENABLED, true)
             .apply();
         return true;
+    }
+
+    /** Disables the decoy vault, clearing stored decoy credentials. */
+    public void disableDecoy() {
+        prefs.edit()
+            .remove(KEY_DECOY_HASH)
+            .remove(KEY_DECOY_SALT)
+            .putBoolean(KEY_DECOY_ENABLED, false)
+            .apply();
     }
 
     private boolean verifyDecoyPin(String pin) {
@@ -616,6 +641,59 @@ public class MediaVaultRepository {
         saveFiles(files);
     }
 
+    /**
+     * Public wrapper for persisting a new VaultFileItem that was created outside
+     * the repository (e.g. by VaultImageEditorActivity after in-memory editing).
+     */
+    public void saveFileItem(VaultFileItem item) {
+        saveFile(item);
+    }
+
+    /**
+     * Import an already-decoded file (as raw bytes) into the vault.
+     * Encrypts and stores the file, then saves metadata.
+     *
+     * @param bytes     Raw plaintext bytes of the file.
+     * @param fileName  Original display name.
+     * @param mimeType  MIME type string.
+     * @return The new VaultFileItem, or null on failure.
+     */
+    public VaultFileItem importFileFromBytes(byte[] bytes, String fileName, String mimeType) {
+        if (!isUnlocked() || bytes == null) return null;
+        try {
+            File tempFile = new File(context.getCacheDir(), "vault_import_" + UUID.randomUUID());
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(bytes);
+            }
+
+            VaultFileItem item = new VaultFileItem();
+            item.mimeType = mimeType;
+            item.fileType = detectFileType(mimeType);
+            item.originalFileName = (fileName != null && !fileName.isEmpty()) ? fileName : "file_" + item.id;
+            item.originalSize = bytes.length;
+            item.originalCreatedAt = System.currentTimeMillis();
+
+            populateMediaMetadata(item, tempFile, mimeType);
+
+            String vaultFileName = UUID.randomUUID().toString();
+            item.vaultFileName = vaultFileName;
+            File destFile = new File(getFilesDir(), vaultFileName);
+            MediaVaultCrypto.encryptFile(tempFile, destFile, sessionPin);
+            item.encryptedSize = destFile.length();
+
+            generateAndEncryptThumbnail(item, tempFile, mimeType);
+            tempFile.delete();
+
+            saveFile(item);
+            logActivity(new VaultActivityLog(VaultActivityLog.Action.FILE_IMPORTED,
+                    "Imported (bytes): " + item.originalFileName));
+            return item;
+        } catch (Exception e) {
+            Log.e(TAG, "importFileFromBytes failed", e);
+            return null;
+        }
+    }
+
     public void updateFile(VaultFileItem item) {
         List<VaultFileItem> files = loadFiles();
         for (int i = 0; i < files.size(); i++) {
@@ -847,5 +925,228 @@ public class MediaVaultRepository {
         item.lastAccessedAt = System.currentTimeMillis();
         updateFile(item);
         logActivity(new VaultActivityLog(VaultActivityLog.Action.FILE_VIEWED, item.originalFileName));
+    }
+
+    // ─── Collections ─────────────────────────────────────────────
+
+    public List<VaultCollection> getCollections() {
+        String json = prefs.getString(KEY_COLLECTIONS_JSON, "[]");
+        List<VaultCollection> list = new ArrayList<>();
+        try {
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                VaultCollection c = VaultCollection.fromJson(arr.getJSONObject(i));
+                if (c != null) list.add(c);
+            }
+        } catch (Exception ignored) {}
+        return list;
+    }
+
+    public void saveCollections(List<VaultCollection> collections) {
+        try {
+            JSONArray arr = new JSONArray();
+            for (VaultCollection c : collections) arr.put(c.toJson());
+            prefs.edit().putString(KEY_COLLECTIONS_JSON, arr.toString()).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public VaultCollection createCollection(String name, String colorHex) {
+        VaultCollection c = new VaultCollection(name, colorHex);
+        List<VaultCollection> list = getCollections();
+        list.add(c);
+        saveCollections(list);
+        return c;
+    }
+
+    public void deleteCollection(String collectionId) {
+        List<VaultCollection> list = getCollections();
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if (list.get(i).id.equals(collectionId)) { list.remove(i); break; }
+        }
+        saveCollections(list);
+    }
+
+    /** Returns the JSON object mapping fileId -> array of collectionIds from SharedPreferences. */
+    private JSONObject loadFileCollectionsMap() {
+        String json = prefs.getString(KEY_FILE_COLLECTIONS_JSON, "{}");
+        try { return new JSONObject(json); } catch (Exception e) { return new JSONObject(); }
+    }
+
+    private void saveFileCollectionsMap(JSONObject map) {
+        prefs.edit().putString(KEY_FILE_COLLECTIONS_JSON, map.toString()).apply();
+    }
+
+    public void addFileToCollection(String fileId, String collectionId) {
+        JSONObject map = loadFileCollectionsMap();
+        try {
+            JSONArray ids = map.optJSONArray(fileId);
+            if (ids == null) ids = new JSONArray();
+            // avoid duplicates
+            for (int i = 0; i < ids.length(); i++) {
+                if (collectionId.equals(ids.getString(i))) return;
+            }
+            ids.put(collectionId);
+            map.put(fileId, ids);
+            saveFileCollectionsMap(map);
+        } catch (Exception ignored) {}
+    }
+
+    public void removeFileFromCollection(String fileId, String collectionId) {
+        JSONObject map = loadFileCollectionsMap();
+        try {
+            JSONArray ids = map.optJSONArray(fileId);
+            if (ids == null) return;
+            JSONArray updated = new JSONArray();
+            for (int i = 0; i < ids.length(); i++) {
+                if (!collectionId.equals(ids.getString(i))) updated.put(ids.getString(i));
+            }
+            map.put(fileId, updated);
+            saveFileCollectionsMap(map);
+        } catch (Exception ignored) {}
+    }
+
+    public List<String> getFileCollectionIds(String fileId) {
+        JSONObject map = loadFileCollectionsMap();
+        List<String> result = new ArrayList<>();
+        try {
+            JSONArray ids = map.optJSONArray(fileId);
+            if (ids != null) {
+                for (int i = 0; i < ids.length(); i++) result.add(ids.getString(i));
+            }
+        } catch (Exception ignored) {}
+        return result;
+    }
+
+    public List<VaultFileItem> getFilesInCollection(String collectionId) {
+        JSONObject map = loadFileCollectionsMap();
+        List<VaultFileItem> allFiles = getAllFiles();
+        List<VaultFileItem> result = new ArrayList<>();
+        for (VaultFileItem f : allFiles) {
+            JSONArray ids = map.optJSONArray(f.id);
+            if (ids != null) {
+                for (int i = 0; i < ids.length(); i++) {
+                    try {
+                        if (collectionId.equals(ids.getString(i))) { result.add(f); break; }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        return result;
+    }
+
+    // ─── Wipe All Files ──────────────────────────────────────────
+
+    /**
+     * Deletes all vault files and clears the file list.
+     * Used by auto-destroy and manual wipe flows.
+     */
+    public void wipeAllFiles() {
+        List<VaultFileItem> files = loadFiles();
+        for (VaultFileItem item : files) {
+            File encFile = new File(getFilesDir(), item.vaultFileName);
+            MediaVaultCrypto.secureDelete(encFile);
+            if (item.thumbnailPath != null && !item.thumbnailPath.isEmpty()) {
+                MediaVaultCrypto.secureDelete(new File(getThumbsDir(), item.thumbnailPath));
+            }
+        }
+        saveFiles(new ArrayList<>());
+        logActivity(new VaultActivityLog(VaultActivityLog.Action.FILE_DELETED, "All files wiped"));
+    }
+
+    // ─── Auto-Destroy Check ──────────────────────────────────────
+
+    /**
+     * Checks if auto-destroy should be triggered based on current failed attempts.
+     * If triggered, wipes all vault files and returns true.
+     */
+    public boolean checkAutoDestroy() {
+        int attempts = prefs.getInt(KEY_FAILED_ATTEMPTS, 0);
+        if (VaultAutoDestroyManager.shouldDestroy(context, attempts)) {
+            wipeAllFiles();
+            return true;
+        }
+        return false;
+    }
+
+    // ─── File Expiry ─────────────────────────────────────────────
+
+    private JSONObject loadFileExpiryMap() {
+        String json = prefs.getString(KEY_FILE_EXPIRY_JSON, "{}");
+        try { return new JSONObject(json); } catch (Exception e) { return new JSONObject(); }
+    }
+
+    private void saveFileExpiryMap(JSONObject map) {
+        prefs.edit().putString(KEY_FILE_EXPIRY_JSON, map.toString()).apply();
+    }
+
+    public void setFileExpiry(String fileId, long expiryTimestamp) {
+        JSONObject map = loadFileExpiryMap();
+        try { map.put(fileId, expiryTimestamp); saveFileExpiryMap(map); } catch (Exception ignored) {}
+    }
+
+    public long getFileExpiry(String fileId) {
+        JSONObject map = loadFileExpiryMap();
+        return map.optLong(fileId, 0L);
+    }
+
+    public List<VaultFileItem> getExpiredFiles() {
+        long now = System.currentTimeMillis();
+        JSONObject map = loadFileExpiryMap();
+        List<VaultFileItem> result = new ArrayList<>();
+        for (VaultFileItem f : getAllFiles()) {
+            long expiry = map.optLong(f.id, 0L);
+            if (expiry > 0 && expiry < now) result.add(f);
+        }
+        return result;
+    }
+
+    public List<VaultFileItem> getUpcomingExpiryFiles(int daysAhead) {
+        long now = System.currentTimeMillis();
+        long cutoff = now + java.util.concurrent.TimeUnit.DAYS.toMillis(daysAhead);
+        JSONObject map = loadFileExpiryMap();
+        List<VaultFileItem> result = new ArrayList<>();
+        for (VaultFileItem f : getAllFiles()) {
+            long expiry = map.optLong(f.id, 0L);
+            if (expiry > now && expiry <= cutoff) result.add(f);
+        }
+        return result;
+    }
+
+    // ─── Duplicate Detection ─────────────────────────────────────
+
+    /**
+     * Returns existing vault files where originalSize == fileSize AND originalFileName == fileName.
+     */
+    public List<VaultFileItem> findDuplicates(long fileSize, String fileName) {
+        List<VaultFileItem> result = new ArrayList<>();
+        for (VaultFileItem f : getAllFiles()) {
+            if (f.originalSize == fileSize && fileName.equals(f.originalFileName)) result.add(f);
+        }
+        return result;
+    }
+
+    // ─── Unlock Time & Backup Tracking ───────────────────────────
+
+    /**
+     * Records the current time as the last vault unlock time.
+     * Call this from unlock flows after a successful unlock.
+     */
+    public void recordUnlockTime() {
+        prefs.edit().putLong(KEY_LAST_UNLOCK_TIME, System.currentTimeMillis()).apply();
+    }
+
+    /** Returns the timestamp of the last successful unlock, or 0 if never unlocked. */
+    public long getLastUnlockTime() {
+        return prefs.getLong(KEY_LAST_UNLOCK_TIME, 0L);
+    }
+
+    /** Records the current time as the last backup creation time. */
+    public void recordBackupCreated() {
+        prefs.edit().putLong(KEY_LAST_BACKUP_TIME, System.currentTimeMillis()).apply();
+    }
+
+    /** Returns the timestamp of the last backup, or 0 if never backed up. */
+    public long getLastBackupTime() {
+        return prefs.getLong(KEY_LAST_BACKUP_TIME, 0L);
     }
 }

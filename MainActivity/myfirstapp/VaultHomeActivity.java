@@ -61,8 +61,11 @@ public class VaultHomeActivity extends AppCompatActivity {
     private LinearLayout albumsStrip;
     private LinearLayout favouritesSection;
     private LinearLayout favouritesStrip;
+    private LinearLayout collectionsSection;
+    private LinearLayout collectionsStrip;
     private GridLayout recentFilesGrid;
     private LinearLayout vaultEmptyState;
+    private TextView tvHealthScore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,8 +104,11 @@ public class VaultHomeActivity extends AppCompatActivity {
         albumsStrip = findViewById(R.id.albumsStrip);
         favouritesSection = findViewById(R.id.favouritesSection);
         favouritesStrip = findViewById(R.id.favouritesStrip);
+        collectionsSection = findViewById(R.id.collectionsSection);
+        collectionsStrip = findViewById(R.id.collectionsStrip);
         recentFilesGrid = findViewById(R.id.recentFilesGrid);
         vaultEmptyState = findViewById(R.id.vaultEmptyState);
+        tvHealthScore = findViewById(R.id.tvHealthScore);
 
         // Top bar buttons
         findViewById(R.id.btnVaultBack).setOnClickListener(v -> {
@@ -118,6 +124,29 @@ public class VaultHomeActivity extends AppCompatActivity {
             startActivity(new Intent(this, VaultSettingsActivity.class));
         });
         tvSessionTimer.setOnClickListener(v -> showSessionOptions());
+
+        // Health score widget
+        if (tvHealthScore != null) {
+            tvHealthScore.setOnClickListener(v -> { resetAutoLock(); showHealthScoreDialog(); });
+        }
+
+        // Auto Organize button
+        View btnAutoOrganize = findViewById(R.id.btnAutoOrganize);
+        if (btnAutoOrganize != null) {
+            btnAutoOrganize.setOnClickListener(v -> {
+                resetAutoLock();
+                startActivity(new Intent(this, VaultSmartOrganizeActivity.class));
+            });
+        }
+
+        // Collections "View All"
+        View tvViewAllCollections = findViewById(R.id.tvViewAllCollections);
+        if (tvViewAllCollections != null) {
+            tvViewAllCollections.setOnClickListener(v -> {
+                resetAutoLock();
+                startActivity(new Intent(this, VaultCollectionActivity.class));
+            });
+        }
 
         // Quick access
         findViewById(R.id.btnQuickPhotos).setOnClickListener(v -> openBrowser(VaultFileItem.FileType.IMAGE));
@@ -240,11 +269,28 @@ public class VaultHomeActivity extends AppCompatActivity {
         // Albums strip
         loadAlbumsStrip();
 
+        // Collections strip
+        loadCollectionsStrip();
+
         // Favourites
         loadFavouritesStrip();
 
         // Recent files grid
         loadRecentGrid();
+
+        // Health score
+        int healthScore = VaultHealthScoreHelper.calculateScore(this, repo);
+        if (tvHealthScore != null) {
+            tvHealthScore.setText("🛡 " + healthScore);
+            try { tvHealthScore.setTextColor(Color.parseColor(VaultHealthScoreHelper.getScoreColor(healthScore))); }
+            catch (Exception ignored) {}
+        }
+
+        // Expiry reminder
+        List<VaultFileItem> expiringFiles = repo.getUpcomingExpiryFiles(7);
+        if (!expiringFiles.isEmpty()) {
+            Toast.makeText(this, "⚠️ " + expiringFiles.size() + " file(s) expiring within 7 days", Toast.LENGTH_LONG).show();
+        }
 
         // Empty state
         vaultEmptyState.setVisibility(totalFiles == 0 ? View.VISIBLE : View.GONE);
@@ -418,6 +464,80 @@ public class VaultHomeActivity extends AppCompatActivity {
 
         card.setOnClickListener(v -> { resetAutoLock(); showCreateAlbumDialog(); });
         return card;
+    }
+
+    private void loadCollectionsStrip() {
+        if (collectionsSection == null || collectionsStrip == null) return;
+        List<VaultCollection> collections = repo.getCollections();
+        if (collections.isEmpty()) {
+            collectionsSection.setVisibility(View.GONE);
+            return;
+        }
+        collectionsSection.setVisibility(View.VISIBLE);
+        collectionsStrip.removeAllViews();
+
+        for (VaultCollection collection : collections) {
+            View chip = createCollectionChip(collection);
+            collectionsStrip.addView(chip);
+        }
+    }
+
+    private View createCollectionChip(VaultCollection collection) {
+        TextView chip = new TextView(this);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dpToPx(36));
+        lp.setMargins(dpToPx(4), dpToPx(4), dpToPx(4), dpToPx(4));
+        chip.setLayoutParams(lp);
+        chip.setText(collection.name);
+        chip.setTextColor(Color.WHITE);
+        chip.setTextSize(13);
+        chip.setPadding(dpToPx(14), dpToPx(6), dpToPx(14), dpToPx(6));
+        chip.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        try {
+            chip.setBackgroundColor(Color.parseColor(collection.colorHex));
+        } catch (Exception ignored) {
+            chip.setBackgroundColor(Color.parseColor("#607D8B"));
+        }
+        chip.setOnClickListener(v -> {
+            resetAutoLock();
+            Intent intent = new Intent(this, VaultCollectionActivity.class);
+            intent.putExtra("collection_id", collection.id);
+            startActivity(intent);
+        });
+        return chip;
+    }
+
+    private void showHealthScoreDialog() {
+        int score = VaultHealthScoreHelper.calculateScore(this, repo);
+        String color = VaultHealthScoreHelper.getScoreColor(score);
+        List<String> suggestions = VaultHealthScoreHelper.getImprovementSuggestions(this, repo);
+
+        StringBuilder message = new StringBuilder();
+        message.append("Your vault health score is ").append(score).append("/100\n\n");
+        if (suggestions.isEmpty()) {
+            message.append("✅ Great job! Your vault is well-secured.");
+        } else {
+            message.append("Improvement suggestions:\n");
+            for (String suggestion : suggestions) {
+                message.append("• ").append(suggestion).append("\n");
+            }
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this, R.style.DarkAlertDialog)
+                .setTitle("🛡 Vault Health Score")
+                .setMessage(message.toString())
+                .setPositiveButton("OK", null)
+                .create();
+        dialog.show();
+        try {
+            dialog.findViewById(android.R.id.message)
+                    .setBackgroundColor(Color.TRANSPARENT);
+        } catch (Exception ignored) {}
+        TextView tvScore = new TextView(this);
+        tvScore.setText(String.valueOf(score));
+        tvScore.setTextSize(48);
+        tvScore.setGravity(android.view.Gravity.CENTER);
+        try { tvScore.setTextColor(Color.parseColor(color)); } catch (Exception ignored) {}
     }
 
     private void loadFavouritesStrip() {

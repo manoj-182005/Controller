@@ -63,6 +63,22 @@
                 android:layout_marginTop="4dp"
                 android:background="@drawable/vault_session_pill_bg" />
 
+            <!-- Health score pill -->
+            <TextView
+                android:id="@+id/tvHealthScore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🛡 --"
+                android:textColor="#10B981"
+                android:textSize="11sp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/vault_session_pill_bg" />
+
         </LinearLayout>
 
         <!-- Search -->
@@ -73,6 +89,18 @@
             android:text="🔍"
             android:textSize="18sp"
             android:background="@android:color/transparent" />
+
+        <!-- Auto Organize -->
+        <Button
+            android:id="@+id/btnAutoOrganize"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="✨ Organize"
+            android:textColor="#F1F5F9"
+            android:textSize="11sp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:background="@drawable/vault_quick_tab_inactive_bg" />
 
         <!-- Settings -->
         <Button
@@ -379,6 +407,61 @@
 
                     <LinearLayout
                         android:id="@+id/favouritesStrip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+
+                </HorizontalScrollView>
+
+            </LinearLayout>
+
+            <!-- ─── Collections Strip ─── -->
+            <LinearLayout
+                android:id="@+id/collectionsSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🗂 Collections"
+                        android:textColor="#F1F5F9"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvViewAllCollections"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="View All →"
+                        android:textColor="#F59E0B"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="8dp">
+
+                    <LinearLayout
+                        android:id="@+id/collectionsStrip"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal" />

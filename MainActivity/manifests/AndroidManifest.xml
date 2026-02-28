@@ -440,6 +440,31 @@
             android:excludeFromRecents="true"
             android:taskAffinity="" />
 
+        <!-- Vault Image Editor -->
+        <activity
+            android:name=".VaultImageEditorActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateHidden" />
+
+        <!-- Vault Collections -->
+        <activity
+            android:name=".VaultCollectionActivity"
+            android:theme="@android:style/Theme.NoTitleBar"
+            android:screenOrientation="portrait" />
+
+        <!-- Vault Privacy Scanner -->
+        <activity
+            android:name=".VaultPrivacyScannerActivity"
+            android:theme="@android:style/Theme.NoTitleBar"
+            android:screenOrientation="portrait" />
+
+        <!-- Vault Smart Organize -->
+        <activity
+            android:name=".VaultSmartOrganizeActivity"
+            android:theme="@android:style/Theme.NoTitleBar"
+            android:screenOrientation="portrait" />
+
         <!-- Todo List Detail Activity -->
         <activity
             android:name=".TodoListDetailActivity"
