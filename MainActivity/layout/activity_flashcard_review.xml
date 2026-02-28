@@ -93,6 +93,17 @@
                 android:progressDrawable="@drawable/budget_progress_fill_bg" />
         </LinearLayout>
 
+        <!-- ═══ DECK LIST (for FlashcardListActivity reuse) ═══ -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvCards"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="8dp"
+            android:clipToPadding="false" />
+
         <!-- ═══ CARD AREA ═══ -->
         <FrameLayout
             android:layout_width="match_parent"

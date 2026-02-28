@@ -69,9 +69,9 @@ public class FlashcardListActivity extends AppCompatActivity {
         rvDecks.setAdapter(deckAdapter);
 
         // Hide card-specific views
-        View flipCard = findViewById(R.id.flipCard);
+        View flipCard = findViewById(R.id.cardFlashcard);
         if (flipCard != null) flipCard.setVisibility(View.GONE);
-        View ratingContainer = findViewById(R.id.ratingContainer);
+        View ratingContainer = findViewById(R.id.ratingButtons);
         if (ratingContainer != null) ratingContainer.setVisibility(View.GONE);
         View progressBar = findViewById(R.id.progressBar);
         if (progressBar != null) progressBar.setVisibility(View.GONE);

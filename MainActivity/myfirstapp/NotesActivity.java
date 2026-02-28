@@ -1798,7 +1798,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
 
     private void showCreateFolderBottomSheet() {
         com.google.android.material.bottomsheet.BottomSheetDialog dialog =
-            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.DarkAlertDialog);
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
         dialog.setContentView(sheetView);
 
@@ -1983,8 +1983,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                 tvTitle.setText(note.title.isEmpty() ? "Untitled" : note.title);
 
                 // Content preview
-                if (note.content != null && !note.content.isEmpty()) {
-                    String preview = note.content.replaceAll("\\n+", " ").trim();
+                if (note.body != null && !note.body.isEmpty()) {
+                    String preview = note.body.replaceAll("\\n+", " ").trim();
                     tvPreview.setText(preview.length() > 80 ? preview.substring(0, 80) + "…" : preview);
                     tvPreview.setVisibility(View.VISIBLE);
                 } else {

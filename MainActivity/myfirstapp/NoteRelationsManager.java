@@ -130,7 +130,7 @@ public class NoteRelationsManager {
         String query = partialTitle.toLowerCase().trim();
 
         for (Note note : all) {
-            String title = note.getTitle();
+            String title = note.title;
             if (title != null && title.toLowerCase().contains(query)) {
                 matches.add(note);
                 if (matches.size() >= 10) break; // Limit results
@@ -177,8 +177,8 @@ public class NoteRelationsManager {
             for (String title : mentionTitles) {
                 List<Note> matches = findMatchingNotes(title, repository);
                 for (Note match : matches) {
-                    if (match.getTitle().equalsIgnoreCase(title)) {
-                        mentionedIds.add(match.getId());
+                    if (match.title.equalsIgnoreCase(title)) {
+                        mentionedIds.add(match.id);
                         break;
                     }
                 }

@@ -188,8 +188,7 @@ public class NoteShareViewerActivity extends AppCompatActivity {
             LinearLayout tagsRow = new LinearLayout(this);
             tagsRow.setOrientation(LinearLayout.HORIZONTAL);
             tagsRow.setPadding(0, 0, 0, 0);
-            String[] tags = note.tags.split(",");
-            for (String tag : tags) {
+            for (String tag : note.tags) {
                 String t = tag.trim();
                 if (!t.isEmpty()) {
                     TextView pill = createPill("#" + t, 0xFF1E293B);

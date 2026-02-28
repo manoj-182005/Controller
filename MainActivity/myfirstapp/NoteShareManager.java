@@ -51,7 +51,7 @@ public class NoteShareManager {
                 String text = block.getText();
                 if (text == null || text.trim().isEmpty()) continue;
 
-                switch (block.getType()) {
+                switch (block.blockType) {
                     case ContentBlock.TYPE_HEADING1:
                         sb.append("# ").append(text).append("\n\n");
                         break;
@@ -61,10 +61,10 @@ public class NoteShareManager {
                     case ContentBlock.TYPE_HEADING3:
                         sb.append("### ").append(text).append("\n\n");
                         break;
-                    case ContentBlock.TYPE_BULLET_LIST:
+                    case ContentBlock.TYPE_BULLET:
                         sb.append("• ").append(text).append("\n");
                         break;
-                    case ContentBlock.TYPE_NUMBERED_LIST:
+                    case ContentBlock.TYPE_NUMBERED:
                         sb.append("  ").append(text).append("\n");
                         break;
                     case ContentBlock.TYPE_CHECKLIST:
@@ -117,14 +117,14 @@ public class NoteShareManager {
             for (ContentBlock block : blocks) {
                 String text = block.getText();
                 if (text == null || text.trim().isEmpty()) {
-                    if (block.getType() == ContentBlock.TYPE_DIVIDER) {
+                    if (block.blockType.equals(ContentBlock.TYPE_DIVIDER)) {
                         sb.append("\n---\n\n");
                     }
                     listCounter = 1;
                     continue;
                 }
 
-                switch (block.getType()) {
+                switch (block.blockType) {
                     case ContentBlock.TYPE_HEADING1:
                         sb.append("# ").append(text).append("\n\n");
                         listCounter = 1;
@@ -137,10 +137,10 @@ public class NoteShareManager {
                         sb.append("### ").append(text).append("\n\n");
                         listCounter = 1;
                         break;
-                    case ContentBlock.TYPE_BULLET_LIST:
+                    case ContentBlock.TYPE_BULLET:
                         sb.append("- ").append(text).append("\n");
                         break;
-                    case ContentBlock.TYPE_NUMBERED_LIST:
+                    case ContentBlock.TYPE_NUMBERED:
                         sb.append(listCounter++).append(". ").append(text).append("\n");
                         break;
                     case ContentBlock.TYPE_CHECKLIST:

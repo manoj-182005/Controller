@@ -72,7 +72,7 @@ public class NoteHtmlExporter {
 
             for (ContentBlock block : blocks) {
                 String text = block.getText();
-                int type = block.getType();
+                String type = block.blockType;
 
                 // Close open list if block is not a list type
                 if (inList && !isListType(type)) {
@@ -97,7 +97,7 @@ public class NoteHtmlExporter {
                         html.append("<h4>").append(escapeHtml(text)).append("</h4>\n");
                         break;
 
-                    case ContentBlock.TYPE_BULLET_LIST:
+                    case ContentBlock.TYPE_BULLET:
                         if (!inList || !listTag.equals("ul")) {
                             if (inList) html.append("</").append(listTag).append(">\n");
                             html.append("<ul>\n");
@@ -107,7 +107,7 @@ public class NoteHtmlExporter {
                         html.append("<li>").append(formatInlineText(text)).append("</li>\n");
                         break;
 
-                    case ContentBlock.TYPE_NUMBERED_LIST:
+                    case ContentBlock.TYPE_NUMBERED:
                         if (!inList || !listTag.equals("ol")) {
                             if (inList) html.append("</").append(listTag).append(">\n");
                             html.append("<ol>\n");
@@ -327,9 +327,9 @@ public class NoteHtmlExporter {
         return s;
     }
 
-    private static boolean isListType(int type) {
-        return type == ContentBlock.TYPE_BULLET_LIST ||
-                type == ContentBlock.TYPE_NUMBERED_LIST;
+    private static boolean isListType(String type) {
+        return ContentBlock.TYPE_BULLET.equals(type) ||
+                ContentBlock.TYPE_NUMBERED.equals(type);
     }
 
     /** Render a simple table from pipe-separated text. */

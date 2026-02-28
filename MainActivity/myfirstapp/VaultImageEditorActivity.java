@@ -210,18 +210,30 @@ public class VaultImageEditorActivity extends Activity {
         panel.setPadding(dp(16), dp(8), dp(16), dp(8));
 
         panel.addView(buildLabeledSeekBar("Brightness", 0, 200, 100,
-                (bar, progress, fromUser) -> {
-                    if (fromUser) { brightness = progress - 100; applyAdjustments(); }
+                new SeekBar.OnSeekBarChangeListener() {
+                    @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                        if (fromUser) { brightness = progress - 100; applyAdjustments(); }
+                    }
+                    @Override public void onStartTrackingTouch(SeekBar bar) {}
+                    @Override public void onStopTrackingTouch(SeekBar bar) {}
                 }));
 
         panel.addView(buildLabeledSeekBar("Contrast", 0, 200, 100,
-                (bar, progress, fromUser) -> {
-                    if (fromUser) { contrast = progress - 100; applyAdjustments(); }
+                new SeekBar.OnSeekBarChangeListener() {
+                    @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                        if (fromUser) { contrast = progress - 100; applyAdjustments(); }
+                    }
+                    @Override public void onStartTrackingTouch(SeekBar bar) {}
+                    @Override public void onStopTrackingTouch(SeekBar bar) {}
                 }));
 
         panel.addView(buildLabeledSeekBar("Saturation", 0, 200, 100,
-                (bar, progress, fromUser) -> {
-                    if (fromUser) { saturation = progress; applyAdjustments(); }
+                new SeekBar.OnSeekBarChangeListener() {
+                    @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                        if (fromUser) { saturation = progress; applyAdjustments(); }
+                    }
+                    @Override public void onStartTrackingTouch(SeekBar bar) {}
+                    @Override public void onStopTrackingTouch(SeekBar bar) {}
                 }));
 
         return panel;

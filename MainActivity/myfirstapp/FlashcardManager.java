@@ -194,7 +194,7 @@ public class FlashcardManager {
             ContentBlock block = blocks.get(i);
 
             // Strategy 1: Heading + following text = Q&A
-            if (isHeadingType(block.getType())) {
+            if (isHeadingType(block.blockType)) {
                 String heading = block.getText();
                 if (heading == null || heading.trim().isEmpty()) continue;
 
@@ -202,7 +202,7 @@ public class FlashcardManager {
                 StringBuilder answer = new StringBuilder();
                 for (int j = i + 1; j < blocks.size() && j <= i + 3; j++) {
                     ContentBlock next = blocks.get(j);
-                    if (isHeadingType(next.getType())) break;
+                    if (isHeadingType(next.blockType)) break;
                     String text = next.getText();
                     if (text != null && !text.trim().isEmpty()) {
                         if (answer.length() > 0) answer.append("\n");
@@ -217,13 +217,13 @@ public class FlashcardManager {
             }
 
             // Strategy 2: Bullet list items
-            if (block.getType() == ContentBlock.TYPE_BULLET_LIST) {
+            if (block.blockType.equals(ContentBlock.TYPE_BULLET)) {
                 String text = block.getText();
                 if (text != null && !text.trim().isEmpty() && text.trim().length() > 5) {
                     // Look for a preceding heading as context
                     String context = "This note";
                     for (int j = i - 1; j >= 0; j--) {
-                        if (isHeadingType(blocks.get(j).getType())) {
+                        if (isHeadingType(blocks.get(j).blockType)) {
                             String hText = blocks.get(j).getText();
                             if (hText != null && !hText.isEmpty()) context = hText.trim();
                             break;
@@ -238,7 +238,7 @@ public class FlashcardManager {
             }
 
             // Strategy 3: Toggle = front/back
-            if (block.getType() == ContentBlock.TYPE_TOGGLE) {
+            if (block.blockType.equals(ContentBlock.TYPE_TOGGLE)) {
                 String front = block.getText();
                 // Toggle content could be stored in extra data or next block
                 if (front != null && !front.trim().isEmpty() && i + 1 < blocks.size()) {
@@ -254,7 +254,7 @@ public class FlashcardManager {
 
         // Strategy 4: Key terms from bold markers in text blocks
         for (ContentBlock block : blocks) {
-            if (block.getType() == ContentBlock.TYPE_TEXT) {
+            if (block.blockType.equals(ContentBlock.TYPE_TEXT)) {
                 String text = block.getText();
                 if (text == null) continue;
                 // Find **bold** or <b>bold</b> terms
@@ -277,10 +277,10 @@ public class FlashcardManager {
         return generated;
     }
 
-    private boolean isHeadingType(int type) {
-        return type == ContentBlock.TYPE_HEADING1 ||
-                type == ContentBlock.TYPE_HEADING2 ||
-                type == ContentBlock.TYPE_HEADING3;
+    private boolean isHeadingType(String type) {
+        return ContentBlock.TYPE_HEADING1.equals(type) ||
+                ContentBlock.TYPE_HEADING2.equals(type) ||
+                ContentBlock.TYPE_HEADING3.equals(type);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════════

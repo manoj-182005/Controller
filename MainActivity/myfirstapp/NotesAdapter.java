@@ -49,7 +49,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NoteViewHold
         this.listener = listener;
         this.isGridView = isGridView;
         try {
-            this.folderRepository = new NoteFolderRepository(context);
+            this.folderRepository = new NoteFolderRepository(context, new NoteRepository(context));
         } catch (Exception e) {
             this.folderRepository = null;
         }

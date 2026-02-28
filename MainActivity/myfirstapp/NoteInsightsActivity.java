@@ -66,7 +66,7 @@ public class NoteInsightsActivity extends AppCompatActivity {
         // ── Summary card ──
         TextView tvTotalNotes = findViewById(R.id.tvTotalNotes);
         TextView tvTotalWords = findViewById(R.id.tvTotalWords);
-        TextView tvAvgLength = findViewById(R.id.tvAvgLength);
+        TextView tvAvgLength = findViewById(R.id.tvAvgWords);
         tvTotalNotes.setText(String.valueOf(insights.totalNotes));
         tvTotalWords.setText(formatNumber(insights.totalWords));
         tvAvgLength.setText(formatNumber(insights.avgWordsPerNote));
@@ -211,10 +211,10 @@ public class NoteInsightsActivity extends AppCompatActivity {
             TextView tvName, tvCount, tvPercentage;
             VH(View v) {
                 super(v);
-                colorDot = v.findViewById(R.id.colorDot);
+                colorDot = v.findViewById(R.id.viewCategoryColor);
                 tvName = v.findViewById(R.id.tvCategoryName);
-                tvCount = v.findViewById(R.id.tvCount);
-                tvPercentage = v.findViewById(R.id.tvPercentage);
+                tvCount = v.findViewById(R.id.tvCategoryCount);
+                tvPercentage = v.findViewById(R.id.tvCategoryPercent);
             }
         }
     }

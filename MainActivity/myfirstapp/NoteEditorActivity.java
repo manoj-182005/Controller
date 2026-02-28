@@ -629,12 +629,12 @@ public class NoteEditorActivity extends AppCompatActivity
 
         currentNote.title = title;
         currentNote.body = bodyPlain;                               // plain text for search/cards
-        currentNote.blocksJson = ContentBlock.toJsonArray(blocks);  // full block data
+        currentNote.blocksJson = ContentBlock.toJsonArray(blocks).toString();  // full block data
         currentNote.plainTextPreview = getPlainTextPreview(bodyPlain);
         currentNote.updatedAt = System.currentTimeMillis();
 
         // Update mention tracking
-        relationsManager.resolveBlockMentions(currentNote.id, blocks, noteRepository.getAllNotes());
+        relationsManager.resolveBlockMentions(blocks, noteRepository);
 
         // Duplicate-note warning (first save only)
         if (isNewNote && !currentNote.title.isEmpty()) {
@@ -908,7 +908,7 @@ public class NoteEditorActivity extends AppCompatActivity
         pushUndoSnapshot();
 
         ContentBlock block = blocks.get(pos);
-        block.convertTo(block.type.equals(newType) ? ContentBlock.TYPE_TEXT : newType);
+        block.convertTo(block.blockType.equals(newType) ? ContentBlock.TYPE_TEXT : newType);
         blockEditorAdapter.notifyItemChanged(pos);
         hasUnsavedChanges = true;
     }
@@ -1079,7 +1079,7 @@ public class NoteEditorActivity extends AppCompatActivity
     // ═══════════════════════════════════════════════════════════════════════════════
 
     private void pushUndoSnapshot() {
-        String snap = ContentBlock.toJsonArray(blocks);
+        String snap = ContentBlock.toJsonArray(blocks).toString();
         undoStack.push(snap);
         if (undoStack.size() > MAX_UNDO_STACK) undoStack.removeLast();
         redoStack.clear();
@@ -1091,7 +1091,7 @@ public class NoteEditorActivity extends AppCompatActivity
             Toast.makeText(this, "Nothing to undo", Toast.LENGTH_SHORT).show();
             return;
         }
-        redoStack.push(ContentBlock.toJsonArray(blocks));
+        redoStack.push(ContentBlock.toJsonArray(blocks).toString());
         restoreBlockSnapshot(undoStack.pop());
         updateUndoRedoButtons();
     }
@@ -1101,7 +1101,7 @@ public class NoteEditorActivity extends AppCompatActivity
             Toast.makeText(this, "Nothing to redo", Toast.LENGTH_SHORT).show();
             return;
         }
-        undoStack.push(ContentBlock.toJsonArray(blocks));
+        undoStack.push(ContentBlock.toJsonArray(blocks).toString());
         restoreBlockSnapshot(redoStack.pop());
         updateUndoRedoButtons();
     }
@@ -1577,7 +1577,7 @@ public class NoteEditorActivity extends AppCompatActivity
         if (version.hasBlocks()) {
             try {
                 List<ContentBlock> vBlocks =
-                        ContentBlock.fromJsonArray(new org.json.JSONArray(version.blocksJson));
+                        ContentBlock.fromJsonArray(version.blocksJson);
                 StringBuilder sb = new StringBuilder();
                 for (ContentBlock b : vBlocks) {
                     String pt = b.getPlainText();
@@ -1611,7 +1611,7 @@ public class NoteEditorActivity extends AppCompatActivity
             // Restore full block structure
             try {
                 List<ContentBlock> restored =
-                        ContentBlock.fromJsonArray(new org.json.JSONArray(version.blocksJson));
+                        ContentBlock.fromJsonArray(version.blocksJson);
                 blocks.addAll(restored);
             } catch (Exception e) {
                 Log.w(TAG, "Failed to restore blocks from version, falling back to body", e);
@@ -1839,7 +1839,7 @@ public class NoteEditorActivity extends AppCompatActivity
                         // Block-based template — restore blocks directly
                         try {
                             List<ContentBlock> templateBlocks =
-                                    ContentBlock.fromJsonArray(new org.json.JSONArray(sel.blocksJson));
+                                    ContentBlock.fromJsonArray(sel.blocksJson);
                             // Generate new IDs so blocks aren't shared with the template
                             for (ContentBlock b : templateBlocks) {
                                 b.id = java.util.UUID.randomUUID().toString();
@@ -2074,9 +2074,9 @@ public class NoteEditorActivity extends AppCompatActivity
         boolean hasHeadings = false;
         for (int i = 0; i < blocks.size(); i++) {
             ContentBlock b = blocks.get(i);
-            boolean isH1 = ContentBlock.TYPE_HEADING1.equals(b.type);
-            boolean isH2 = ContentBlock.TYPE_HEADING2.equals(b.type);
-            boolean isH3 = ContentBlock.TYPE_HEADING3.equals(b.type);
+            boolean isH1 = ContentBlock.TYPE_HEADING1.equals(b.blockType);
+            boolean isH2 = ContentBlock.TYPE_HEADING2.equals(b.blockType);
+            boolean isH3 = ContentBlock.TYPE_HEADING3.equals(b.blockType);
             if (!isH1 && !isH2 && !isH3) continue;
 
             String text = b.getText();

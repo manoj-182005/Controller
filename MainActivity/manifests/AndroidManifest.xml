@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.prajwal.myfirstapp">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -203,6 +202,7 @@
         <!-- Note Editor Activity -->
         <activity
             android:name=".NoteEditorActivity"
+            android:exported="true"
             android:configChanges="orientation|screenSize"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.AppCompat.NoActionBar">
@@ -785,6 +785,7 @@
         <activity android:name=".NoteInsightsActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar" />
         <activity android:name=".NoteShareViewerActivity"
+            android:exported="true"
             android:theme="@style/Theme.AppCompat.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

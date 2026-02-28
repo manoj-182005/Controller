@@ -322,7 +322,7 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
     }
 
     private void showCreateSubfolderDialog() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+        BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.DarkAlertDialog);
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
         dialog.setContentView(sheetView);
 

@@ -145,8 +145,7 @@ public class ConceptMapActivity extends AppCompatActivity {
         // Find related notes
         List<Note> relatedNotes = new ArrayList<>();
         if (centerNote.relatedNoteIds != null && !centerNote.relatedNoteIds.isEmpty()) {
-            String[] relatedIds = centerNote.relatedNoteIds.split(",");
-            for (String rid : relatedIds) {
+            for (String rid : centerNote.relatedNoteIds) {
                 String trimId = rid.trim();
                 for (Note n : allNotes) {
                     if (trimId.equals(n.id)) {

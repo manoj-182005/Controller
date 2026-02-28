@@ -61,15 +61,15 @@ public class QuizGenerator {
             if (text == null || text.trim().isEmpty()) continue;
             text = text.trim();
 
-            if (block.getType() == ContentBlock.TYPE_HEADING1 ||
-                    block.getType() == ContentBlock.TYPE_HEADING2 ||
-                    block.getType() == ContentBlock.TYPE_HEADING3) {
+            if (block.blockType.equals(ContentBlock.TYPE_HEADING1) ||
+                    block.blockType.equals(ContentBlock.TYPE_HEADING2) ||
+                    block.blockType.equals(ContentBlock.TYPE_HEADING3)) {
                 headings.add(text);
-            } else if (block.getType() == ContentBlock.TYPE_BULLET_LIST ||
-                    block.getType() == ContentBlock.TYPE_NUMBERED_LIST ||
-                    block.getType() == ContentBlock.TYPE_CHECKLIST) {
+            } else if (block.blockType.equals(ContentBlock.TYPE_BULLET) ||
+                    block.blockType.equals(ContentBlock.TYPE_NUMBERED) ||
+                    block.blockType.equals(ContentBlock.TYPE_CHECKLIST)) {
                 listItems.add(text);
-            } else if (block.getType() == ContentBlock.TYPE_TEXT) {
+            } else if (block.blockType.equals(ContentBlock.TYPE_TEXT)) {
                 // Split into sentences
                 String[] sentences = text.split("(?<=[.!?])\\s+");
                 for (String s : sentences) {
@@ -310,9 +310,9 @@ public class QuizGenerator {
         StringBuilder text = new StringBuilder();
         for (ContentBlock block : blocks) {
             if (found) {
-                if (block.getType() == ContentBlock.TYPE_HEADING1 ||
-                        block.getType() == ContentBlock.TYPE_HEADING2 ||
-                        block.getType() == ContentBlock.TYPE_HEADING3) break;
+                if (block.blockType.equals(ContentBlock.TYPE_HEADING1) ||
+                        block.blockType.equals(ContentBlock.TYPE_HEADING2) ||
+                        block.blockType.equals(ContentBlock.TYPE_HEADING3)) break;
                 String t = block.getText();
                 if (t != null && !t.trim().isEmpty()) {
                     if (text.length() > 0) text.append(" ");

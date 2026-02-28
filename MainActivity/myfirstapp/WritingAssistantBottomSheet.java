@@ -102,7 +102,7 @@ public class WritingAssistantBottomSheet extends BottomSheetDialogFragment {
         SmartWritingAssistant.WritingStats stats = SmartWritingAssistant.computeStats(content);
 
         TextView tvWordCount = view.findViewById(R.id.tvWordCount);
-        TextView tvSentences = view.findViewById(R.id.tvSentences);
+        TextView tvSentences = view.findViewById(R.id.tvSentenceCount);
         TextView tvReadTime = view.findViewById(R.id.tvReadTime);
         TextView tvReadability = view.findViewById(R.id.tvReadability);
 
@@ -215,8 +215,8 @@ public class WritingAssistantBottomSheet extends BottomSheetDialogFragment {
             TextView tvSuggestion, tvType;
             VH(View v) {
                 super(v);
-                tvSuggestion = v.findViewById(R.id.tvSuggestion);
-                tvType = v.findViewById(R.id.tvType);
+                tvSuggestion = v.findViewById(R.id.tvSuggestionText);
+                tvType = v.findViewById(R.id.tvSuggestionType);
             }
         }
     }

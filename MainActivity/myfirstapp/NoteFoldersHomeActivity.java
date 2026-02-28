@@ -325,7 +325,7 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
 
     private void showCreateFolderDialog() {
         com.google.android.material.bottomsheet.BottomSheetDialog dialog =
-            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.DarkAlertDialog);
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
         dialog.setContentView(sheetView);
 
@@ -558,7 +558,7 @@ public class NoteFoldersHomeActivity extends AppCompatActivity {
 
     private void showCreateSubfolderDialog(NoteFolder parent) {
         com.google.android.material.bottomsheet.BottomSheetDialog dialog =
-            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.Theme_AppCompat_Dialog);
+            new com.google.android.material.bottomsheet.BottomSheetDialog(this, R.style.DarkAlertDialog);
         View sheetView = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_create_subfolder, null);
         dialog.setContentView(sheetView);
 

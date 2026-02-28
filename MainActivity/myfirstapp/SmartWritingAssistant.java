@@ -302,7 +302,7 @@ public class SmartWritingAssistant {
         Map<String, Integer> wordFreq = new HashMap<>();
         for (String w : lower.split("\\s+")) {
             String cleaned = w.replaceAll("[^a-z]", "");
-            if (cleaned.length() > 4 && !SmartNotesHelper.countWords(cleaned + " ") > 0) {
+            if (cleaned.length() > 4 && SmartNotesHelper.countWords(cleaned + " ") == 0) {
                 // Not a stop word — just count
             }
             if (cleaned.length() > 4) {
