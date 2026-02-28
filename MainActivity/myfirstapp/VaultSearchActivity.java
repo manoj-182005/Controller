@@ -37,8 +37,9 @@ public class VaultSearchActivity extends Activity {
     private TextView chipAll, chipImages, chipVideos, chipAudio, chipDocs, chipFavourites;
     private LinearLayout resultsContainer;
     private TextView tvEmptyState;
+    private TextView chipHasNote;
 
-    private String activeFilter = "all"; // all, image, video, audio, document, favourites
+    private String activeFilter = "all"; // all, image, video, audio, document, has_note, favourites
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable pendingSearch;
 
@@ -61,6 +62,7 @@ public class VaultSearchActivity extends Activity {
         chipVideos = findViewById(R.id.chipVideos);
         chipAudio = findViewById(R.id.chipAudio);
         chipDocs = findViewById(R.id.chipDocs);
+        chipHasNote = findViewById(R.id.chipHasNote);
         chipFavourites = findViewById(R.id.chipFavourites);
         resultsContainer = findViewById(R.id.resultsContainer);
         tvEmptyState = findViewById(R.id.tvEmptyState);
@@ -79,6 +81,7 @@ public class VaultSearchActivity extends Activity {
             else if (v == chipVideos) activeFilter = "video";
             else if (v == chipAudio) activeFilter = "audio";
             else if (v == chipDocs) activeFilter = "document";
+            else if (v == chipHasNote) activeFilter = "has_note";
             else if (v == chipFavourites) activeFilter = "favourites";
 
             updateChipHighlights();
@@ -89,6 +92,7 @@ public class VaultSearchActivity extends Activity {
         chipVideos.setOnClickListener(chipListener);
         chipAudio.setOnClickListener(chipListener);
         chipDocs.setOnClickListener(chipListener);
+        chipHasNote.setOnClickListener(chipListener);
         chipFavourites.setOnClickListener(chipListener);
     }
 
@@ -98,8 +102,8 @@ public class VaultSearchActivity extends Activity {
         int activeText = 0xFFFFFFFF;
         int inactiveText = 0xFF94A3B8;
 
-        TextView[] chips = {chipAll, chipImages, chipVideos, chipAudio, chipDocs, chipFavourites};
-        String[] filters = {"all", "image", "video", "audio", "document", "favourites"};
+        TextView[] chips = {chipAll, chipImages, chipVideos, chipAudio, chipDocs, chipHasNote, chipFavourites};
+        String[] filters = {"all", "image", "video", "audio", "document", "has_note", "favourites"};
 
         for (int i = 0; i < chips.length; i++) {
             boolean selected = activeFilter.equals(filters[i]);
@@ -142,6 +146,24 @@ public class VaultSearchActivity extends Activity {
                 }
                 results = filtered;
             }
+        } else if (activeFilter.equals("has_note")) {
+            List<VaultFileItem> allWithNotes = new ArrayList<>();
+            for (VaultFileItem f : repo.getAllFiles()) {
+                if (f.notes != null && !f.notes.isEmpty()) allWithNotes.add(f);
+            }
+            if (!query.isEmpty()) {
+                List<VaultFileItem> filtered = new ArrayList<>();
+                String q = query.toLowerCase();
+                for (VaultFileItem f : allWithNotes) {
+                    if ((f.originalFileName != null && f.originalFileName.toLowerCase().contains(q))
+                            || f.notes.toLowerCase().contains(q)) {
+                        filtered.add(f);
+                    }
+                }
+                results = filtered;
+            } else {
+                results = allWithNotes;
+            }
         } else if (query.isEmpty()) {
             results = getFilteredList();
         } else {
@@ -158,6 +180,13 @@ public class VaultSearchActivity extends Activity {
             case "video": return repo.getFilesByType(VaultFileItem.FileType.VIDEO);
             case "audio": return repo.getFilesByType(VaultFileItem.FileType.AUDIO);
             case "document": return repo.getFilesByType(VaultFileItem.FileType.DOCUMENT);
+            case "has_note": {
+                List<VaultFileItem> r = new ArrayList<>();
+                for (VaultFileItem f : repo.getAllFiles()) {
+                    if (f.notes != null && !f.notes.isEmpty()) r.add(f);
+                }
+                return r;
+            }
             default: return repo.getAllFiles();
         }
     }
@@ -165,6 +194,12 @@ public class VaultSearchActivity extends Activity {
     private List<VaultFileItem> applyTypeFilter(List<VaultFileItem> list) {
         if (activeFilter.equals("all") || activeFilter.equals("favourites")) return list;
         List<VaultFileItem> filtered = new ArrayList<>();
+        if (activeFilter.equals("has_note")) {
+            for (VaultFileItem f : list) {
+                if (f.notes != null && !f.notes.isEmpty()) filtered.add(f);
+            }
+            return filtered;
+        }
         VaultFileItem.FileType target = null;
         switch (activeFilter) {
             case "image": target = VaultFileItem.FileType.IMAGE; break;
@@ -194,9 +229,57 @@ public class VaultSearchActivity extends Activity {
 
         tvEmptyState.setVisibility(View.GONE);
 
-        for (VaultFileItem file : results) {
-            View row = buildResultRow(file);
-            resultsContainer.addView(row);
+        // Group by type when showing mixed results; flat list when a single type is active.
+        boolean grouping = activeFilter.equals("all") || activeFilter.equals("has_note");
+        if (grouping) {
+            addGroupedResults(results);
+        } else {
+            for (VaultFileItem file : results) {
+                resultsContainer.addView(buildResultRow(file));
+            }
+        }
+    }
+
+    private void addGroupedResults(List<VaultFileItem> results) {
+        // Collect groups in a stable order using a linked map
+        java.util.LinkedHashMap<VaultFileItem.FileType, List<VaultFileItem>> groups =
+                new java.util.LinkedHashMap<>();
+        for (VaultFileItem f : results) {
+            List<VaultFileItem> bucket = groups.get(f.fileType);
+            if (bucket == null) {
+                bucket = new ArrayList<>();
+                groups.put(f.fileType, bucket);
+            }
+            bucket.add(f);
+        }
+        for (java.util.Map.Entry<VaultFileItem.FileType, List<VaultFileItem>> entry : groups.entrySet()) {
+            String label = typeLabelPlural(entry.getKey()) + " (" + entry.getValue().size() + ")";
+            resultsContainer.addView(buildSectionHeader(label));
+            for (VaultFileItem f : entry.getValue()) {
+                resultsContainer.addView(buildResultRow(f));
+            }
+        }
+    }
+
+    private View buildSectionHeader(String label) {
+        TextView tv = new TextView(this);
+        tv.setText(label);
+        tv.setTextColor(0xFF94A3B8);
+        tv.setTextSize(12);
+        tv.setPadding(16, 16, 16, 6);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tv.setLayoutParams(lp);
+        return tv;
+    }
+
+    private String typeLabelPlural(VaultFileItem.FileType type) {
+        switch (type) {
+            case IMAGE: return "Images";
+            case VIDEO: return "Videos";
+            case AUDIO: return "Audio";
+            case DOCUMENT: return "Documents";
+            default: return "Other";
         }
     }
 

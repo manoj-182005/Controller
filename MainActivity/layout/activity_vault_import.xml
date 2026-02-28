@@ -37,6 +37,55 @@
             android:paddingStart="8dp" />
     </LinearLayout>
 
+    <!-- Suggestion banner (hidden until a date-pattern match is found) -->
+    <LinearLayout
+        android:id="@+id/layoutSuggestion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#1E293B"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvSuggestion"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/btnAddToAlbum"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:background="#6C63FF"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="Add to Album"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:layout_marginStart="8dp" />
+
+        <TextView
+            android:id="@+id/btnDismissSuggestion"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="✕"
+            android:textColor="#64748B"
+            android:textSize="14sp"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
     <!-- File list label -->
     <TextView
         android:layout_width="match_parent"

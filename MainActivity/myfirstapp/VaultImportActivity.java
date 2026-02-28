@@ -36,6 +36,11 @@ public class VaultImportActivity extends Activity {
     private EditText etTags;
     private TextView btnBack, btnSelectAlbum, btnCopy, btnMove, tvStatus;
     private ProgressBar progressBar;
+    private android.widget.LinearLayout layoutSuggestion;
+    private TextView tvSuggestion, btnAddToAlbum, btnDismissSuggestion;
+
+    private boolean skipDuplicates = false;
+    private String suggestedAlbumName = null;
 
     /**
      * Convenience launcher.
@@ -69,6 +74,10 @@ public class VaultImportActivity extends Activity {
         btnMove = findViewById(R.id.btnMove);
         tvStatus = findViewById(R.id.tvStatus);
         progressBar = findViewById(R.id.progressBar);
+        layoutSuggestion = findViewById(R.id.layoutSuggestion);
+        tvSuggestion = findViewById(R.id.tvSuggestion);
+        btnAddToAlbum = findViewById(R.id.btnAddToAlbum);
+        btnDismissSuggestion = findViewById(R.id.btnDismissSuggestion);
 
         // Parse incoming URIs
         ArrayList<String> uriStrings = getIntent().getStringArrayListExtra(EXTRA_IMPORT_URIS);
@@ -77,12 +86,16 @@ public class VaultImportActivity extends Activity {
         }
 
         populateDisplayNames();
+        analyzeSuggestions();
         updateListView();
 
         btnBack.setOnClickListener(v -> finish());
         btnSelectAlbum.setOnClickListener(v -> showAlbumPicker());
-        btnCopy.setOnClickListener(v -> startImportProcess(false));
+        btnCopy.setOnClickListener(v -> checkDuplicatesAndImport(false));
         btnMove.setOnClickListener(v -> confirmMove());
+
+        btnDismissSuggestion.setOnClickListener(v -> layoutSuggestion.setVisibility(View.GONE));
+        btnAddToAlbum.setOnClickListener(v -> applySuggestedAlbum());
     }
 
     private void populateDisplayNames() {
@@ -149,9 +162,110 @@ public class VaultImportActivity extends Activity {
         new AlertDialog.Builder(this)
                 .setTitle("Move to Vault")
                 .setMessage("Original files will be permanently deleted after import. Continue?")
-                .setPositiveButton("Move", (d, w) -> startImportProcess(true))
+                .setPositiveButton("Move", (d, w) -> checkDuplicatesAndImport(true))
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void checkDuplicatesAndImport(boolean move) {
+        boolean hasDuplicates = false;
+        for (Uri uri : uriList) {
+            String name = resolveFileName(uri);
+            long size = resolveFileSize(uri);
+            if (!repo.findDuplicates(size, name).isEmpty()) {
+                hasDuplicates = true;
+                break;
+            }
+        }
+        if (!hasDuplicates) {
+            skipDuplicates = false;
+            startImportProcess(move);
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Duplicate Files Found")
+                .setMessage("Some files already exist in your vault. Keep both or skip duplicates?")
+                .setPositiveButton("Keep Both", (d, w) -> { skipDuplicates = false; startImportProcess(move); })
+                .setNeutralButton("Skip Duplicates", (d, w) -> { skipDuplicates = true; startImportProcess(move); })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void analyzeSuggestions() {
+        if (displayNames.isEmpty()) return;
+        java.util.regex.Pattern datePattern =
+                java.util.regex.Pattern.compile("(?:IMG_|VID_|DSC_)?(\\d{4})(\\d{2})(\\d{2})");
+        java.util.Map<String, Integer> dateCounts = new java.util.HashMap<>();
+        for (String name : displayNames) {
+            java.util.regex.Matcher m = datePattern.matcher(name);
+            if (m.find()) {
+                String key = m.group(1) + m.group(2) + m.group(3);
+                Integer prev = dateCounts.get(key);
+                dateCounts.put(key, prev == null ? 1 : prev + 1);
+            }
+        }
+        String bestDate = null;
+        int bestCount = 1;
+        for (java.util.Map.Entry<String, Integer> e : dateCounts.entrySet()) {
+            if (e.getValue() > bestCount) {
+                bestCount = e.getValue();
+                bestDate = e.getKey();
+            }
+        }
+        if (bestDate != null) {
+            suggestedAlbumName = formatSuggestedAlbumName(bestDate);
+            tvSuggestion.setText("Suggestion: Add these to album \"" + suggestedAlbumName + "\"?");
+            layoutSuggestion.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private String formatSuggestedAlbumName(String yyyymmdd) {
+        try {
+            int year  = Integer.parseInt(yyyymmdd.substring(0, 4));
+            int month = Integer.parseInt(yyyymmdd.substring(4, 6));
+            int day   = Integer.parseInt(yyyymmdd.substring(6, 8));
+            String[] months = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+            return "Photos - " + months[month - 1] + " " + day + ", " + year;
+        } catch (Exception e) {
+            return "Photos - " + yyyymmdd;
+        }
+    }
+
+    private void applySuggestedAlbum() {
+        if (suggestedAlbumName == null) return;
+        // Find existing album with that name or create it
+        for (VaultAlbum album : repo.getAlbums()) {
+            if (suggestedAlbumName.equals(album.name)) {
+                selectedAlbumId = album.id;
+                btnSelectAlbum.setText("📁  " + album.name);
+                layoutSuggestion.setVisibility(View.GONE);
+                return;
+            }
+        }
+        VaultAlbum newAlbum = repo.createAlbum(suggestedAlbumName, "#6C63FF");
+        selectedAlbumId = newAlbum.id;
+        btnSelectAlbum.setText("📁  " + newAlbum.name);
+        layoutSuggestion.setVisibility(View.GONE);
+    }
+
+    private String resolveFileName(Uri uri) {
+        if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+            try (Cursor cursor = getContentResolver().query(uri,
+                    new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) return cursor.getString(0);
+            } catch (Exception ignored) {}
+        }
+        return uri.getLastPathSegment();
+    }
+
+    private long resolveFileSize(Uri uri) {
+        if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+            try (Cursor cursor = getContentResolver().query(uri,
+                    new String[]{OpenableColumns.SIZE}, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) return cursor.getLong(0);
+            } catch (Exception ignored) {}
+        }
+        return 0;
     }
 
     private void startImportProcess(boolean move) {
@@ -186,6 +300,15 @@ public class VaultImportActivity extends Activity {
                 runOnUiThread(() -> tvStatus.setText("Encrypting " + (idx + 1) + " of " + total + "..."));
                 try {
                     Uri uri = snapshot.get(i);
+                    if (skipDuplicates) {
+                        String name = resolveFileName(uri);
+                        long size = resolveFileSize(uri);
+                        if (!repo.findDuplicates(size, name).isEmpty()) {
+                            final int prog = i + 1;
+                            runOnUiThread(() -> progressBar.setProgress(prog));
+                            continue;
+                        }
+                    }
                     String mime = resolveMimeType(uri, defaultMime);
                     VaultFileItem imported = repo.importFile(uri, mime, move);
                     if (imported != null) {
