@@ -49,6 +49,12 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
     private FloatingActionButton fabNewNote;
     private ImageButton btnBack;
 
+    // Speed dial
+    private View folderSpeedDialOverlay;
+    private LinearLayout folderSpeedDialMenu;
+    private LinearLayout fabOptionNewNote, fabOptionNewSubfolder, fabOptionImport;
+    private boolean isSpeedDialOpen = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,16 +106,27 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
         tvEmptyIcon = findViewById(R.id.tvEmptyIcon);
         fabNewNote = findViewById(R.id.fabNewNoteInFolder);
         btnBack = findViewById(R.id.btnBackFolder);
+        folderSpeedDialOverlay = findViewById(R.id.folderSpeedDialOverlay);
+        folderSpeedDialMenu = findViewById(R.id.folderSpeedDialMenu);
+        fabOptionNewNote = findViewById(R.id.fabOptionNewNote);
+        fabOptionNewSubfolder = findViewById(R.id.fabOptionNewSubfolder);
+        fabOptionImport = findViewById(R.id.fabOptionImport);
     }
 
     private void setupHeader() {
         btnBack.setOnClickListener(v -> finish());
 
-        // Apply folder color gradient to header
-        int startColor = currentFolder.getColorInt();
-        int endColor = currentFolder.getGradientColorInt();
+        // Use a subtle dark header tinted with the folder's color (not a harsh gradient)
+        int folderColor = currentFolder.getColorInt();
+        int darkBase = 0xFF0F172A;
+        // Blend folder color at 15% into dark background — subtle tint
+        int r = (int) (Color.red(darkBase) * 0.85f + Color.red(folderColor) * 0.15f);
+        int g = (int) (Color.green(darkBase) * 0.85f + Color.green(folderColor) * 0.15f);
+        int b = (int) (Color.blue(darkBase) * 0.85f + Color.blue(folderColor) * 0.15f);
+        int subtleColor = Color.rgb(r, g, b);
         GradientDrawable gradient = new GradientDrawable(
-            GradientDrawable.Orientation.TL_BR, new int[]{startColor, endColor});
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            new int[]{subtleColor, 0xFF0F172A});
         gradient.setCornerRadius(0);
         headerContainer.setBackground(gradient);
 
@@ -449,12 +466,77 @@ public class NoteFolderActivity extends AppCompatActivity implements NotesAdapte
     }
 
     private void setupFab() {
-        fabNewNote.setOnClickListener(v -> {
+        fabNewNote.setOnClickListener(v -> toggleSpeedDial());
+
+        folderSpeedDialOverlay.setOnClickListener(v -> closeSpeedDial());
+
+        fabOptionNewNote.setOnClickListener(v -> {
+            closeSpeedDial();
             Intent intent = new Intent(this, NoteEditorActivity.class);
             intent.putExtra("new_note", true);
             intent.putExtra("folder_id", currentFolderId);
             startActivity(intent);
         });
+
+        fabOptionNewSubfolder.setOnClickListener(v -> {
+            closeSpeedDial();
+            showCreateSubfolderDialog();
+        });
+
+        fabOptionImport.setOnClickListener(v -> {
+            closeSpeedDial();
+            showMoveNoteFromOtherFolderPicker();
+        });
+    }
+
+    private void toggleSpeedDial() {
+        if (isSpeedDialOpen) {
+            closeSpeedDial();
+        } else {
+            openSpeedDial();
+        }
+    }
+
+    private void openSpeedDial() {
+        isSpeedDialOpen = true;
+        folderSpeedDialOverlay.setVisibility(View.VISIBLE);
+        folderSpeedDialMenu.setVisibility(View.VISIBLE);
+        fabNewNote.setImageResource(android.R.drawable.ic_menu_close_clear_cancel);
+    }
+
+    private void closeSpeedDial() {
+        isSpeedDialOpen = false;
+        folderSpeedDialOverlay.setVisibility(View.GONE);
+        folderSpeedDialMenu.setVisibility(View.GONE);
+        fabNewNote.setImageResource(android.R.drawable.ic_input_add);
+    }
+
+    private void showMoveNoteFromOtherFolderPicker() {
+        // Show all notes NOT in this folder so user can import one
+        List<Note> otherNotes = new ArrayList<>();
+        for (Note note : noteRepository.getAllNotes()) {
+            if (!note.isTrashed && !note.isArchived
+                    && !currentFolderId.equals(note.folderId)) {
+                otherNotes.add(note);
+            }
+        }
+        if (otherNotes.isEmpty()) {
+            Toast.makeText(this, "No notes available to import", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] titles = new String[otherNotes.size()];
+        for (int i = 0; i < otherNotes.size(); i++) {
+            String t = otherNotes.get(i).title;
+            titles[i] = (t == null || t.isEmpty()) ? "Untitled" : t;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("Import note into " + currentFolder.name)
+            .setItems(titles, (d, which) -> {
+                folderRepository.moveNoteToFolder(otherNotes.get(which).id, currentFolderId);
+                refreshNotes();
+                Toast.makeText(this, "Note imported", Toast.LENGTH_SHORT).show();
+            })
+            .show();
     }
 
     private void refreshAll() {

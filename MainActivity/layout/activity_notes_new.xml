@@ -32,11 +32,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingHorizontal="20dp"
-                android:paddingTop="16dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="12dp"
                 android:paddingBottom="4dp">
 
-                <!-- Top Row: Back + Title + Count + Sync + ViewToggle -->
+                <!-- Top Row: Hamburger + Title + Compose -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -53,16 +53,6 @@
                         android:tint="#FFFFFF"
                         android:scaleType="centerInside" />
 
-                    <ImageButton
-                        android:id="@+id/btnBackNotes"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_revert"
-                        android:contentDescription="Back"
-                        android:tint="#FFFFFF"
-                        android:scaleType="centerInside" />
-
                     <TextView
                         android:id="@+id/tvNotesTitle"
                         android:layout_width="0dp"
@@ -75,29 +65,7 @@
                         android:fontFamily="sans-serif-medium"
                         android:layout_marginStart="8dp" />
 
-                    <TextView
-                        android:id="@+id/tvNoteCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0 notes"
-                        android:textColor="#94A3B8"
-                        android:textSize="12sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:background="@drawable/notes_count_pill_bg"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="5dp" />
-
-                    <ImageButton
-                        android:id="@+id/btnSyncNotes"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/stat_notify_sync"
-                        android:contentDescription="Sync"
-                        android:tint="#94A3B8"
-                        android:scaleType="centerInside"
-                        android:layout_marginStart="4dp" />
-
+                    <!-- View toggle (grid/list) — kept in header right side -->
                     <ImageButton
                         android:id="@+id/btnViewToggle"
                         android:layout_width="40dp"
@@ -108,6 +76,7 @@
                         android:tint="#94A3B8"
                         android:scaleType="centerInside" />
 
+                    <!-- More/overflow menu -->
                     <ImageButton
                         android:id="@+id/btnMoreMenu"
                         android:layout_width="40dp"
@@ -117,29 +86,39 @@
                         android:contentDescription="More"
                         android:tint="#94A3B8"
                         android:scaleType="centerInside" />
-
-                    <ImageButton
-                        android:id="@+id/btnSortNotes"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@android:drawable/ic_menu_sort_by_size"
-                        android:contentDescription="Sort"
-                        android:tint="#94A3B8"
-                        android:scaleType="centerInside" />
                 </LinearLayout>
 
-                <!-- Date line -->
-                <TextView
-                    android:id="@+id/tvDateLine"
-                    android:layout_width="wrap_content"
+                <!-- Date + Count pill row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Wednesday, Feb 25"
-                    android:textColor="#F59E0B"
-                    android:textSize="13sp"
-                    android:fontFamily="sans-serif"
-                    android:layout_marginStart="48dp"
-                    android:layout_marginTop="2dp" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginTop="2dp">
+
+                    <TextView
+                        android:id="@+id/tvDateLine"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Wednesday, Feb 25"
+                        android:textColor="#F59E0B"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif" />
+
+                    <TextView
+                        android:id="@+id/tvNoteCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 notes"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:background="@drawable/notes_count_pill_bg"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="3dp" />
+                </LinearLayout>
             </LinearLayout>
 
             <!-- ═══ SEARCH BAR ═══ -->

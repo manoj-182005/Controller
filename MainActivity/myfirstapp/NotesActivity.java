@@ -68,7 +68,7 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     private NoteRepository repository;
 
     // Views - Header
-    private ImageButton btnBackNotes, btnSyncNotes, btnViewToggle, btnMoreMenu;
+    private ImageButton btnViewToggle, btnMoreMenu;
     private ImageButton btnDrawerToggle;
     private TextView tvNotesTitle, tvNoteCount, tvDateLine;
 
@@ -112,9 +112,6 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     private TodoRepository todoRepository;
     private TodoListAdapter todoListAdapter;
     private ArrayList<TodoList> todoLists = new ArrayList<>();
-
-    // Views - Sort
-    private ImageButton btnSortNotes;
 
     // Views - Multi-select
     private LinearLayout multiSelectBar;
@@ -232,8 +229,6 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         btnDrawerToggle = findViewById(R.id.btnDrawerToggle);
 
         // Header
-        btnBackNotes = findViewById(R.id.btnBackNotes);
-        btnSyncNotes = findViewById(R.id.btnSyncNotes);
         btnViewToggle = findViewById(R.id.btnViewToggle);
         btnMoreMenu = findViewById(R.id.btnMoreMenu);
         tvNotesTitle = findViewById(R.id.tvNotesTitle);
@@ -268,9 +263,6 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         recentlyViewedSection = findViewById(R.id.recentlyViewedSection);
         recentlyViewedContainer = findViewById(R.id.recentlyViewedContainer);
 
-        // Sort button
-        btnSortNotes = findViewById(R.id.btnSortNotes);
-
         // Multi-select
         multiSelectBar = findViewById(R.id.multiSelectBar);
 
@@ -292,23 +284,6 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
     // ═══════════════════════════════════════════════════════════════
 
     private void setupHeader() {
-        btnBackNotes.setOnClickListener(v -> finish());
-
-        btnSyncNotes.setOnClickListener(v -> {
-            if (connectionManager != null) {
-                // Rotate animation
-                ObjectAnimator rotation = ObjectAnimator.ofFloat(btnSyncNotes, "rotation", 0f, 360f);
-                rotation.setDuration(600);
-                rotation.setInterpolator(new AccelerateDecelerateInterpolator());
-                rotation.start();
-
-                connectionManager.sendCommand("NOTE_SYNC");
-                Toast.makeText(this, "Syncing notes...", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Not connected to server", Toast.LENGTH_SHORT).show();
-            }
-        });
-
         btnViewToggle.setOnClickListener(v -> {
             isGridView = !isGridView;
             repository.setViewMode(isGridView ? "grid" : "list");
@@ -318,10 +293,6 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         });
 
         btnMoreMenu.setOnClickListener(this::showMoreMenu);
-
-        if (btnSortNotes != null) {
-            btnSortNotes.setOnClickListener(this::showSortMenu);
-        }
 
         if (btnEmptyCreateNote != null) {
             btnEmptyCreateNote.setOnClickListener(v -> createNewNote("note"));
@@ -367,7 +338,9 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         popup.getMenu().add(0, 1, 1, "📦  Archive");
         popup.getMenu().add(0, 2, 2, "🗑️  Trash");
         popup.getMenu().add(0, 3, 3, "🏷️  Tags");
-        popup.getMenu().add(0, 4, 4, "⚙️  Settings");
+        popup.getMenu().add(0, 4, 4, "📅  Sort by Date");
+        popup.getMenu().add(0, 5, 5, "🔤  Sort by Title");
+        popup.getMenu().add(0, 6, 6, "⚙️  Settings");
 
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
@@ -384,28 +357,10 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                     startActivity(new Intent(this, TagsManagerActivity.class));
                     return true;
                 case 4:
-                    startActivity(new Intent(this, NotesSettingsActivity.class));
-                    return true;
-            }
-            return false;
-        });
-
-        popup.show();
-    }
-
-    private void showSortMenu(View anchor) {
-        PopupMenu popup = new PopupMenu(this, anchor);
-        popup.getMenu().add(0, 0, 0, "📅  By Date");
-        popup.getMenu().add(0, 1, 1, "🔤  By Title");
-        popup.getMenu().add(0, 2, 2, "📂  By Category");
-
-        popup.setOnMenuItemClickListener(item -> {
-            switch (item.getItemId()) {
-                case 0: // Sort by date
                     displayedNotes.sort((a, b) -> Long.compare(b.updatedAt, a.updatedAt));
                     notesAdapter.notifyDataSetChanged();
                     return true;
-                case 1: // Sort by title
+                case 5:
                     displayedNotes.sort((a, b) -> {
                         String ta = a.title != null ? a.title : "";
                         String tb = b.title != null ? b.title : "";
@@ -413,13 +368,8 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
                     });
                     notesAdapter.notifyDataSetChanged();
                     return true;
-                case 2: // Sort by category
-                    displayedNotes.sort((a, b) -> {
-                        String ca = a.category != null ? a.category : "";
-                        String cb = b.category != null ? b.category : "";
-                        return ca.compareToIgnoreCase(cb);
-                    });
-                    notesAdapter.notifyDataSetChanged();
+                case 6:
+                    startActivity(new Intent(this, NotesSettingsActivity.class));
                     return true;
             }
             return false;
@@ -1351,24 +1301,41 @@ public class NotesActivity extends AppCompatActivity implements NotesAdapter.OnN
         drawerFoldersList.removeAllViews();
 
         try {
-            java.util.ArrayList<NoteFolder> folders = folderRepository.getAllFolders();
-            for (NoteFolder folder : folders) {
-                TextView tv = new TextView(this);
-                tv.setText("  📁  " + folder.name);
-                tv.setTextColor(0xFFE2E8F0);
-                tv.setTextSize(14);
-                tv.setPadding(dpToPx(20), dpToPx(14), dpToPx(20), dpToPx(14));
-                tv.setBackgroundResource(android.R.drawable.list_selector_background);
-                tv.setOnClickListener(v -> {
-                    Intent intent = new Intent(this, NoteFolderActivity.class);
-                    intent.putExtra("folder_id", folder.id);
-                    startActivity(intent);
-                    if (drawerLayout != null) drawerLayout.closeDrawers();
-                });
-                drawerFoldersList.addView(tv);
+            List<NoteFolder> rootFolders = folderRepository.getRootFolders();
+            for (NoteFolder folder : rootFolders) {
+                addDrawerFolderItem(folder, 0);
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to populate drawer folders", e);
+        }
+    }
+
+    private void addDrawerFolderItem(NoteFolder folder, int indentLevel) {
+        int indentPx = dpToPx(20 + indentLevel * 16);
+        TextView tv = new TextView(this);
+        StringBuilder label = new StringBuilder();
+        if (indentLevel > 0) label.append("↳ ");
+        label.append(folder.getIconEmoji()).append("  ").append(folder.name);
+        int count = folderRepository.getNoteCountRecursive(folder.id);
+        if (count > 0) label.append(" (").append(count).append(")");
+        tv.setText(label.toString());
+        tv.setTextColor(indentLevel == 0 ? 0xFFE2E8F0 : 0xFFADBBCB);
+        tv.setTextSize(indentLevel == 0 ? 14 : 13);
+        tv.setPadding(indentPx, dpToPx(10), dpToPx(16), dpToPx(10));
+        tv.setBackgroundResource(android.R.drawable.list_selector_background);
+        String folderId = folder.id;
+        tv.setOnClickListener(v -> {
+            Intent intent = new Intent(this, NoteFolderActivity.class);
+            intent.putExtra("folder_id", folderId);
+            startActivity(intent);
+            if (drawerLayout != null) drawerLayout.closeDrawers();
+        });
+        drawerFoldersList.addView(tv);
+
+        // Recursively add subfolders
+        List<NoteFolder> subs = folderRepository.getSubfolders(folder.id);
+        for (NoteFolder sub : subs) {
+            addDrawerFolderItem(sub, indentLevel + 1);
         }
     }
 

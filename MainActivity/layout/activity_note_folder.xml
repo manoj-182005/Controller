@@ -208,7 +208,120 @@
 
     </LinearLayout>
 
-    <!-- FAB -->
+    <!-- Speed dial overlay (dimmed bg) -->
+    <View
+        android:id="@+id/folderSpeedDialOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#88000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Speed dial items (shown above FAB when expanded) -->
+    <LinearLayout
+        android:id="@+id/folderSpeedDialMenu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="88dp"
+        android:gravity="end"
+        android:visibility="gone">
+
+        <!-- Import Note option -->
+        <LinearLayout
+            android:id="@+id/fabOptionImport"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Import Note"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:background="#CC1E293B"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:layout_marginEnd="10dp" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_upload"
+                app:backgroundTint="#1E293B"
+                app:tint="#FFFFFF"
+                app:fabSize="mini"
+                android:contentDescription="Import Note" />
+        </LinearLayout>
+
+        <!-- New Subfolder option -->
+        <LinearLayout
+            android:id="@+id/fabOptionNewSubfolder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="New Subfolder"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:background="#CC1E293B"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:layout_marginEnd="10dp" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_menu_add"
+                app:backgroundTint="#6366F1"
+                app:tint="#FFFFFF"
+                app:fabSize="mini"
+                android:contentDescription="New Subfolder" />
+        </LinearLayout>
+
+        <!-- New Note option -->
+        <LinearLayout
+            android:id="@+id/fabOptionNewNote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="New Note"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:background="#CC1E293B"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="6dp"
+                android:layout_marginEnd="10dp" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@android:drawable/ic_input_add"
+                app:backgroundTint="#F59E0B"
+                app:tint="#FFFFFF"
+                app:fabSize="mini"
+                android:contentDescription="New Note" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Main FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabNewNoteInFolder"
         android:layout_width="wrap_content"
@@ -219,7 +332,7 @@
         app:backgroundTint="#F59E0B"
         app:tint="#FFFFFF"
         android:src="@android:drawable/ic_input_add"
-        android:contentDescription="New Note"
+        android:contentDescription="New"
         app:elevation="6dp" />
 
 </FrameLayout>
