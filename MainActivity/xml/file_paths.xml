@@ -19,4 +19,9 @@
     <external-files-path
         name="received"
         path="Received_Files/" />
+
+    <!-- Entire external storage (Downloads, DCIM, Documents, etc.) -->
+    <external-path
+        name="external_storage"
+        path="/" />
 </paths>

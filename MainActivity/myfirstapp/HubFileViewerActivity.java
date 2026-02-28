@@ -218,13 +218,8 @@ public class HubFileViewerActivity extends AppCompatActivity {
     }
 
     private void showPdfOrExternal() {
-        // Try to open as text first; if it fails show external button
-        String content = readFileContent(file.filePath);
-        if (content != null && !content.isEmpty() && !content.startsWith("%PDF")) {
-            showText();
-        } else {
-            showUnsupported();
-        }
+        // PDFs cannot be rendered natively — always show the "Open with" button
+        showUnsupported();
     }
 
     private void openAudioPlayer() {
@@ -310,11 +305,20 @@ public class HubFileViewerActivity extends AppCompatActivity {
             return;
         }
         try {
-            File f = new File(file.filePath);
-            Uri uri = FileProvider.getUriForFile(this,
-                    getPackageName() + ".provider", f);
-            Intent intent = new Intent(Intent.ACTION_VIEW);
+            Uri uri;
+            if (file.filePath.startsWith("content://")) {
+                // Already a content URI (e.g. imported via file picker)
+                uri = Uri.parse(file.filePath);
+            } else {
+                File f = new File(file.filePath);
+                if (!f.exists()) {
+                    Toast.makeText(this, "File not found on device", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", f);
+            }
             String mime = file.mimeType != null && !file.mimeType.isEmpty() ? file.mimeType : "*/*";
+            Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(uri, mime);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(intent, "Open with"));

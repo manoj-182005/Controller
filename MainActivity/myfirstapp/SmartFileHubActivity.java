@@ -343,6 +343,10 @@ public class SmartFileHubActivity extends AppCompatActivity {
         storageArcView.setOnClickListener(v ->
                 startActivity(new Intent(this, HubStorageIntelligenceActivity.class)));
 
+        // Browse Storage buttons
+        safeClick(R.id.btnBrowseInternalStorage, () -> browseStorage(false));
+        safeClick(R.id.btnBrowseExternalStorage, () -> browseStorage(true));
+
         // Speed dial items
         safeClick(R.id.fabImportFiles, () -> {
             collapseFab();
@@ -1046,6 +1050,38 @@ public class SmartFileHubActivity extends AppCompatActivity {
 
     private void openInbox() {
         Intent intent = new Intent(this, HubInboxActivity.class);
+        startActivity(intent);
+    }
+
+    private void browseStorage(boolean preferExternal) {
+        String path = null;
+        String title;
+        if (preferExternal) {
+            // Try to find an SD card (second external storage directory)
+            java.io.File[] externalDirs = getExternalFilesDirs(null);
+            if (externalDirs != null && externalDirs.length > 1 && externalDirs[1] != null) {
+                // Walk up 4 levels from app-specific dir to reach the SD card root:
+                // .../files → .../com.package → .../data → .../Android → SD card root
+                java.io.File sdDir = externalDirs[1];
+                for (int i = 0; i < 4 && sdDir.getParentFile() != null; i++) {
+                    sdDir = sdDir.getParentFile();
+                }
+                if (sdDir != null && sdDir.exists()) {
+                    path = sdDir.getAbsolutePath();
+                }
+            }
+            if (path == null) {
+                Toast.makeText(this, "No external SD card detected", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            title = "SD Card / External Storage";
+        } else {
+            path = android.os.Environment.getExternalStorageDirectory().getAbsolutePath();
+            title = "Internal Storage";
+        }
+        Intent intent = new Intent(this, StorageFileBrowserActivity.class);
+        intent.putExtra(StorageFileBrowserActivity.EXTRA_ROOT_PATH, path);
+        intent.putExtra(StorageFileBrowserActivity.EXTRA_TITLE, title);
         startActivity(intent);
     }
 
