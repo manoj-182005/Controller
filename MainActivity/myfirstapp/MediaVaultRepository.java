@@ -483,13 +483,39 @@ public class MediaVaultRepository {
     // ─── File Export ─────────────────────────────────────────────
 
     /**
+     * Decrypt a vault file into memory and return the plaintext bytes.
+     * Never writes unencrypted bytes to disk — safe for in-memory image rendering.
+     *
+     * @param item The vault file item to decrypt.
+     * @return Decrypted byte array, or null on failure.
+     */
+    public byte[] decryptFileToMemory(VaultFileItem item) {
+        if (!isUnlocked()) {
+            Log.e(TAG, "decryptFileToMemory: vault is locked");
+            return null;
+        }
+        if (item == null || item.vaultFileName == null || item.vaultFileName.isEmpty()) {
+            Log.e(TAG, "decryptFileToMemory: null/empty vaultFileName");
+            return null;
+        }
+        File encFile = new File(getFilesDir(), item.vaultFileName);
+        if (!encFile.exists()) {
+            Log.e(TAG, "decryptFileToMemory: encrypted file not found: " + item.vaultFileName);
+            return null;
+        }
+        byte[] plainBytes = MediaVaultCrypto.decryptFileToMemory(encFile, sessionPin);
+        if (plainBytes == null) {
+            Log.e(TAG, "decryptFileToMemory: decryption returned null for: " + item.originalFileName);
+        }
+        return plainBytes;
+    }
+
+    /**
      * Decrypt a vault file and write to the given destination file.
      */
     public boolean exportFile(VaultFileItem item, File destFile) {
         if (!isUnlocked()) return false;
-        File encFile = new File(getFilesDir(), item.vaultFileName);
-        if (!encFile.exists()) return false;
-        byte[] plainBytes = MediaVaultCrypto.decryptFileToMemory(encFile, sessionPin);
+        byte[] plainBytes = decryptFileToMemory(item);
         if (plainBytes == null) return false;
         try (FileOutputStream fos = new FileOutputStream(destFile)) {
             fos.write(plainBytes);

@@ -66,10 +66,11 @@
          ═══════════════════════════════════════════════════════════════════════════ -->
     <style name="PinButton" parent="Widget.AppCompat.Button">
         <item name="android:layout_width">80dp</item>
-        <item name="android:layout_height">72dp</item>
+        <item name="android:layout_height">80dp</item>
         <item name="android:textSize">22sp</item>
         <item name="android:textColor">#F1F5F9</item>
-        <item name="android:backgroundTint">#1E293B</item>
+        <item name="android:background">@drawable/vault_pin_btn_bg</item>
+        <item name="android:stateListAnimator">@null</item>
     </style>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════

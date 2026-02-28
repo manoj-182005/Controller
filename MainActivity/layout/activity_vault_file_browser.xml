@@ -13,7 +13,7 @@
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:gravity="center_vertical"
-        android:background="#0F172A">
+        android:background="@drawable/vault_header_bg">
 
         <Button
             android:id="@+id/btnBrowserBack"
@@ -179,7 +179,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:orientation="horizontal"
-        android:background="#0F172A"
+        android:background="@drawable/vault_header_bg"
         android:visibility="gone">
 
         <Button

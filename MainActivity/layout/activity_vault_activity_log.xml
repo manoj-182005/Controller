@@ -13,7 +13,7 @@
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:gravity="center_vertical"
-        android:background="#0F172A">
+        android:background="@drawable/vault_header_bg">
 
         <Button
             android:id="@+id/btnActivityLogBack"
