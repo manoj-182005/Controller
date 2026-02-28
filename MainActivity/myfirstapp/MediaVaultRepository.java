@@ -263,6 +263,15 @@ public class MediaVaultRepository {
         return true;
     }
 
+    /** Disables the decoy vault, clearing stored decoy credentials. */
+    public void disableDecoy() {
+        prefs.edit()
+            .remove(KEY_DECOY_HASH)
+            .remove(KEY_DECOY_SALT)
+            .putBoolean(KEY_DECOY_ENABLED, false)
+            .apply();
+    }
+
     private boolean verifyDecoyPin(String pin) {
         String hashB64 = prefs.getString(KEY_DECOY_HASH, null);
         String saltB64 = prefs.getString(KEY_DECOY_SALT, null);
