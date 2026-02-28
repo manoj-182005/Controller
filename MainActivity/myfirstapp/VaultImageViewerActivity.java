@@ -158,14 +158,13 @@ public class VaultImageViewerActivity extends Activity {
                 final Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
                 if (bm == null) {
                     Log.e(TAG, "BitmapFactory failed to decode bytes for: " + currentFile.originalFileName);
+                    runOnUiThread(() -> Toast.makeText(this,
+                            "Cannot decode image", Toast.LENGTH_SHORT).show());
+                    return;
                 }
                 runOnUiThread(() -> {
-                    if (bm != null) {
-                        imageView.setImageBitmap(bm);
-                        resetZoom();
-                    } else {
-                        Toast.makeText(this, "Cannot decode image", Toast.LENGTH_SHORT).show();
-                    }
+                    imageView.setImageBitmap(bm);
+                    resetZoom();
                 });
             } catch (Exception e) {
                 Log.e(TAG, "Image load failed for: " + (currentFile != null ? currentFile.originalFileName : "null"), e);
