@@ -221,6 +221,17 @@ public class MediaVaultRepository {
         return sessionPin != null;
     }
 
+    /**
+     * Returns a copy of the active session PIN for callers that need to perform
+     * their own encryption (e.g. in-memory edited file re-encryption).
+     * Returns null if the vault is locked. Callers must wipe the returned array
+     * when finished (Arrays.fill(pin, '\0')).
+     */
+    public char[] getSessionPin() {
+        if (sessionPin == null) return null;
+        return sessionPin.clone();
+    }
+
     public void lock() {
         if (sessionPin != null) {
             java.util.Arrays.fill(sessionPin, '\0');
@@ -619,6 +630,59 @@ public class MediaVaultRepository {
         List<VaultFileItem> files = loadFiles();
         files.add(item);
         saveFiles(files);
+    }
+
+    /**
+     * Public wrapper for persisting a new VaultFileItem that was created outside
+     * the repository (e.g. by VaultImageEditorActivity after in-memory editing).
+     */
+    public void saveFileItem(VaultFileItem item) {
+        saveFile(item);
+    }
+
+    /**
+     * Import an already-decoded file (as raw bytes) into the vault.
+     * Encrypts and stores the file, then saves metadata.
+     *
+     * @param bytes     Raw plaintext bytes of the file.
+     * @param fileName  Original display name.
+     * @param mimeType  MIME type string.
+     * @return The new VaultFileItem, or null on failure.
+     */
+    public VaultFileItem importFileFromBytes(byte[] bytes, String fileName, String mimeType) {
+        if (!isUnlocked() || bytes == null) return null;
+        try {
+            File tempFile = new File(context.getCacheDir(), "vault_import_" + UUID.randomUUID());
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(bytes);
+            }
+
+            VaultFileItem item = new VaultFileItem();
+            item.mimeType = mimeType;
+            item.fileType = detectFileType(mimeType);
+            item.originalFileName = (fileName != null && !fileName.isEmpty()) ? fileName : "file_" + item.id;
+            item.originalSize = bytes.length;
+            item.originalCreatedAt = System.currentTimeMillis();
+
+            populateMediaMetadata(item, tempFile, mimeType);
+
+            String vaultFileName = UUID.randomUUID().toString();
+            item.vaultFileName = vaultFileName;
+            File destFile = new File(getFilesDir(), vaultFileName);
+            MediaVaultCrypto.encryptFile(tempFile, destFile, sessionPin);
+            item.encryptedSize = destFile.length();
+
+            generateAndEncryptThumbnail(item, tempFile, mimeType);
+            tempFile.delete();
+
+            saveFile(item);
+            logActivity(new VaultActivityLog(VaultActivityLog.Action.FILE_IMPORTED,
+                    "Imported (bytes): " + item.originalFileName));
+            return item;
+        } catch (Exception e) {
+            Log.e(TAG, "importFileFromBytes failed", e);
+            return null;
+        }
     }
 
     public void updateFile(VaultFileItem item) {
