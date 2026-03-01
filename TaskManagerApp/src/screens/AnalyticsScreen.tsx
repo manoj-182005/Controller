@@ -9,6 +9,7 @@ import {
 import { THEME } from '../theme/tokens';
 import { useTaskStore } from '../store/taskStore';
 import { Category } from '../types/task';
+import { calcProductivityScore, getPeakHour, generateInsights } from '../utils/aiInsights';
 
 type Range = 'Week' | 'Month' | 'Year';
 
@@ -71,6 +72,21 @@ export default function AnalyticsScreen() {
     ? Math.round(completed.reduce((s, t) => s + (t.estimatedDuration ?? 30), 0) / completed.length)
     : 0;
 
+  // Productivity Score
+  const productivityScore = calcProductivityScore(tasks);
+  const scoreColor =
+    productivityScore >= 70 ? THEME.colors.success :
+    productivityScore >= 40 ? THEME.colors.warning : THEME.colors.error;
+
+  // Peak hour
+  const peakHour = getPeakHour(tasks);
+  const peakHourStr = peakHour !== null
+    ? (peakHour === 0 ? '12:00 AM' : peakHour < 12 ? `${peakHour}:00 AM` : peakHour === 12 ? '12:00 PM' : `${peakHour - 12}:00 PM`)
+    : null;
+
+  // AI Insights
+  const insights = generateInsights(tasks);
+
   // Most productive day
   const dayProductive = DAYS_OF_WEEK.map((label, i) => ({
     label,
@@ -115,6 +131,24 @@ export default function AnalyticsScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+      </View>
+
+      {/* Productivity Score */}
+      <View style={[styles.scoreCard, { borderColor: scoreColor + '40' }]}>
+        <View style={styles.scoreLeft}>
+          <Text style={styles.scoreLabel}>Productivity Score</Text>
+          <Text style={[styles.scoreValue, { color: scoreColor }]}>{productivityScore}</Text>
+          <Text style={styles.scoreSubLabel}>/100</Text>
+        </View>
+        <View style={styles.scoreRight}>
+          <View style={styles.scoreBarTrack}>
+            <View style={[styles.scoreBarFill, { width: `${productivityScore}%`, backgroundColor: scoreColor }]} />
+          </View>
+          {peakHourStr && (
+            <Text style={styles.peakText}>⚡ Peak productivity at {peakHourStr}</Text>
+          )}
+          <Text style={styles.scoreHint}>Based on completion rate, on-time delivery & streak</Text>
         </View>
       </View>
 
@@ -214,6 +248,22 @@ export default function AnalyticsScreen() {
         ))}
       </View>
 
+      {/* AI Insights */}
+      {insights.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🧠 AI Insights</Text>
+          {insights.map((insight) => (
+            <View key={insight.id} style={styles.insightRow}>
+              <Text style={styles.insightIcon}>{insight.icon}</Text>
+              <View style={styles.insightBody}>
+                <Text style={styles.insightTitle}>{insight.title}</Text>
+                <Text style={styles.insightMsg}>{insight.message}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Streak Calendar */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Activity Calendar 🔥</Text>
@@ -263,6 +313,81 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: THEME.colors.bg },
   content: { padding: THEME.spacing.lg, paddingTop: 56 },
+  scoreCard: {
+    flexDirection: 'row',
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.radius.lg,
+    padding: THEME.spacing.lg,
+    borderWidth: 1,
+    marginBottom: THEME.spacing.xl,
+    gap: THEME.spacing.lg,
+    alignItems: 'center',
+  },
+  scoreLeft: {
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  scoreLabel: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.muted,
+    textAlign: 'center',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  scoreValue: {
+    fontSize: THEME.typography.sizes.xxxl,
+    fontWeight: THEME.typography.weights.extrabold,
+  },
+  scoreSubLabel: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.muted,
+  },
+  scoreRight: {
+    flex: 1,
+    gap: THEME.spacing.sm,
+  },
+  scoreBarTrack: {
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: THEME.radius.full,
+    overflow: 'hidden',
+  },
+  scoreBarFill: {
+    height: '100%',
+    borderRadius: THEME.radius.full,
+  },
+  peakText: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.warning,
+    fontWeight: THEME.typography.weights.medium,
+  },
+  scoreHint: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.muted,
+    lineHeight: 16,
+  },
+  insightRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing.sm,
+    marginBottom: THEME.spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: THEME.radius.sm,
+    padding: THEME.spacing.sm,
+  },
+  insightIcon: { fontSize: 16, marginTop: 1 },
+  insightBody: { flex: 1, gap: 2 },
+  insightTitle: {
+    fontSize: THEME.typography.sizes.sm,
+    fontWeight: THEME.typography.weights.semibold,
+    color: THEME.colors.text.primary,
+  },
+  insightMsg: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.secondary,
+    lineHeight: 18,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

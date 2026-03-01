@@ -42,10 +42,18 @@ const VIEW_OPTIONS = [
   {
     id: 'focus',
     title: 'Focus Mode',
-    subtitle: 'Pomodoro timer with task tracking',
+    subtitle: 'Pomodoro timer with customizable sessions & session logging',
     emoji: '🎯',
     color: '#F59E0B',
     screen: 'Focus',
+  },
+  {
+    id: 'templates',
+    title: 'Templates',
+    subtitle: 'Apply pre-built task sets for common workflows',
+    emoji: '📄',
+    color: '#8B5CF6',
+    screen: 'Templates',
   },
 ];
 

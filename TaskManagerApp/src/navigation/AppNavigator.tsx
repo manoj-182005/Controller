@@ -12,6 +12,7 @@ import ListViewScreen from '../screens/ListViewScreen';
 import KanbanScreen from '../screens/KanbanScreen';
 import TimeBlockScreen from '../screens/TimeBlockScreen';
 import FocusScreen from '../screens/FocusScreen';
+import TemplatesScreen from '../screens/TemplatesScreen';
 import { QuickAddModal } from '../components/QuickAddModal';
 import { THEME } from '../theme/tokens';
 
@@ -31,6 +32,7 @@ function ViewsNavigator() {
       <ViewsStack.Screen name="Kanban" component={KanbanScreen} />
       <ViewsStack.Screen name="TimeBlock" component={TimeBlockScreen} />
       <ViewsStack.Screen name="Focus" component={FocusScreen} />
+      <ViewsStack.Screen name="Templates" component={TemplatesScreen} />
     </ViewsStack.Navigator>
   );
 }

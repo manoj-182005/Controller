@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Task } from '../types/task';
 import { THEME } from '../theme/tokens';
+import { useTaskStore } from '../store/taskStore';
 
 interface TaskCardProps {
   task: Task;
@@ -32,6 +33,8 @@ export function TaskCard({
   onPress,
 }: TaskCardProps) {
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
+  const { activeTimerTaskId, startTimer, stopTimer } = useTaskStore();
+  const isTimerActive = activeTimerTaskId === task.id;
 
   const priorityColor = THEME.colors.priority[task.priority];
   const categoryColor = THEME.colors.category[task.category];
@@ -64,6 +67,20 @@ export function TaskCard({
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const formatTracked = (minutes?: number) => {
+    if (!minutes) return null;
+    if (minutes < 60) return `${minutes}m`;
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  };
+
+  const handleTimerToggle = () => {
+    if (isTimerActive) {
+      stopTimer(task.id);
+    } else {
+      startTimer(task.id);
+    }
+  };
+
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
@@ -75,11 +92,12 @@ export function TaskCard({
           styles.card,
           isOverdue && styles.overdueCard,
           task.isCompleted && styles.completedCard,
+          isTimerActive && styles.timerActiveCard,
           { borderLeftColor: isOverdue ? THEME.colors.error : categoryColor },
         ]}
       >
         {/* Left color bar */}
-        <View style={[styles.colorBar, { backgroundColor: categoryColor }]} />
+        <View style={[styles.colorBar, { backgroundColor: isTimerActive ? THEME.colors.warning : categoryColor }]} />
 
         <View style={styles.content}>
           <View style={styles.topRow}>
@@ -95,10 +113,21 @@ export function TaskCard({
               {task.title}
             </Text>
 
-            {/* Star */}
-            {task.isStarred && (
-              <Text style={styles.star}>⭐</Text>
-            )}
+            {/* Star + Timer */}
+            <View style={styles.topIcons}>
+              {!compact && !task.isCompleted && (
+                <TouchableOpacity
+                  style={[styles.timerBtn, isTimerActive && styles.timerBtnActive]}
+                  onPress={handleTimerToggle}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.timerBtnText}>{isTimerActive ? '⏹' : '▶'}</Text>
+                </TouchableOpacity>
+              )}
+              {task.isStarred && (
+                <Text style={styles.star}>⭐</Text>
+              )}
+            </View>
           </View>
 
           <View style={styles.bottomRow}>
@@ -119,6 +148,13 @@ export function TaskCard({
               </Text>
             )}
 
+            {/* Time tracked */}
+            {task.timeTracked && task.timeTracked > 0 && (
+              <Text style={[styles.timeTracked, isTimerActive && styles.timeTrackedActive]}>
+                ⏱ {formatTracked(task.timeTracked)}
+              </Text>
+            )}
+
             {/* Tags */}
             {!compact && task.tags.slice(0, 2).map((tag) => (
               <View key={tag} style={styles.tag}>
@@ -126,6 +162,13 @@ export function TaskCard({
               </View>
             ))}
           </View>
+
+          {/* Active timer indicator */}
+          {isTimerActive && (
+            <View style={styles.timerIndicator}>
+              <Text style={styles.timerIndicatorText}>● Timer running — tap ⏹ to stop</Text>
+            </View>
+          )}
 
           {/* Actions */}
           {(onComplete || onDelete) && !compact && (
@@ -173,6 +216,10 @@ const styles = StyleSheet.create({
   completedCard: {
     opacity: 0.6,
   },
+  timerActiveCard: {
+    borderColor: THEME.colors.warning + '60',
+    backgroundColor: 'rgba(245,158,11,0.06)',
+  },
   colorBar: {
     width: 3,
   },
@@ -200,9 +247,31 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: THEME.colors.text.muted,
   },
+  topIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing.xs,
+    marginLeft: THEME.spacing.xs,
+  },
+  timerBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: THEME.colors.surface,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerBtnActive: {
+    backgroundColor: THEME.colors.warning + '33',
+    borderColor: THEME.colors.warning,
+  },
+  timerBtnText: {
+    fontSize: 11,
+  },
   star: {
     fontSize: 14,
-    marginLeft: THEME.spacing.xs,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -233,6 +302,23 @@ const styles = StyleSheet.create({
   },
   dueDateOverdue: {
     color: THEME.colors.error,
+  },
+  timeTracked: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.muted,
+  },
+  timeTrackedActive: {
+    color: THEME.colors.warning,
+  },
+  timerIndicator: {
+    backgroundColor: THEME.colors.warning + '22',
+    borderRadius: THEME.radius.sm,
+    paddingHorizontal: THEME.spacing.sm,
+    paddingVertical: 3,
+  },
+  timerIndicatorText: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.warning,
   },
   tag: {
     backgroundColor: 'rgba(255,255,255,0.06)',
