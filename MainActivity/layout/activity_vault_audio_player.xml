@@ -65,7 +65,7 @@
     </FrameLayout>
 
     <!-- Waveform -->
-    <com.prajwal.myfirstapp.VaultWaveformView
+    <com.prajwal.myfirstapp.vault.VaultWaveformView
         android:id="@+id/waveformView"
         android:layout_width="match_parent"
         android:layout_height="64dp"

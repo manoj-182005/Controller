@@ -99,7 +99,7 @@
     </LinearLayout>
 
     <!-- Drawing canvas fills remaining space between toolbars -->
-    <com.prajwal.myfirstapp.DrawingCanvasView
+    <com.prajwal.myfirstapp.notes.DrawingCanvasView
         android:id="@+id/drawingCanvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

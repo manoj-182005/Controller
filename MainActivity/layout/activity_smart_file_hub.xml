@@ -152,7 +152,7 @@
                         android:gravity="center_vertical">
 
                         <!-- Arc chart on left -->
-                        <com.prajwal.myfirstapp.StorageArcView
+                        <com.prajwal.myfirstapp.hub.StorageArcView
                             android:id="@+id/storageArcView"
                             android:layout_width="140dp"
                             android:layout_height="120dp" />
@@ -1103,7 +1103,7 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <com.prajwal.myfirstapp.StorageArcView
+                <com.prajwal.myfirstapp.hub.StorageArcView
                     android:id="@+id/drawerStorageArc"
                     android:layout_width="100dp"
                     android:layout_height="85dp"

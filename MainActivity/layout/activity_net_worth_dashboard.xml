@@ -287,7 +287,7 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
-                    <com.prajwal.myfirstapp.FinancialHealthRingView
+                    <com.prajwal.myfirstapp.expenses.FinancialHealthRingView
                         android:id="@+id/healthRing"
                         android:layout_width="140dp"
                         android:layout_height="140dp"
@@ -502,7 +502,7 @@
 
                 </LinearLayout>
 
-                <com.prajwal.myfirstapp.NetWorthLineChartView
+                <com.prajwal.myfirstapp.expenses.NetWorthLineChartView
                     android:id="@+id/netWorthChart"
                     android:layout_width="match_parent"
                     android:layout_height="180dp" />
@@ -609,7 +609,7 @@
 
                 </LinearLayout>
 
-                <com.prajwal.myfirstapp.CashFlowMiniBarView
+                <com.prajwal.myfirstapp.expenses.CashFlowMiniBarView
                     android:id="@+id/cashFlowMiniBar"
                     android:layout_width="match_parent"
                     android:layout_height="80dp" />
@@ -635,7 +635,7 @@
                     android:fontFamily="sans-serif-medium"
                     android:layout_marginBottom="8dp" />
 
-                <com.prajwal.myfirstapp.SavingsGaugeView
+                <com.prajwal.myfirstapp.expenses.SavingsGaugeView
                     android:id="@+id/savingsGauge"
                     android:layout_width="match_parent"
                     android:layout_height="140dp" />
@@ -708,7 +708,7 @@
 
                 </LinearLayout>
 
-                <com.prajwal.myfirstapp.NetWorthBarChartView
+                <com.prajwal.myfirstapp.expenses.NetWorthBarChartView
                     android:id="@+id/incomeExpenseChart"
                     android:layout_width="match_parent"
                     android:layout_height="160dp" />
