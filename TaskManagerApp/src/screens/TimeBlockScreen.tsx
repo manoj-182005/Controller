@@ -60,6 +60,7 @@ export default function TimeBlockScreen() {
     let currentHr = START_OF_WORKDAY;
     let currentMin = 0;
     unscheduledTasks.forEach((task) => {
+      if (currentHr >= END_OF_WORKDAY) return; // Stop if we run out of workday slots
       const startStr = `${currentHr.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
       setTimeBlock(task.id, startStr);
       const dur = task.estimatedDuration ?? 30;
@@ -68,7 +69,6 @@ export default function TimeBlockScreen() {
         currentMin -= 60;
         currentHr += 1;
       }
-      if (currentHr >= END_OF_WORKDAY) currentHr = START_OF_WORKDAY; // wrap
     });
   };
 

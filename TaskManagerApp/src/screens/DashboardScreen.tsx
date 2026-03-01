@@ -71,6 +71,18 @@ export default function DashboardScreen() {
 
   const quote = QUOTES[now.getDate() % QUOTES.length];
 
+  // Calculate streak: count consecutive days ending today that have at least one completed task
+  const streak = (() => {
+    let count = 0;
+    for (let i = 0; i < 365; i++) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+      const completed = tasks.some((t) => t.completedAt?.startsWith(d));
+      if (completed) count++;
+      else break;
+    }
+    return count;
+  })();
+
   // Weekly sparkline: last 7 days completed
   const weekBars = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0];
@@ -128,7 +140,7 @@ export default function DashboardScreen() {
           🔥
         </Animated.Text>
         <View>
-          <Text style={styles.streakTitle}>5 Day Streak!</Text>
+          <Text style={styles.streakTitle}>{streak} Day Streak{streak > 0 ? '!' : ' — Start Today!'}</Text>
           <Text style={styles.streakSub}>Keep up the momentum</Text>
         </View>
       </View>

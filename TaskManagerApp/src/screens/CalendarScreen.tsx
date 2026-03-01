@@ -226,7 +226,14 @@ export default function CalendarScreen() {
             {/* 24hr Timeline */}
             {Array.from({ length: 24 }, (_, hr) => {
               const hrTasks = tasks.filter(
-                (t) => t.dueDate === selectedDate && t.dueTime?.startsWith(hr.toString().padStart(2, '0'))
+                (t) => {
+                  if (t.dueDate !== selectedDate || !t.dueTime) return false;
+                  // Normalize dueTime: '9:00' → '09:00'
+                  const normalized = t.dueTime.includes(':')
+                    ? t.dueTime.split(':')[0].padStart(2, '0') + ':' + t.dueTime.split(':')[1]
+                    : t.dueTime;
+                  return normalized.startsWith(hr.toString().padStart(2, '0'));
+                }
               );
               const h = hr % 12 === 0 ? 12 : hr % 12;
               const ampm = hr < 12 ? 'AM' : 'PM';
