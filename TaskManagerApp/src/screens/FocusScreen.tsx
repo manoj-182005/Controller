@@ -4,29 +4,38 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
+  ScrollView,
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { THEME } from '../theme/tokens';
 import { useTaskStore } from '../store/taskStore';
 
-const FOCUS_DURATION = 25 * 60; // 25 min
-const BREAK_DURATION = 5 * 60;  // 5 min
-
 const RADIUS = 100;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
+const FOCUS_PRESETS = [
+  { label: '25 min', focus: 25, shortBreak: 5 },
+  { label: '50 min', focus: 50, shortBreak: 10 },
+  { label: '90 min', focus: 90, shortBreak: 15 },
+];
+
 export default function FocusScreen() {
-  const { tasks } = useTaskStore();
+  const { tasks, logFocusSession, focusSessions } = useTaskStore();
   const incompleteTasks = tasks.filter((t) => !t.isCompleted);
 
   const [taskIndex, setTaskIndex] = useState(0);
   const [phase, setPhase] = useState<'focus' | 'break'>('focus');
   const [running, setRunning] = useState(false);
-  const [seconds, setSeconds] = useState(FOCUS_DURATION);
+  const [presetIdx, setPresetIdx] = useState(0);
   const [session, setSession] = useState(1);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressAnim = useRef(new Animated.Value(1)).current;
+  const sessionStartRef = useRef<number | null>(null);
+
+  const preset = FOCUS_PRESETS[presetIdx];
+  const FOCUS_DURATION = preset.focus * 60;
+  const BREAK_DURATION = preset.shortBreak * 60;
+
+  const [seconds, setSeconds] = useState(FOCUS_DURATION);
 
   const total = phase === 'focus' ? FOCUS_DURATION : BREAK_DURATION;
   const progress = seconds / total;
@@ -34,14 +43,33 @@ export default function FocusScreen() {
 
   const currentTask = incompleteTasks[taskIndex];
 
+  // Weekly focus data (last 7 days)
+  const weekFocus = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86400000).toISOString().split('T')[0];
+    const s = focusSessions.find((fs) => fs.date === d);
+    return { d, minutes: s?.focusMinutes ?? 0 };
+  });
+  const maxFocusMin = Math.max(...weekFocus.map((w) => w.minutes), 1);
+  const totalFocusToday = focusSessions.find(
+    (s) => s.date === new Date().toISOString().split('T')[0]
+  )?.focusMinutes ?? 0;
+
   useEffect(() => {
     if (running) {
+      if (phase === 'focus' && sessionStartRef.current === null) {
+        sessionStartRef.current = Date.now();
+      }
       intervalRef.current = setInterval(() => {
         setSeconds((prev) => {
           if (prev <= 1) {
             clearInterval(intervalRef.current!);
             setRunning(false);
             if (phase === 'focus') {
+              if (sessionStartRef.current !== null) {
+                const elapsed = Math.round((Date.now() - sessionStartRef.current) / 60000);
+                logFocusSession(Math.max(1, elapsed));
+                sessionStartRef.current = null;
+              }
               setPhase('break');
               setSeconds(BREAK_DURATION);
               setSession((s) => s + 1);
@@ -60,7 +88,7 @@ export default function FocusScreen() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [running, phase]);
+  }, [running, phase, FOCUS_DURATION, BREAK_DURATION]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60).toString().padStart(2, '0');
@@ -70,11 +98,13 @@ export default function FocusScreen() {
 
   const handleReset = () => {
     setRunning(false);
+    sessionStartRef.current = null;
     setSeconds(phase === 'focus' ? FOCUS_DURATION : BREAK_DURATION);
   };
 
   const handleSkip = () => {
     setRunning(false);
+    sessionStartRef.current = null;
     if (phase === 'focus') {
       setPhase('break');
       setSeconds(BREAK_DURATION);
@@ -85,11 +115,23 @@ export default function FocusScreen() {
     }
   };
 
+  const handlePresetChange = (idx: number) => {
+    setPresetIdx(idx);
+    setRunning(false);
+    sessionStartRef.current = null;
+    setSeconds(FOCUS_PRESETS[idx].focus * 60);
+    setPhase('focus');
+  };
+
   const bgColor = phase === 'focus' ? '#0D1B3E' : '#0B2A1C';
   const ringColor = phase === 'focus' ? THEME.colors.accent : THEME.colors.success;
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: bgColor }]}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Focus Mode</Text>
@@ -103,7 +145,23 @@ export default function FocusScreen() {
       {/* Session info */}
       <Text style={styles.sessionInfo}>
         Session {session} · Task {taskIndex + 1} of {incompleteTasks.length}
+        {totalFocusToday > 0 && ` · ${totalFocusToday}m focused today`}
       </Text>
+
+      {/* Duration presets */}
+      <View style={styles.presetRow}>
+        {FOCUS_PRESETS.map((p, i) => (
+          <TouchableOpacity
+            key={p.label}
+            style={[styles.presetBtn, presetIdx === i && styles.presetBtnActive]}
+            onPress={() => handlePresetChange(i)}
+          >
+            <Text style={[styles.presetBtnText, presetIdx === i && styles.presetBtnTextActive]}>
+              {p.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Current Task */}
       {currentTask && (
@@ -121,7 +179,6 @@ export default function FocusScreen() {
       {/* SVG Timer Ring */}
       <View style={styles.timerContainer}>
         <Svg width={240} height={240} viewBox="0 0 240 240">
-          {/* Track */}
           <Circle
             cx={120}
             cy={120}
@@ -130,7 +187,6 @@ export default function FocusScreen() {
             strokeWidth={12}
             fill="none"
           />
-          {/* Progress */}
           <Circle
             cx={120}
             cy={120}
@@ -180,13 +236,50 @@ export default function FocusScreen() {
           </Text>
         </TouchableOpacity>
       )}
-    </View>
+
+      {/* Weekly Focus Chart */}
+      {weekFocus.some((w) => w.minutes > 0) && (
+        <View style={styles.focusChart}>
+          <Text style={styles.focusChartTitle}>⚡ Weekly Focus Hours</Text>
+          <View style={styles.focusBars}>
+            {weekFocus.map((w, i) => {
+              const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+              const dayIdx = new Date(w.d + 'T00:00:00').getDay();
+              const isToday = i === 6;
+              return (
+                <View key={i} style={styles.focusBarCol}>
+                  <View style={styles.focusBarTrack}>
+                    <View
+                      style={[
+                        styles.focusBarFill,
+                        {
+                          height: `${(w.minutes / maxFocusMin) * 100}%`,
+                          backgroundColor: isToday ? THEME.colors.accent : THEME.colors.accent + '55',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.focusBarLabel}>{dayNames[dayIdx]}</Text>
+                  {w.minutes > 0 && (
+                    <Text style={styles.focusBarValue}>{Math.round((w.minutes / 60) * 10) / 10}h</Text>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      <View style={{ height: 80 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
     alignItems: 'center',
     paddingTop: 56,
     paddingHorizontal: THEME.spacing.lg,
@@ -215,8 +308,34 @@ const styles = StyleSheet.create({
   sessionInfo: {
     fontSize: THEME.typography.sizes.sm,
     color: THEME.colors.text.secondary,
-    marginBottom: THEME.spacing.lg,
+    marginBottom: THEME.spacing.md,
     alignSelf: 'flex-start',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    gap: THEME.spacing.sm,
+    alignSelf: 'flex-start',
+    marginBottom: THEME.spacing.lg,
+  },
+  presetBtn: {
+    paddingHorizontal: THEME.spacing.md,
+    paddingVertical: THEME.spacing.sm,
+    borderRadius: THEME.radius.full,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  presetBtnActive: {
+    backgroundColor: THEME.colors.accent + '33',
+    borderColor: THEME.colors.accent,
+  },
+  presetBtnText: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.secondary,
+    fontWeight: THEME.typography.weights.medium,
+  },
+  presetBtnTextActive: {
+    color: THEME.colors.accent,
   },
   currentTaskCard: {
     backgroundColor: 'rgba(255,255,255,0.07)',
@@ -310,10 +429,60 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: THEME.colors.border,
     width: '100%',
+    marginBottom: THEME.spacing.xl,
   },
   nextTaskBtnText: {
     fontSize: THEME.typography.sizes.sm,
     color: THEME.colors.text.secondary,
     textAlign: 'center',
+  },
+  focusChart: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: THEME.radius.lg,
+    padding: THEME.spacing.lg,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+  },
+  focusChartTitle: {
+    fontSize: THEME.typography.sizes.sm,
+    fontWeight: THEME.typography.weights.bold,
+    color: THEME.colors.text.primary,
+    marginBottom: THEME.spacing.md,
+  },
+  focusBars: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    height: 60,
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  focusBarCol: {
+    flex: 1,
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  focusBarTrack: {
+    width: '100%',
+    flex: 1,
+    justifyContent: 'flex-end',
+    borderRadius: THEME.radius.sm,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+  },
+  focusBarFill: {
+    width: '100%',
+    borderRadius: THEME.radius.sm,
+    minHeight: 3,
+  },
+  focusBarLabel: {
+    fontSize: 9,
+    color: THEME.colors.text.muted,
+    marginTop: 3,
+  },
+  focusBarValue: {
+    fontSize: 9,
+    color: THEME.colors.text.secondary,
   },
 });

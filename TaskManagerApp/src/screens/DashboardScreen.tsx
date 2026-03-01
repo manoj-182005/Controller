@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import { THEME } from '../theme/tokens';
 import { useTaskStore } from '../store/taskStore';
 import { TaskCard } from '../components/TaskCard';
 import { Category } from '../types/task';
+import { generateInsights, calcProductivityScore } from '../utils/aiInsights';
+import SmartScheduleModal from '../components/SmartScheduleModal';
 
 const QUOTES = [
   '"The secret of getting ahead is getting started." — Mark Twain',
@@ -32,6 +34,7 @@ const CATEGORY_ORDER: Category[] = [
 export default function DashboardScreen() {
   const { tasks, toggleComplete, deleteTask } = useTaskStore();
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [scheduleVisible, setScheduleVisible] = useState(false);
 
   React.useEffect(() => {
     const pulse = Animated.loop(
@@ -70,6 +73,10 @@ export default function DashboardScreen() {
     .slice(0, 3);
 
   const quote = QUOTES[now.getDate() % QUOTES.length];
+
+  // AI insights
+  const insights = generateInsights(tasks);
+  const productivityScore = calcProductivityScore(tasks);
 
   // Calculate streak: count consecutive days ending today that have at least one completed task
   const streak = (() => {
@@ -132,7 +139,27 @@ export default function DashboardScreen() {
           <Text style={styles.statValue}>{overdueTasks.length}</Text>
           <Text style={styles.statLabel}>Overdue</Text>
         </View>
+        <View
+          style={[styles.statCard, styles.scoreCard, { borderTopColor: THEME.colors.warning }]}
+        >
+          <Text style={styles.statValue}>{productivityScore}</Text>
+          <Text style={styles.statLabel}>Score</Text>
+        </View>
       </View>
+
+      {/* Smart Schedule Button */}
+      <TouchableOpacity
+        style={styles.scheduleDayBtn}
+        onPress={() => setScheduleVisible(true)}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.scheduleDayIcon}>🗓</Text>
+        <View style={styles.scheduleDayText}>
+          <Text style={styles.scheduleDayTitle}>Schedule My Day</Text>
+          <Text style={styles.scheduleDaySub}>AI auto-plans your tasks optimally</Text>
+        </View>
+        <Text style={styles.scheduleDayArrow}>›</Text>
+      </TouchableOpacity>
 
       {/* Streak */}
       <View style={styles.streakCard}>
@@ -245,10 +272,31 @@ export default function DashboardScreen() {
         </ScrollView>
       </View>
 
+      {/* AI Insights */}
+      {insights.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>🧠 AI Insights</Text>
+          {insights.map((insight) => (
+            <View key={insight.id} style={styles.insightCard}>
+              <Text style={styles.insightIcon}>{insight.icon}</Text>
+              <View style={styles.insightBody}>
+                <Text style={styles.insightTitle}>{insight.title}</Text>
+                <Text style={styles.insightMsg}>{insight.message}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       {/* Quote */}
       <View style={styles.quoteCard}>
         <Text style={styles.quoteText}>{quote}</Text>
       </View>
+
+      <SmartScheduleModal
+        visible={scheduleVisible}
+        onClose={() => setScheduleVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -438,6 +486,70 @@ const styles = StyleSheet.create({
   dateSub: {
     fontSize: THEME.typography.sizes.xs,
     color: THEME.colors.text.muted,
+  },
+  scoreCard: {
+    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderColor: THEME.colors.warning + '40',
+  },
+  scheduleDayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: THEME.colors.accent + '18',
+    borderRadius: THEME.radius.lg,
+    padding: THEME.spacing.lg,
+    borderWidth: 1,
+    borderColor: THEME.colors.accent + '40',
+    marginBottom: THEME.spacing.lg,
+    gap: THEME.spacing.md,
+  },
+  scheduleDayIcon: {
+    fontSize: 28,
+  },
+  scheduleDayText: {
+    flex: 1,
+  },
+  scheduleDayTitle: {
+    fontSize: THEME.typography.sizes.md,
+    fontWeight: THEME.typography.weights.bold,
+    color: THEME.colors.text.primary,
+  },
+  scheduleDaySub: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.secondary,
+    marginTop: 2,
+  },
+  scheduleDayArrow: {
+    fontSize: 22,
+    color: THEME.colors.accent,
+  },
+  insightCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing.md,
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.radius.md,
+    padding: THEME.spacing.md,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    marginBottom: THEME.spacing.sm,
+  },
+  insightIcon: {
+    fontSize: 20,
+    marginTop: 1,
+  },
+  insightBody: {
+    flex: 1,
+    gap: 2,
+  },
+  insightTitle: {
+    fontSize: THEME.typography.sizes.sm,
+    fontWeight: THEME.typography.weights.semibold,
+    color: THEME.colors.text.primary,
+  },
+  insightMsg: {
+    fontSize: THEME.typography.sizes.xs,
+    color: THEME.colors.text.secondary,
+    lineHeight: 18,
   },
   quoteCard: {
     backgroundColor: THEME.colors.surface,

@@ -1,5 +1,68 @@
 import { create } from 'zustand';
-import { Task, Priority, Category, TaskStatus } from '../types/task';
+import { Task, Priority, Category, TaskStatus, TaskTemplate, FocusSession } from '../types/task';
+
+// ─── Built-in Templates ───────────────────────────────────────────────────────
+export const BUILT_IN_TEMPLATES: TaskTemplate[] = [
+  {
+    id: 'morning_routine',
+    name: 'Morning Routine',
+    description: 'Start the day with healthy habits',
+    icon: '🌅',
+    tasks: [
+      { title: 'Meditate for 10 minutes', priority: 'normal', category: 'health', tags: ['mindfulness'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'low', estimatedDuration: 10, kanbanColumn: 'todo' },
+      { title: 'Morning workout', priority: 'high', category: 'health', tags: ['fitness'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 30, kanbanColumn: 'todo' },
+      { title: 'Review today\'s tasks', priority: 'normal', category: 'personal', tags: ['planning'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 10, kanbanColumn: 'todo' },
+    ],
+  },
+  {
+    id: 'weekly_review',
+    name: 'Weekly Review',
+    description: 'Reflect and plan for the week ahead',
+    icon: '📋',
+    tasks: [
+      { title: 'Review completed tasks this week', priority: 'normal', category: 'personal', tags: ['review'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 20, kanbanColumn: 'todo' },
+      { title: 'Update project priorities', priority: 'high', category: 'work', tags: ['planning'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'deep', estimatedDuration: 30, kanbanColumn: 'todo' },
+      { title: 'Plan next week goals', priority: 'high', category: 'personal', tags: ['planning', 'goals'], status: 'todo', isStarred: true, subtasks: [], energyLevel: 'deep', estimatedDuration: 30, kanbanColumn: 'todo' },
+    ],
+  },
+  {
+    id: 'project_launch',
+    name: 'Project Launch',
+    description: 'Checklist for launching a new project',
+    icon: '🚀',
+    tasks: [
+      { title: 'Define project scope and goals', priority: 'urgent', category: 'work', tags: ['project'], status: 'todo', isStarred: true, subtasks: [], energyLevel: 'deep', estimatedDuration: 60, kanbanColumn: 'todo' },
+      { title: 'Set up project repository', priority: 'high', category: 'work', tags: ['code', 'setup'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'deep', estimatedDuration: 30, kanbanColumn: 'todo' },
+      { title: 'Create project timeline', priority: 'high', category: 'work', tags: ['planning'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'deep', estimatedDuration: 45, kanbanColumn: 'todo' },
+      { title: 'Send project kickoff email', priority: 'normal', category: 'work', tags: ['communication'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 20, kanbanColumn: 'todo' },
+    ],
+  },
+  {
+    id: 'trip_planning',
+    name: 'Trip Planning',
+    description: 'Everything to organize a trip',
+    icon: '✈️',
+    tasks: [
+      { title: 'Book flights', priority: 'urgent', category: 'personal', tags: ['travel', 'booking'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 30, kanbanColumn: 'todo' },
+      { title: 'Book accommodation', priority: 'high', category: 'personal', tags: ['travel', 'booking'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 20, kanbanColumn: 'todo' },
+      { title: 'Research local attractions', priority: 'low', category: 'personal', tags: ['travel', 'research'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 45, kanbanColumn: 'todo' },
+      { title: 'Pack essentials', priority: 'normal', category: 'personal', tags: ['travel', 'packing'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'low', estimatedDuration: 30, kanbanColumn: 'todo' },
+    ],
+  },
+  {
+    id: 'study_session',
+    name: 'Study Session',
+    description: 'Focused learning block',
+    icon: '📚',
+    tasks: [
+      { title: 'Review previous notes', priority: 'normal', category: 'study', tags: ['review'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 15, kanbanColumn: 'todo' },
+      { title: 'Study new material', priority: 'high', category: 'study', tags: ['learning'], status: 'todo', isStarred: true, subtasks: [], energyLevel: 'deep', estimatedDuration: 60, kanbanColumn: 'todo' },
+      { title: 'Practice exercises', priority: 'normal', category: 'study', tags: ['practice'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'deep', estimatedDuration: 30, kanbanColumn: 'todo' },
+      { title: 'Summarize key points', priority: 'low', category: 'study', tags: ['notes'], status: 'todo', isStarred: false, subtasks: [], energyLevel: 'light', estimatedDuration: 15, kanbanColumn: 'todo' },
+    ],
+  },
+];
+
 
 const todayStr = new Date().toISOString().split('T')[0];
 const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
@@ -441,6 +504,9 @@ const SAMPLE_TASKS: Task[] = [
 
 interface TaskStore {
   tasks: Task[];
+  activeTimerTaskId: string | null;
+  timerStartedAt: string | null;
+  focusSessions: FocusSession[];
   addTask: (task: Task) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -448,6 +514,10 @@ interface TaskStore {
   toggleStar: (id: string) => void;
   moveKanban: (id: string, column: 'todo' | 'inprogress' | 'done') => void;
   setTimeBlock: (id: string, start: string) => void;
+  startTimer: (id: string) => void;
+  stopTimer: (id: string) => void;
+  logFocusSession: (focusMinutes: number) => void;
+  applyTemplate: (template: TaskTemplate) => void;
   getTodayTasks: () => Task[];
   getOverdueTasks: () => Task[];
   getCompletedTasks: () => Task[];
@@ -458,6 +528,9 @@ interface TaskStore {
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: SAMPLE_TASKS,
+  activeTimerTaskId: null,
+  timerStartedAt: null,
+  focusSessions: [],
 
   addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
 
@@ -516,6 +589,94 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         t.id === id ? { ...t, timeBlockStart: start } : t
       ),
     })),
+
+  startTimer: (id) => {
+    // Stop any running timer first
+    const { activeTimerTaskId, timerStartedAt, tasks } = get();
+    if (activeTimerTaskId && timerStartedAt) {
+      const elapsedMs = Date.now() - new Date(timerStartedAt).getTime();
+      const elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === activeTimerTaskId
+            ? {
+                ...t,
+                timeTracked: (t.timeTracked ?? 0) + elapsedMin,
+                timeSessions: [
+                  ...(t.timeSessions ?? []),
+                  { startedAt: timerStartedAt, endedAt: new Date().toISOString(), durationMinutes: elapsedMin },
+                ],
+                status: t.status === 'todo' ? 'inprogress' : t.status,
+                kanbanColumn: t.kanbanColumn === 'todo' ? 'inprogress' : t.kanbanColumn,
+              }
+            : t
+        ),
+      }));
+    }
+    // Start new timer
+    set({ activeTimerTaskId: id, timerStartedAt: new Date().toISOString() });
+  },
+
+  stopTimer: (id) => {
+    const { timerStartedAt } = get();
+    if (!timerStartedAt) return;
+    const elapsedMs = Date.now() - new Date(timerStartedAt).getTime();
+    const elapsedMin = Math.max(1, Math.round(elapsedMs / 60000));
+    set((state) => ({
+      activeTimerTaskId: null,
+      timerStartedAt: null,
+      tasks: state.tasks.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              timeTracked: (t.timeTracked ?? 0) + elapsedMin,
+              timeSessions: [
+                ...(t.timeSessions ?? []),
+                { startedAt: timerStartedAt, endedAt: new Date().toISOString(), durationMinutes: elapsedMin },
+              ],
+              status: t.status === 'todo' ? 'inprogress' : t.status,
+              kanbanColumn: t.kanbanColumn === 'todo' ? 'inprogress' : t.kanbanColumn,
+            }
+          : t
+      ),
+    }));
+  },
+
+  logFocusSession: (focusMinutes) => {
+    const today = new Date().toISOString().split('T')[0];
+    set((state) => {
+      const existing = state.focusSessions.find((s) => s.date === today);
+      if (existing) {
+        return {
+          focusSessions: state.focusSessions.map((s) =>
+            s.date === today
+              ? { ...s, focusMinutes: s.focusMinutes + focusMinutes, sessions: s.sessions + 1 }
+              : s
+          ),
+        };
+      }
+      return {
+        focusSessions: [
+          ...state.focusSessions,
+          { date: today, focusMinutes, sessions: 1 },
+        ],
+      };
+    });
+  },
+
+  applyTemplate: (template) => {
+    const today = new Date().toISOString().split('T')[0];
+    const newTasks: Task[] = template.tasks.map((t, i) => ({
+      ...t,
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 9)}_${i}`,
+      createdAt: new Date().toISOString(),
+      isCompleted: false,
+      dueDate: today,
+      timeSessions: [],
+      templateId: template.id,
+    }));
+    set((state) => ({ tasks: [...state.tasks, ...newTasks] }));
+  },
 
   getTodayTasks: () => {
     const today = new Date().toISOString().split('T')[0];
